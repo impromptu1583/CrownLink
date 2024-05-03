@@ -1,4 +1,8 @@
 import asyncio, json, uuid, time
+from enum import Enum
+
+
+
 
 
 
@@ -7,7 +11,6 @@ class CMClient:
         self.addr = addr # ('1.2.3.4',12345)
         self.ID = uuid.uuid4().bytes #bytes_le if little-endien... prob just sort that out client side
         self.advertising = False
-        self.ice_description = None
         self.last_heartbeat = time.time()
         
 
@@ -16,6 +19,7 @@ class ServerProtocol:
     prune_frequency = 60 # check every minute upon diagram_received
 
     def connection_made(self, transport):
+        # udp port successfully opened & ready for communication
         self.transport = transport
         self.CONNECTIONS = {} # { addr : CMClinet }
         self.LAST_PRUNE = time.time()
@@ -28,46 +32,54 @@ class ServerProtocol:
         
 
     def datagram_received(self, data, addr):
-        # prune connections if we need to
-        if time.time() - self.LAST_PRUNE > self.prune_frequency:
-            self.prune_connections()
-            self.LAST_PRUNE = time.time()
+        # if time.time() - self.LAST_PRUNE > self.prune_frequency:
+        #     self.prune_connections()
+        #     self.LAST_PRUNE = time.time()
         
         # add connection if we need to
         if not addr in self.CONNECTIONS.keys():
             self.CONNECTIONS[addr] = CMClient(addr)
 
         # process incoming data
-        message = data.decode()
+        
+        # incoming message(BYTES)
+        #message = data.decode()
 
-        # TODO: check message integrity
-        # format should be COMMAND|ARGS (ARGS can be blank but should always have pipe after command)
-        print(f"received: {message}")
-        self.CONNECTIONS[addr].last_heartbeat = time.time()
-        command,val = message.split("|",1)
-        print(command,val)
-        match command:
-            case "init":
-                # new connection TODO: validate
-                self.CONNECTIONS[addr].ice_description = val
-                # send back ID
-                self.transport.sendto(self.CONNECTIONS[addr].ID, addr)
-            case "advertising":
-                # set advertising value True/False
-                try:
-                    self.CONNECTIONS[addr].advertising = bool(int(val)) # send 1 for true, 0 for false
-                except ValueError:
-                    print(f"Error setting advertising state, message {message}")
-            case "solicit":
-                advertisers = list(filter(lambda c:c.advertising,self.CONNECTIONS.values()))
-                # todo need to serialize / unserialize data
-                advlist = b''
-                self.transport.sendto(advlist, addr)
-                for conn in advertisers:
-                    sendbuff = b''
-                    self.transport.sendto(sendbuff, conn.addr)
-                    # need to send list of (uuid:ice_desc)
-                    # also need to send this connection info to them
+        print(f"received: {data}")
+        try:
+            print(f"Decoded: {data.decode()}")
+        except:
+            pass
+        try:
+            print(f"Int: {int.from_bytes(data,byteorder='little')}")
+        except:
+            pass
+
+        # self.CONNECTIONS[addr].last_heartbeat = time.time()
+        # command,val = message.split("|",1)
+        # print(command,val)
+        # match command:
+        #     case "init":
+        #         # new connection TODO: validate
+        #         #self.CONNECTIONS[addr].ice_description = val
+        #         # send back ID
+        #         self.transport.sendto(self.CONNECTIONS[addr].ID, addr)
+        #     case "advertising":
+        #         # set advertising value True/False
+        #         try:
+        #             self.CONNECTIONS[addr].advertising = bool(int(val)) # send 1 for true, 0 for false
+        #         except ValueError:
+        #             print(f"Error setting advertising state, message {message}")
+        #     case "solicit":
+        #         advertisers = list(filter(lambda c:c.advertising,self.CONNECTIONS.values()))
+        #         # todo need to serialize / unserialize data
+        #         advlist = b''
+        #         self.transport.sendto(advlist, addr)
+        #         for conn in advertisers:
+        #             sendbuff = b''
+        #             self.transport.sendto(sendbuff, conn.addr)
+        #             # need to send list of (uuid:ice_desc)
+        #             # also need to send this connection info to them
 
         
 

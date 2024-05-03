@@ -42,7 +42,7 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
     {
     case DRIP_ID:
       *ppFxns = &SNP::spiFunctions;
-      SNP::pluggedNetwork = (SNP::Network<SNP::SOCKADDR>*)(new DRIP::DirectIP());
+      SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new DRIP::DirectIP());
       return TRUE;
     //case SMEM_ID:
     //  *ppFxns = &SNP::spiFunctions;

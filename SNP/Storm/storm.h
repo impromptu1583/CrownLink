@@ -51,7 +51,9 @@ typedef struct _WSIZE
   WORD  cy;
 } WSIZE, *PWSIZE;
 
-
+struct SNETADDR {
+    BYTE address[16];
+};
 
 // Game states
 #define GAMESTATE_PRIVATE 0x01
@@ -251,7 +253,7 @@ typedef struct _game
   DWORD     dwIndex;
   DWORD     dwGameState;
   DWORD     dwUnk_08;
-  SOCKADDR  saHost;
+  SNETADDR  saHost;
   DWORD     dwUnk_1C;
   DWORD     dwTimer;
   DWORD     dwUnk_24;

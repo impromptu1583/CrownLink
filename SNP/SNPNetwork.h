@@ -21,10 +21,11 @@ namespace SNP
   };
 
   typedef ::SOCKADDR SOCKADDR;
+  typedef ::SNETADDR SNETADDR;
 
-  extern void passAdvertisement(const SOCKADDR& host, Util::MemoryFrame ad);
-  extern void removeAdvertisement(const SOCKADDR& host);
-  extern void passPacket(const SOCKADDR& host, Util::MemoryFrame packet);
+  extern void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad);
+  extern void removeAdvertisement(const SNETADDR& host);
+  extern void passPacket(const SNETADDR& host, Util::MemoryFrame packet);
 
   template<typename PEERID>
   class Network
@@ -37,12 +38,12 @@ namespace SNP
     {
     }
 
-    SOCKADDR makeBin(const PEERID& src)
+    SNETADDR makeBin(const PEERID& src)
     {
-      SOCKADDR retval;
-      memcpy_s(&retval, sizeof(SOCKADDR), &src, sizeof(PEERID));
-      memset(((BYTE*)&retval)+sizeof(PEERID), 0, sizeof(SOCKADDR) - sizeof(PEERID));
-      return retval;
+        SNETADDR retval;
+        memcpy_s(&retval, sizeof(SNETADDR), &src, sizeof(PEERID));
+        memset(((BYTE*)&retval)+sizeof(PEERID), 0, sizeof(SNETADDR) - sizeof(PEERID));
+        return retval;
     }
 
     // callback functions that take network specific arguments and cast them away
@@ -69,5 +70,5 @@ namespace SNP
     virtual void stopAdvertising() = 0;
   };
 
-  typedef Network<SOCKADDR> BinNetwork;
+  typedef Network<SNETADDR> BinNetwork;
 }

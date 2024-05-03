@@ -11,7 +11,7 @@
 namespace SNP
 {
   //------------------------------------------------------------------------------------------------------------------------------------
-  Network<SOCKADDR> *pluggedNetwork = NULL;
+  Network<SNETADDR> *pluggedNetwork = NULL;
 
   client_info gameAppInfo;
 
@@ -21,7 +21,7 @@ namespace SNP
 
   struct GamePacket
   {
-    SOCKADDR sender;
+    SNETADDR sender;
     int packetSize;
     DWORD timeStamp;
     char data[512];
@@ -76,7 +76,7 @@ each second
     spiFree             // free allocated
   */
   //------------------------------------------------------------------------------------------------------------------------------------
-  void passAdvertisement(const SOCKADDR& host, Util::MemoryFrame ad)
+  void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad)
   {
     INTERLOCKED;
 
@@ -85,7 +85,7 @@ each second
     for(auto &g : gameList)
     {
       // if peer IDs equal
-      if ( !memcmp(&g.gameInfo.saHost, &host, sizeof(SOCKADDR)) )
+      if ( !memcmp(&g.gameInfo.saHost, &host, sizeof(SNETADDR)) )
       {
         adFile = &g;
         break;
@@ -108,10 +108,10 @@ each second
     adFile->gameInfo.saHost = host;
     adFile->gameInfo.pExtra = adFile->extraBytes;
   }
-  void removeAdvertisement(const SOCKADDR& host)
+  void removeAdvertisement(const SNETADDR& host)
   {
   }
-  void passPacket(const SOCKADDR& sender, Util::MemoryFrame packet)
+  void passPacket(const SNETADDR& sender, Util::MemoryFrame packet)
   {
     INTERLOCKED;
     GamePacket gamePacket;
@@ -389,7 +389,7 @@ each second
     return FALSE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiSend(DWORD addrCount, SOCKADDR * *addrList, char *buf, DWORD bufLen)
+  BOOL __stdcall spiSend(DWORD addrCount, SNETADDR * *addrList, char *buf, DWORD bufLen)
   {
 //    DropMessage(0, "spiSend %d", GetCurrentThreadId());
 
@@ -402,7 +402,10 @@ each second
     try
     {
       // support for 1 peer for now
-      SOCKADDR him = *(addrList[0]);
+      SNETADDR him = *(addrList[0]);
+      // temporary bodge going back to sockaddr
+      //SOCKADDR him;
+      //memcpy(&(him), &shim, sizeof(shim));
 
       // send packet over the network module
       pluggedNetwork->sendAsyn(him, Util::MemoryFrame(buf, bufLen));
@@ -419,7 +422,7 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiReceive(SOCKADDR **senderPeer, char **data, DWORD *databytes)
+  BOOL __stdcall spiReceive(SNETADDR **senderPeer, char **data, DWORD *databytes)
   {
     INTERLOCKED;
 //    DropMessage(0, "spiReceive %d", GetCurrentThreadId());
@@ -471,7 +474,7 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiFree(SOCKADDR * addr, char *data, DWORD databytes)
+  BOOL __stdcall spiFree(SNETADDR * addr, char *data, DWORD databytes)
   {
     INTERLOCKED;
     // called after spiReceive, to free the reserved memory
@@ -483,7 +486,7 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiCompareNetAddresses(SOCKADDR * addr1, SOCKADDR * addr2, DWORD *dwResult)
+  BOOL __stdcall spiCompareNetAddresses(SNETADDR* addr1, SNETADDR* addr2, DWORD *dwResult)
   {
     INTERLOCKED;
     DropMessage(0, "spiCompareNetAddresses");
@@ -496,7 +499,7 @@ each second
       return FALSE;
     }
 
-    *dwResult = (0 == memcmp(addr1, addr2, sizeof(SOCKADDR)));
+    *dwResult = (0 == memcmp(addr1, addr2, sizeof(SNETADDR)));
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
@@ -528,7 +531,7 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiFreeExternalMessage(SOCKADDR * addr, char *data, DWORD databytes)
+  BOOL __stdcall spiFreeExternalMessage(SNETADDR * addr, char *data, DWORD databytes)
   {
     DropMessage(0, "spiFreeExternalMessage");
     /*
@@ -584,7 +587,7 @@ each second
     return FALSE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  BOOL __stdcall spiReceiveExternalMessage(SOCKADDR * *addr, char **data, DWORD *databytes)
+  BOOL __stdcall spiReceiveExternalMessage(SNETADDR * *addr, char **data, DWORD *databytes)
   {
 //    DropMessage(0, "spiReceiveExternalMessage");
     // This function is complete

@@ -31,6 +31,21 @@ set(MODULE_FILES
 
 add_library (SNP SHARED ${MODULE_FILES})
 
+set(TEST_FILES
+	Util/MemoryFrame.cpp
+	Util/MemoryFrame.h
+	Util/Types.h
+	Util/Exceptions.h
+	Util/Exceptions.cpp
+	UDPSocket.h
+	UDPSocket.cpp
+	UDPTest.cpp
+)
+
+add_executable (UDPTEST ${TEST_FILES})
+target_link_libraries(UDPTEST ws2_32)
+
+
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
 endif()
@@ -43,8 +58,8 @@ set_target_properties (SNP
 		SUFFIX ".snp"
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
-target_include_directories(SNP PUBLIC ${CMAKE_SOURCE_DIR}/SNP/Storm)
-target_include_directories(SNP PUBLIC ${CMAKE_SOURCE_DIR}/SNP/Util)
+include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
+include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
 
 
 include(FetchContent)
@@ -59,10 +74,12 @@ FetchContent_MakeAvailable(Juice)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 
 target_link_libraries(SNP
-	PUBLIC wsock32
+#	PUBLIC wsock32
 	PUBLIC ws2_32
 	PRIVATE juice-static
 )
+
+
 
 # copy CAPS MPQ into SNP
 

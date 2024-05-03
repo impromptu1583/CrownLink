@@ -9,12 +9,12 @@ namespace SNP
     // The size of the vtable
     DWORD dwSize;
     // Compares two sockaddrs with each other and returns the number of differences in dwResult
-    BOOL(__stdcall *spiCompareNetAddresses)(SOCKADDR* addr1, SOCKADDR* addr2, DWORD *dwResult);
+    BOOL(__stdcall *spiCompareNetAddresses)(SNETADDR* addr1, SNETADDR* addr2, DWORD *dwResult);
     // Called when the module is released
     BOOL(__stdcall *spiDestroy)();
     // Called in order to free blocks of packet memory returned in the spiReceive functions
-    BOOL(__stdcall *spiFree)(SOCKADDR* addr, char *data, DWORD databytes);
-    BOOL(__stdcall *spiFreeExternalMessage)(SOCKADDR* addr, char *data, DWORD databytes);
+    BOOL(__stdcall *spiFree)(SNETADDR* addr, char *data, DWORD databytes);
+    BOOL(__stdcall *spiFreeExternalMessage)(SNETADDR* addr, char *data, DWORD databytes);
     // Returns info on a specified game
     void  *spiGetGameInfo;
     // Returns packet statistics
@@ -26,13 +26,13 @@ namespace SNP
     // Called to prevent the game list from updating so that it can be processed by storm
     void  *spiLockGameList;
     // Return received data from a connectionless socket to storm
-    BOOL(__stdcall *spiReceive)(SOCKADDR* *addr, char **data, DWORD *databytes);
+    BOOL(__stdcall *spiReceive)(SNETADDR* *addr, char **data, DWORD *databytes);
     // Return received data from a connected socket to storm
-    BOOL(__stdcall *spiReceiveExternalMessage)(SOCKADDR* *addr, char **data, DWORD *databytes);
+    BOOL(__stdcall *spiReceiveExternalMessage)(SNETADDR* *addr, char **data, DWORD *databytes);
     // Called when a game is selected to query information
     void  *spiSelectGame;
     // Sends data over a connectionless socket
-    BOOL(__stdcall *spiSend)(DWORD addrCount, SOCKADDR* *addrList, char *buf, DWORD bufLen);
+    BOOL(__stdcall *spiSend)(DWORD addrCount, SNETADDR* *addrList, char *buf, DWORD bufLen);
     // Sends data over a connected socket
     void  *spiSendExternalMessage;
     // An extended version of spiStartAdvertisingGame
@@ -54,7 +54,7 @@ namespace SNP
   };
 
   extern NetFunctions spiFunctions;
-  extern Network<SOCKADDR> *pluggedNetwork;
+  extern Network<SNETADDR> *pluggedNetwork;
 
   /*
   bool __stdcall spiInitialize(clientInfo *gameClientInfo, userInfo *userData, battleInfo *bnCallbacks, ModuleInfo *moduleData, HANDLE hEvent);
