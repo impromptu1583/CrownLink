@@ -1,11 +1,11 @@
 #include <iostream>
-#include <string>
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+
 struct SNETADDR {
     BYTE address[16];
 };
@@ -44,8 +44,14 @@ int main()
     std::cout << destination.sin_port << "\n";
     std::cout << destination.sin_addr.s_addr << "\n";
 
-    std::string msg = "Jane Doe";
+    std::string msg = "ini|";
     int n_bytes = ::sendto(sock, msg.c_str(), msg.length(), 0, reinterpret_cast<sockaddr*>(&destination), sizeof(destination));
+
+    msg = "adv|1";
+    n_bytes += ::sendto(sock, msg.c_str(), msg.length(), 0, reinterpret_cast<sockaddr*>(&destination), sizeof(destination));
+
+
+
     std::cout << n_bytes << " bytes sent" << std::endl;
     ::closesocket(sock);
 
