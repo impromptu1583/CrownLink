@@ -32,18 +32,21 @@ public:
 	SignalingSocket();
 	~SignalingSocket(); //destructor
 	SNETADDR server;
+	bool is_same_address(SNETADDR* a, SNETADDR* b);
 	// state
 private:
 	SOCKET sockfd;
 	struct addrinfo hints, * res, * p;
 	int state;
+	std::vector<std::string> split(std::string s);
+	std::string _delimiter;
 	// prob also address info....
 
 public:
 	void init();
 	void release() noexcept;
 	void sendPacket(SNETADDR& dest, std::string msg); //need to add vars
-	void receivePacket(std::string *rcv);
+	std::vector<std::string> receivePackets();
 	void setBlockingMode(bool block);
 	// need to do something so it's not blocking
 	// some state args?

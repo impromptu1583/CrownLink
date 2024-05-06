@@ -20,7 +20,7 @@ TWSAInitializerSig _init_wsa;
 // constructors
 
 SignalingSocket::SignalingSocket()
-    : sockfd(NULL), hints(),res(),p(),server(),state(0)
+    : sockfd(NULL), hints(),res(),p(),server(),state(0),_delimiter("-+")
 {
 }
 
@@ -84,48 +84,74 @@ void SignalingSocket::release() noexcept
 }
 
 void SignalingSocket::sendPacket(SNETADDR& dest, std::string msg) {
+	msg.insert(0, (char*)(dest.address), sizeof(dest.address));
+	msg.append(_delimiter);
 	int n_bytes = send(sockfd, msg.c_str(), msg.length(), 0);
 	if (n_bytes == -1) perror("send error");
 }
 
-void SignalingSocket::receivePacket(std::string *buf) {
+std::vector<std::string> SignalingSocket::split(std::string s) {
+	size_t pos_start = 0, pos_end, delim_len = _delimiter.length();
+	std::string token;
+	std::vector<std::string> res;
+	size_t s_len = s.length();
+	while ((pos_end = s.find(_delimiter, pos_start)) != std::string::npos) {
+		token = s.substr(pos_start, pos_end - pos_start);
+		s_len = token.length();
+		pos_start = pos_end + delim_len;
+		res.push_back(token);
+	}
+
+	//res.push_back(s.substr(pos_start));
+	return res;
+}
+
+bool SignalingSocket::is_same_address(SNETADDR *a, SNETADDR *b) {
+	return (0 == memcmp(a, b, sizeof(SNETADDR)));
+}
+
+std::vector<std::string> SignalingSocket::receivePackets() {
 	const unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string rcv;
+	std::vector<std::string> output;
 	int n_bytes;
-	do {
-		n_bytes = recv(sockfd, &buffer[0], buffer.size(), 0);
-		// append string from buffer.
-		if (n_bytes == -1) {
-			// error 
-		}
-		else {
-			rcv.append(buffer.cbegin(), buffer.cend());
-		}
-	} while (n_bytes == MAX_BUF_LENGTH);
-	if (n_bytes == -1) {
+
+	// try to receive
+	n_bytes = recv(sockfd, &buffer[0], buffer.size(), 0);
+	if (n_bytes == SOCKET_ERROR) {
 		state = WSAGetLastError();
-		if (state == WSAEWOULDBLOCK
-			|| state == WSAECONNRESET)
-		throw GeneralException("::recv failed");
+		if (state == WSAEWOULDBLOCK || state == WSAECONNRESET) {
+			// we're waiting for data or connection is reset
+			return output; //will be empty
+		}
+		else throw GeneralException("::recv failed");
 	}
+	else {
+		buffer.resize(n_bytes);
+		rcv.append(buffer.cbegin(), buffer.cend());
+		output = split(rcv);
+		return output;
+	}
+}
+
 	//std::cout << n_bytes << " bytes received" << std::endl;
 	//buff[n_bytes] = '\0';
 	//std::cout << buff << std::endl;
 
-	int i;
-	for (i = 0; i < n_bytes; i++)
-	{
-		if ((i - 1) % 16 == 0) printf("\n");
-		if (i > 0) printf(":");
-		printf("%02hhX", rcv[i]);
-	}
-	printf("\n");
+	//int i;
+	//for (i = 0; i < n_bytes; i++)
+	//{
+	//	if ((i - 1) % 16 == 0) printf("\n");
+	//	if (i > 0) printf(":");
+	//	printf("%02hhX", rcv[i]);
+	//}
+	//printf("\n");
 
-	memcpy(&buf, &rcv, sizeof(rcv));
-
+	//memcpy(&buf, &rcv, sizeof(rcv));
+	//return 1;
 	//return buff;
-}
+
 
 void SignalingSocket::setBlockingMode(bool block)
 {
