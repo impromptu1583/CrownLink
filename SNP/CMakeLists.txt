@@ -33,18 +33,15 @@ set(MODULE_FILES
 add_library (SNP SHARED ${MODULE_FILES})
 
 set(TEST_FILES
-	Util/MemoryFrame.cpp
-	Util/MemoryFrame.h
-	Util/Types.h
 	Util/Exceptions.h
 	Util/Exceptions.cpp
-	UDPSocket.h
-	UDPSocket.cpp
-	"SignallingTest.cpp"
+	signaling.h
+	signaling.cpp
+	SignallingTest.cpp
 )
 
-add_executable (UDPTEST ${TEST_FILES})
-target_link_libraries(UDPTEST ws2_32)
+add_executable (SIGNALTEST ${TEST_FILES})
+target_link_libraries(SIGNALTEST ws2_32)
 
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

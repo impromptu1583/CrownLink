@@ -47,6 +47,7 @@ class ServerProtocol(asyncio.Protocol):
                 case 3: # Solicitation
                     # list of dict keys (e.g. IDs)
                     advertisers = list({i for i in CONNECTIONS if CONNECTIONS[i].advertising})
+                    if self.ID in advertisers: advertisers.remove(self.ID)
                     reply = SERVER_ID + b'\x03' + b''.join(advertisers)
                     self.transport.write(reply)
                 case 255: # echo, for debug

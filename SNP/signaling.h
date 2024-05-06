@@ -6,24 +6,45 @@ class SignalingSocket;
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include "Util/Exceptions.h"
+#include <vector>
+
+#ifndef __BLIZZARD_STORM_HEADER
+struct SNETADDR {
+	BYTE address[16];
+};
+#endif
+
+class TWSAInitializerSig
+{
+public:
+	TWSAInitializerSig();
+	~TWSAInitializerSig();
+
+public:
+	static HANDLE completion_port;
+};
+
 
 class SignalingSocket
 {
 public:
 	SignalingSocket();
 	~SignalingSocket(); //destructor
-
+	SNETADDR server;
 	// state
 private:
-	SOCKET _s;
+	SOCKET sockfd;
+	struct addrinfo hints, * res, * p;
+	int state;
 	// prob also address info....
 
 public:
 	void init();
 	void release() noexcept;
-	void bind(int port);
-	void sendPacket(); //need to add vars
-	const char* receivePacket(); // need to add vars
+	void sendPacket(SNETADDR& dest, std::string msg); //need to add vars
+	void receivePacket(std::string *rcv);
+	void setBlockingMode(bool block);
 	// need to do something so it's not blocking
 	// some state args?
 };

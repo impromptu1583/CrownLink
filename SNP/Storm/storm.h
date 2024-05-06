@@ -1311,7 +1311,7 @@ namespace Storm
       , valid( SFileOpenFileEx(hMpq, sFileName.c_str(), flags, &hFile) != FALSE )
     { }
 
-    CFile(CFile &&other) 
+    CFile(CFile &&other)
       : hFile( other.hFile )
       , valid( other.valid ) 
     {
