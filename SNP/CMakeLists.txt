@@ -26,8 +26,9 @@ set(MODULE_FILES
 	DirectIP.cpp
 	DirectIP.h
 	DLLMain.cpp
-	signalling.cpp
-	signalling.h)
+	signaling.h
+	signaling.cpp
+)
 
 add_library (SNP SHARED ${MODULE_FILES})
 
@@ -39,7 +40,7 @@ set(TEST_FILES
 	Util/Exceptions.cpp
 	UDPSocket.h
 	UDPSocket.cpp
-	UDPTest.cpp
+	"SignallingTest.cpp"
 )
 
 add_executable (UDPTEST ${TEST_FILES})

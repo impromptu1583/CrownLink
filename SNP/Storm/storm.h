@@ -1311,9 +1311,9 @@ namespace Storm
       , valid( SFileOpenFileEx(hMpq, sFileName.c_str(), flags, &hFile) != FALSE )
     { }
 
-    CFile(CFile &&other)
+    CFile(CFile &&other) 
       : hFile( other.hFile )
-      , valid( other.valid )
+      , valid( other.valid ) 
     {
       other.valid = false;
       other.hFile = nullptr;
@@ -1379,7 +1379,7 @@ namespace Storm
       , valid( SFileOpenArchive(sArchiveFileName.c_str(), priority, flags, &hMpq) != FALSE )
     { }
 
-    CArchive(CArchive &&other)
+    CArchive(CArchive &&other) noexcept
       : hMpq(other.hMpq)
       , valid(other.valid)
     {

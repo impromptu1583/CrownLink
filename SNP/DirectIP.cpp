@@ -10,16 +10,16 @@ static void sleep(unsigned int secs) { Sleep(secs * 1000); }
 #define BUFFER_SIZE 4096
 
 
-static void copy_clipboard(const char* output) {
-    const size_t len = strlen(output) + 1;
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
-    memcpy(GlobalLock(hMem), output, len);
-    GlobalUnlock(hMem);
-    OpenClipboard(0);
-    EmptyClipboard();
-    SetClipboardData(CF_TEXT, hMem);
-    CloseClipboard();
-}
+//static void copy_clipboard(const char* output) {
+//    const size_t len = strlen(output) + 1;
+//    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
+//    memcpy(GlobalLock(hMem), output, len);
+//    GlobalUnlock(hMem);
+//    OpenClipboard(0);
+//    EmptyClipboard();
+//    SetClipboardData(CF_TEXT, hMem);
+//    CloseClipboard();
+//}
 
 namespace DRIP
 {
@@ -32,12 +32,12 @@ namespace DRIP
   {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
 
   UDPSocket session;
-  UDPSocket signalSession;
 
 
   // ----------------- game list section -----------------------
   Util::MemoryFrame adData;
   bool isAdvertising = false;
+  //SIGNALING need
 
   // --------------   incoming section  ----------------------
   char recvBufferBytes[1024];
@@ -104,6 +104,7 @@ namespace DRIP
   }
   void DirectIP::processIncomingPackets()
   {
+
     try
     {
       // receive all packets
@@ -174,7 +175,7 @@ namespace DRIP
     memset(&config1, 0, sizeof(config1));
     config1.stun_server_host = "stun.l.google.com";
     config1.stun_server_port = 19302;
-
+    config1.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL; // connections share a single thread
     config1.cb_state_changed = on_state_changed;
     config1.cb_candidate = on_candidate;
     config1.cb_gathering_done = on_gathering_done;
@@ -188,7 +189,7 @@ namespace DRIP
 
     setStatusString("got description");
 
-    copy_clipboard(sdp1);
+    //copy_clipboard(sdp1);
 
     // bind to port
     rebind();
@@ -198,18 +199,20 @@ namespace DRIP
   {
     hideSettingsDialog();
     session.release();
-    signalSession.release();
+    // destroy juice agents & signalling
   }
   void DirectIP::requestAds()
   {
     rebind();
-    processIncomingPackets();
+    processIncomingPackets(); //receive()
 
     // send game state request
     char sendBufferBytes[600];
     Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
     Util::MemoryFrame ping_server = sendBuffer;
     ping_server.writeAs<int>(PacketType_RequestGameStats);
+    // sending a single int to request game state
+    // replace with signaling?
 
     UDPAddr host;
     host.sin_family = AF_INET;
@@ -220,7 +223,7 @@ namespace DRIP
   void DirectIP::sendAsyn(const UDPAddr& him, Util::MemoryFrame packet)
   {
 
-    processIncomingPackets();
+    processIncomingPackets(); //receive()
 
     // create header
     char sendBufferBytes[600];
@@ -234,6 +237,8 @@ namespace DRIP
   }
   void DirectIP::receive()
   {
+    // receive signaling
+    // receive from juice agents (queue)
     processIncomingPackets();
   }
   void DirectIP::startAdvertising(Util::MemoryFrame ad)
