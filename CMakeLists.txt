@@ -5,7 +5,7 @@
 
 cmake_minimum_required (VERSION 3.8)
 
-set(_VCPKG_TARGET_TRIPLET_ARCH x86) 
+set(_VCPKG_TARGET_TRIPLET_ARCH x86)  
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)
