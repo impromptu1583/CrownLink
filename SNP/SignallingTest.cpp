@@ -1,6 +1,7 @@
 #include "signaling.h"
 #include <iostream>
 #include <vector>
+#include <juice.h>
 
 SignalingSocket session;
 

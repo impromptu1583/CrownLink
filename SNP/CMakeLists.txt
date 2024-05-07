@@ -37,11 +37,16 @@ set(TEST_FILES
 	Util/Exceptions.cpp
 	signaling.h
 	signaling.cpp
+	JuiceManager.h
+	JuiceManager.cpp
 	SignallingTest.cpp
 )
 
 add_executable (SIGNALTEST ${TEST_FILES})
-target_link_libraries(SIGNALTEST ws2_32)
+target_link_libraries(SIGNALTEST
+	PUBLIC ws2_32
+	PRIVATE juice-static
+)
 
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
@@ -70,7 +75,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Juice)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
-
+target_include_directories(SIGNALTEST PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
 #	PUBLIC wsock32
 	PUBLIC ws2_32
