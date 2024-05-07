@@ -28,6 +28,7 @@ set(MODULE_FILES
 	DLLMain.cpp
 	signaling.h
 	signaling.cpp
+	ThQueue/ThQueue.h
 )
 
 add_library (SNP SHARED ${MODULE_FILES})
@@ -40,6 +41,7 @@ set(TEST_FILES
 	JuiceManager.h
 	JuiceManager.cpp
 	SignallingTest.cpp
+	ThQueue/ThQueue.h
 )
 
 add_executable (SIGNALTEST ${TEST_FILES})
@@ -48,7 +50,7 @@ target_link_libraries(SIGNALTEST
 	PRIVATE juice-static
 )
 
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
 endif()
@@ -63,7 +65,7 @@ set_target_properties (SNP
 )
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
-
+include_directories(${CMAKE_SOURCE_DIR}/SNP/ThQueue)
 
 include(FetchContent)
 #juice
@@ -82,7 +84,10 @@ target_link_libraries(SNP
 	PRIVATE juice-static
 )
 
-
+if (MSVC)
+    target_compile_options(SNP PRIVATE /Zc:auto-)
+	target_compile_options(SIGNALTEST PRIVATE /Zc:auto-)
+endif ()
 
 # copy CAPS MPQ into SNP
 

@@ -1,7 +1,7 @@
 #include "signaling.h"
 #include <iostream>
 #include <vector>
-#include <juice.h>
+#include "JuiceManager.h"
 
 SignalingSocket session;
 
@@ -31,6 +31,9 @@ int main(int argc, char* argv[])
 	std::string msg2;
 	msg2 += 3;
 	session.sendPacket(session.server, msg2);
+
+	// juice
+
 
 	//std::string buf;
 	//int res;
