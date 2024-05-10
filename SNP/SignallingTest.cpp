@@ -3,6 +3,9 @@
 #include <vector>
 #include "JuiceManager.h"
 
+#include <chrono>
+#include <thread>
+
 SignalingSocket session;
 
 void printhex(const char* hex) {
@@ -25,15 +28,19 @@ int main(int argc, char* argv[])
 
 	std::string msg;
 	msg += 1;
-
-	session.sendPacket(session.server, msg);
+	std::cout << "start advertising message";
+	session.sendPacket(session.server, msg.c_str());
 
 	std::string msg2;
 	msg2 += 3;
-	session.sendPacket(session.server, msg2);
+	std::cout << "sending  msg";
+	session.sendPacket(session.server, msg2.c_str());
 
 	// juice
 
+	JuiceMAN juice_manager(&session);
+
+	std::string peer_id;
 
 	//std::string buf;
 	//int res;
@@ -62,24 +69,36 @@ int main(int argc, char* argv[])
 					// do something here
 					for (int i = 0; (i + 1) * sizeof(SNETADDR) + 1 <= rcv_msg.size(); i++) {
 						std::string chunk = rcv_msg.substr(i+1, sizeof(SNETADDR));
+						if (i == 0) {
+							peer_id += chunk;
+						}
 						printhex(chunk.c_str());
 						SNETADDR peer;
 						memcpy((peer.address), chunk.c_str(), sizeof(SNETADDR));
-						std::string peermsg = "Hi buddy!";
-						session.sendPacket(peer, peermsg);
+						char* testmsg = "hi";
+						juice_manager.send_p2p(peer_id, testmsg);
 					}
+
+					// try to establish juice
+					char* testmsg = "hi";
+					juice_manager.send_p2p(peer_id,testmsg);
+
 					break;
 				}
 			}
 			else {
 				// from a peer??
 				std::cout << "got a message from a peer: " << rcv_msg << "\n";
+				juice_manager.signal_handler(i.substr(0, 16), rcv_msg);
 			}
 
-			//std::cout << i << std::endl;
-			//printhex(i.c_str());
 
 		}
+		// do stuff here outside of receive loop
+		std::string p2pmsg = "sentent";
+		juice_manager.send_all(p2pmsg);
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
 		//res = session.receivePacket(&buf);
 		//if (res) {
 			//std::cout << buf << std::endl;

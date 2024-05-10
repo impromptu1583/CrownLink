@@ -37,6 +37,7 @@ class ServerProtocol(asyncio.Protocol):
     def data_received(self,data):
         logger.debug(f"Data received from {self.addr}: {data}")
         chunks = data.split(DELIMINATER);
+        print(f"{len(chunks)} chunks received")
         for chunk in chunks:
             if not len(chunk):
                 # empty chunk
@@ -49,6 +50,7 @@ class ServerProtocol(asyncio.Protocol):
                 logger.error(f"{self.addr} msg {msg} shorter than 16 bytes received")
                 return
             if bytes(dest_ID) == SERVER_ID:
+                print("bytes for server")
                 # message is for server
                 # match first byte
                 match(msg[0]):
@@ -74,7 +76,8 @@ class ServerProtocol(asyncio.Protocol):
                 if dest_ID in CONNECTIONS.keys():
                     CONNECTIONS[dest_ID].write_line(self.ID,bytes(msg))
                     logger.debug(f"sent {bytes(msg)} to {dest_ID}")
-                logger.error(f"{dest_ID} not connected")
+                else:
+                    logger.error(f"{dest_ID} not connected")
 
 async def main():
     logging.basicConfig(filename='signalingserver.log', level=logging.DEBUG)
@@ -89,7 +92,7 @@ async def main():
 
     server = await loop.create_server(
         lambda: ServerProtocol(),
-        '127.0.0.1',9999
+        '159.223.202.177',9999
     )
     
     async with server:

@@ -40,7 +40,7 @@ void SignalingSocket::init()
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if ((rv = getaddrinfo("localhost", "9999", &hints, &res)) != 0) {
+	if ((rv = getaddrinfo("159.223.202.177", "9999", &hints, &res)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return;
 	}
@@ -75,7 +75,7 @@ void SignalingSocket::init()
 	// need to add error checking
 
 	// server address is 1111111111111111
-	memset(&server, 255, sizeof server);
+	memset(&server, 255, sizeof(server));
 }
 
 void SignalingSocket::release() noexcept
@@ -83,10 +83,15 @@ void SignalingSocket::release() noexcept
 	::closesocket(sockfd);
 }
 
-void SignalingSocket::sendPacket(SNETADDR& dest, std::string msg) {
-	msg.insert(0, (char*)(dest.address), sizeof(dest.address));
-	msg.append(_delimiter);
-	int n_bytes = send(sockfd, msg.c_str(), msg.length(), 0);
+void SignalingSocket::sendPacket(SNETADDR& dest, const char* msg) {
+	std::string stmsg;
+	stmsg.append((char*)dest.address,sizeof(SNETADDR));
+	stmsg += msg;
+	stmsg += _delimiter;
+
+	//msg.insert(0, (char*)(dest.address), sizeof(dest.address));
+	//msg.append(_delimiter);
+	int n_bytes = send(sockfd, stmsg.c_str(), stmsg.size(), 0);
 	if (n_bytes == -1) perror("send error");
 }
 

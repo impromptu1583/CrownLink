@@ -85,8 +85,8 @@ target_link_libraries(SNP
 )
 
 if (MSVC)
-    target_compile_options(SNP PRIVATE /Zc:auto-)
-	target_compile_options(SIGNALTEST PRIVATE /Zc:auto-)
+    #target_compile_options(SNP PRIVATE /Zc:auto-)
+	#target_compile_options(SIGNALTEST PRIVATE /Zc:auto-)
 endif ()
 
 # copy CAPS MPQ into SNP
