@@ -4,7 +4,7 @@
 //  A windows mutex or named mutex object
 //  Lockable with RAII
 //
-
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 namespace Util

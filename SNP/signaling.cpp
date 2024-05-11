@@ -17,44 +17,34 @@ TWSAInitializerSig::~TWSAInitializerSig()
 
 TWSAInitializerSig _init_wsa;
 
-// constructors
-
 SignalingSocket::SignalingSocket()
-    : sockfd(NULL), hints(),res(),p(),server(),state(0),_delimiter("-+")
+    : m_sockfd(NULL), server(),m_state(0),m_delimiter("-+")
 {
-}
+	release();
 
-SignalingSocket::~SignalingSocket()
-{
-    release();
-}
-
-void SignalingSocket::init()
-{
-    release();
-
-	//int sockfd;
+	struct addrinfo hints, * res, * p;
 	int rv;
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
+	//159.223.202.177
 
-	if ((rv = getaddrinfo("159.223.202.177", "9999", &hints, &res)) != 0) {
+	if ((rv = getaddrinfo("127.0.0.1", "9999", &hints, &res)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return;
 	}
 
 	for (p = res; p != NULL; p = p->ai_next) {
-		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+		if ((m_sockfd = socket(p->ai_family, p->ai_socktype,
 			p->ai_protocol)) == -1) {
 			perror("client: socket");
 			throw GeneralException("socket failed");
 			continue;
 		}
 
-		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-			closesocket(sockfd);
+		if (connect(m_sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			closesocket(m_sockfd);
 			perror("client: connect");
 			throw GeneralException("connection failed");
 			continue;
@@ -70,37 +60,44 @@ void SignalingSocket::init()
 
 	freeaddrinfo(res);
 
-	//u_long mode = 1; //enable non-blocking
-	//ioctlsocket(sockfd, FIONBIO, &mode);
-	// need to add error checking
+	// server address: each byte is 11111111
+	//memset(&server, 255, sizeof(server));
+	char addr[16];
+	memset(&addr, 255, sizeof(addr));
+	server.append(addr,16);
+	set_blocking_mode(false);
+}
 
-	// server address is 1111111111111111
-	memset(&server, 255, sizeof(server));
+SignalingSocket::~SignalingSocket()
+{
+    release();
+}
+
+void SignalingSocket::init()
+{
+
 }
 
 void SignalingSocket::release() noexcept
 {
-	::closesocket(sockfd);
+	::closesocket(m_sockfd);
 }
 
-void SignalingSocket::sendPacket(SNETADDR& dest, const char* msg) {
-	std::string stmsg;
-	stmsg.append((char*)dest.address,sizeof(SNETADDR));
-	stmsg += msg;
-	stmsg += _delimiter;
 
-	//msg.insert(0, (char*)(dest.address), sizeof(dest.address));
-	//msg.append(_delimiter);
-	int n_bytes = send(sockfd, stmsg.c_str(), stmsg.size(), 0);
+void SignalingSocket::send_packet(std::string dest, const std::string& msg) {
+	dest += msg;
+	dest += m_delimiter;
+
+	int n_bytes = send(m_sockfd, dest.c_str(), dest.size(), 0);
 	if (n_bytes == -1) perror("send error");
 }
 
-std::vector<std::string> SignalingSocket::split(std::string s) {
-	size_t pos_start = 0, pos_end, delim_len = _delimiter.length();
+std::vector<std::string> SignalingSocket::split(const std::string& s) {
+	size_t pos_start = 0, pos_end, delim_len = m_delimiter.length();
 	std::string token;
 	std::vector<std::string> res;
 	size_t s_len = s.length();
-	while ((pos_end = s.find(_delimiter, pos_start)) != std::string::npos) {
+	while ((pos_end = s.find(m_delimiter, pos_start)) != std::string::npos) {
 		token = s.substr(pos_start, pos_end - pos_start);
 		s_len = token.length();
 		pos_start = pos_end + delim_len;
@@ -111,11 +108,7 @@ std::vector<std::string> SignalingSocket::split(std::string s) {
 	return res;
 }
 
-bool SignalingSocket::is_same_address(SNETADDR *a, SNETADDR *b) {
-	return (0 == memcmp(a, b, sizeof(SNETADDR)));
-}
-
-std::vector<std::string> SignalingSocket::receivePackets() {
+std::vector<std::string> SignalingSocket::receive_packets() {
 	const unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string rcv;
@@ -123,10 +116,10 @@ std::vector<std::string> SignalingSocket::receivePackets() {
 	int n_bytes;
 
 	// try to receive
-	n_bytes = recv(sockfd, &buffer[0], buffer.size(), 0);
+	n_bytes = recv(m_sockfd, &buffer[0], buffer.size(), 0);
 	if (n_bytes == SOCKET_ERROR) {
-		state = WSAGetLastError();
-		if (state == WSAEWOULDBLOCK || state == WSAECONNRESET) {
+		m_state = WSAGetLastError();
+		if (m_state == WSAEWOULDBLOCK || m_state == WSAECONNRESET) {
 			// we're waiting for data or connection is reset
 			return output; //will be empty
 		}
@@ -140,28 +133,10 @@ std::vector<std::string> SignalingSocket::receivePackets() {
 	}
 }
 
-	//std::cout << n_bytes << " bytes received" << std::endl;
-	//buff[n_bytes] = '\0';
-	//std::cout << buff << std::endl;
-
-	//int i;
-	//for (i = 0; i < n_bytes; i++)
-	//{
-	//	if ((i - 1) % 16 == 0) printf("\n");
-	//	if (i > 0) printf(":");
-	//	printf("%02hhX", rcv[i]);
-	//}
-	//printf("\n");
-
-	//memcpy(&buf, &rcv, sizeof(rcv));
-	//return 1;
-	//return buff;
-
-
-void SignalingSocket::setBlockingMode(bool block)
+void SignalingSocket::set_blocking_mode(bool block)
 {
 	u_long nonblock = !block;
-	if (::ioctlsocket(sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
+	if (::ioctlsocket(m_sockfd, FIONBIO, &nonblock) == SOCKET_ERROR)
 	{
 		throw GeneralException("::ioctlsocket failed");
 	}

@@ -4,16 +4,11 @@ class SignalingSocket;
 
 #include <string.h>
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include "Util/Exceptions.h"
 #include <vector>
-
-#ifndef __BLIZZARD_STORM_HEADER
-struct SNETADDR {
-	BYTE address[16];
-};
-#endif
 
 class TWSAInitializerSig
 {
@@ -24,40 +19,29 @@ public:
 public:
 	static HANDLE completion_port;
 };
-
+enum Signal_message_type {
+	SERVER_START_ADVERTISING = 1,
+	SERVER_STOP_ADVERTISING,
+	SERVER_REQUEST_ADVERTISERS,
+	SERVER_SET_ID = 254,
+	SERVER_ECHO = 255
+};
 
 class SignalingSocket
 {
 public:
 	SignalingSocket();
-	~SignalingSocket(); //destructor
-	SNETADDR server;
-	bool is_same_address(SNETADDR* a, SNETADDR* b);
-	// state
-private:
-	SOCKET sockfd;
-	struct addrinfo hints, * res, * p;
-	int state;
-	std::vector<std::string> split(std::string s);
-	std::string _delimiter;
-
-public:
+	~SignalingSocket();
 	void init();
 	void release() noexcept;
-	void sendPacket(SNETADDR& dest, const char* msg);
-	std::vector<std::string> receivePackets();
-	void setBlockingMode(bool block);
-	// need to do something so it's not blocking
-	// some state args?
+	void send_packet(std::string dest, const std::string& msg);
+	std::vector<std::string> receive_packets();
+	void set_blocking_mode(bool block);
+	std::string server;
+
+private:
+	std::vector<std::string> split(const std::string& s);
+	SOCKET m_sockfd;
+	int m_state;
+	const std::string m_delimiter;
 };
-
-// send (to peer) (juice, not here)
-// send (to server):
-//	set advertising true/false
-//	request list of advertisers
-// recv (from peer) -> queue with critsec (juice, not here)
-// recv (from server) -> handle list of ads, conn request
-// end/close/destroy (send to server)
-
-// touuuid[16bytes]message
-// server uuid all 1s

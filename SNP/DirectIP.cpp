@@ -4,7 +4,7 @@
 #include "Output.h"
 #include "UDPSocket.h"
 #include "SettingsDialog.h"
-#include <juice.h>
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 static void sleep(unsigned int secs) { Sleep(secs * 1000); }
 #define BUFFER_SIZE 4096
@@ -33,6 +33,7 @@ namespace DRIP
 
   UDPSocket session;
 
+  
 
   // ----------------- game list section -----------------------
   Util::MemoryFrame adData;
@@ -47,42 +48,7 @@ namespace DRIP
   const int PacketType_GameStats = 2;
   const int PacketType_GamePacket = 3;
 
-  //------------------------------------------------------------------------------------------------------------------------------------
-  // JUICE
-  static juice_agent_t* agent;
-  static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
-  static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
-  static void on_gathering_done(juice_agent_t* agent, void* user_ptr);
-  static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
-  //------------------------------------------------------------------------------------------------------------------------------------
-  static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-      printf("State 1: %s\n", juice_state_to_string(state));
-
-      if (state == JUICE_STATE_CONNECTED) {
-          // Agent 1: on connected, send a message
-          const char* message = "Hello from 1";
-          juice_send(agent, message, strlen(message));
-      }
-  }
-  static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
-      printf("Candidate 1: %s\n", sdp);
-
-      // Agent 2: Receive it from agent 1
-      // TODO juice_add_remote_candidate(agent2, sdp);
-  }
-  static void on_gathering_done(juice_agent_t* agent, void* user_ptr) {
-      printf("Gathering done 1\n");
-      // TODO juice_set_remote_gathering_done(agent2); // optional
-  }
-  static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
-      char buffer[BUFFER_SIZE];
-      if (size > BUFFER_SIZE - 1)
-          size = BUFFER_SIZE - 1;
-      memcpy(buffer, data, size);
-      buffer[size] = '\0';
-      printf("Received 1: %s\n", buffer);
-  }
   //------------------------------------------------------------------------------------------------------------------------------------
   void rebind()
   {
@@ -170,26 +136,6 @@ namespace DRIP
   {
     showSettingsDialog();
 
-    // ---------------  Set up Juice  ------------------------------
-    juice_config_t config1;
-    memset(&config1, 0, sizeof(config1));
-    config1.stun_server_host = "stun.l.google.com";
-    config1.stun_server_port = 19302;
-    config1.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL; // connections share a single thread
-    config1.cb_state_changed = on_state_changed;
-    config1.cb_candidate = on_candidate;
-    config1.cb_gathering_done = on_gathering_done;
-    config1.cb_recv = on_recv;
-    config1.user_ptr = NULL;
-
-    agent = juice_create(&config1);
-    // generate local description
-    char sdp1[JUICE_MAX_SDP_STRING_LEN];
-    juice_get_local_description(agent, sdp1, JUICE_MAX_SDP_STRING_LEN);
-
-    setStatusString("got description");
-
-    //copy_clipboard(sdp1);
 
     // bind to port
     rebind();

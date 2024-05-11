@@ -1,10 +1,9 @@
 #pragma once 
 
 class UDPSocket;
-
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock.h>
-
 
 #include "Util/Exceptions.h"
 #include "Util/MemoryFrame.h"

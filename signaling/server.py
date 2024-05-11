@@ -69,6 +69,9 @@ class ServerProtocol(asyncio.Protocol):
                         if self.ID in advertisers: advertisers.remove(self.ID)
                         reply = b''.join(advertisers)
                         self.write_line(SERVER_ID,reply,3)
+                    case 254: # set ID (for reconnections)
+                        self.ID = bytes(msg[1:17])
+                        logger.info(f"user updated their ID (possible reconnect)")
                     case 255: # echo, for debug
                         self.write_line(SERVER_ID,msg,255)
             else:
@@ -92,7 +95,7 @@ async def main():
 
     server = await loop.create_server(
         lambda: ServerProtocol(),
-        '159.223.202.177',9999
+        None,9999
     )
     
     async with server:

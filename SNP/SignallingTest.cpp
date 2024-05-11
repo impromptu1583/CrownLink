@@ -2,11 +2,11 @@
 #include <iostream>
 #include <vector>
 #include "JuiceManager.h"
-
+#include <memory>
 #include <chrono>
 #include <thread>
 
-SignalingSocket session;
+constexpr auto ADDRESS_SIZE = 16;
 
 void printhex(const char* hex) {
 	int i;
@@ -23,22 +23,22 @@ void printhex(const char* hex) {
 int main(int argc, char* argv[])
 {
 
-	session.init();
-	session.setBlockingMode(false);
+	SignalingSocket signaling_socket;
 
 	std::string msg;
-	msg += 1;
+	msg += Signal_message_type(SERVER_START_ADVERTISING);
 	std::cout << "start advertising message";
-	session.sendPacket(session.server, msg.c_str());
+	
+	signaling_socket.send_packet(signaling_socket.server, msg);
 
 	std::string msg2;
-	msg2 += 3;
+	msg2 += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
 	std::cout << "sending  msg";
-	session.sendPacket(session.server, msg2.c_str());
+	signaling_socket.send_packet(signaling_socket.server, msg2);
 
 	// juice
-
-	JuiceMAN juice_manager(&session);
+	//auto p_recv_queue = std::make_shared<ThQueue<std::string>>();
+	JuiceMAN juice_manager(signaling_socket);
 
 	std::string peer_id;
 
@@ -46,43 +46,37 @@ int main(int argc, char* argv[])
 	//int res;
 	std::vector<std::string> output;
 	while (true) {
-		output = session.receivePackets();
+		output = signaling_socket.receive_packets();
 		for (auto i : output) {
 			if (i.empty()) continue;
-			// we've received a packet... what do we do?
-			SNETADDR from_address;
-			memcpy((from_address.address), i.substr(0, 16).c_str(), sizeof(SNETADDR));
+			std::string from_address = i.substr(0, 16);
 			std::string rcv_msg = i.substr(16);
-			if (session.is_same_address(&from_address, &session.server)) {
+			if (signaling_socket.server.compare(from_address)==0){
 				// message came from server
 				std::cout << "new message from server:";
 				std::cout << rcv_msg << std::endl;
 				switch (rcv_msg.at(0)) {
-				case 1:
+				case Signal_message_type(SERVER_START_ADVERTISING):
 					std::cout << "confirmed advertising\n";
 					break;
-				case 2:
+				case Signal_message_type(SERVER_STOP_ADVERTISING):
 					std::cout << "confirmed stopped advertising\n";
 					break;
-				case 3:
+				case Signal_message_type(SERVER_REQUEST_ADVERTISERS):
 					std::cout << "list of advertisers returned\n";
 					// do something here
-					for (int i = 0; (i + 1) * sizeof(SNETADDR) + 1 <= rcv_msg.size(); i++) {
-						std::string chunk = rcv_msg.substr(i+1, sizeof(SNETADDR));
+					for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= rcv_msg.size(); i++) {
+						std::string chunk = rcv_msg.substr(i+1, ADDRESS_SIZE);
 						if (i == 0) {
 							peer_id += chunk;
 						}
 						printhex(chunk.c_str());
-						SNETADDR peer;
-						memcpy((peer.address), chunk.c_str(), sizeof(SNETADDR));
-						char* testmsg = "hi";
-						juice_manager.send_p2p(peer_id, testmsg);
+						//char* testmsg = "hi";
+						//juice_manager.send_p2p(peer_id, testmsg);
+						juice_manager.create_if_not_exist(peer_id);
 					}
 
-					// try to establish juice
-					char* testmsg = "hi";
-					juice_manager.send_p2p(peer_id,testmsg);
-
+					
 					break;
 				}
 			}
@@ -98,20 +92,6 @@ int main(int argc, char* argv[])
 		std::string p2pmsg = "sentent";
 		juice_manager.send_all(p2pmsg);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
-		//res = session.receivePacket(&buf);
-		//if (res) {
-			//std::cout << buf << std::endl;
-			//int i;
-			//for (i = 0; i < sizeof(buf); i++)
-			//{
-			//	if ((i - 1) % 16 == 0) printf("\n");
-			//	if (i > 0) printf(":");
-			//	printf("%02hhX", buf[i]);
-			//}
-			//printf("\n");
-			//res = 0;
-		//}
 
 	}
 
