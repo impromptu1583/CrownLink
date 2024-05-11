@@ -3,9 +3,10 @@
 #ifndef __BLIZZARD_STORM_HEADER
 #define __BLIZZARD_STORM_HEADER
 #define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
 #include <windows.h>
 #include <winuser.h>
-#include <winsock.h>
+
 #include <ddraw.h>
 
 // Note to self: Linker error => forgot a return value in cpp

@@ -2,20 +2,20 @@
 
 #define BUFFER_SIZE 4096
 
-TWSAInitializerSig::TWSAInitializerSig()
-{
-    WSADATA WsaDat;
-    if (WSAStartup(MAKEWORD(2, 2), &WsaDat) != 0)
-        throw GeneralException("WSA initialization failed");
-    // TWSAInitializer::completion_port = CreateIoCompletionPort(NULL, NULL, NULL, 0);
-}
+//TWSAInitializerSig::TWSAInitializerSig()
+//{
+//    WSADATA WsaDat;
+//    if (WSAStartup(MAKEWORD(2, 2), &WsaDat) != 0)
+//        throw GeneralException("WSA initialization failed");
+//    // TWSAInitializer::completion_port = CreateIoCompletionPort(NULL, NULL, NULL, 0);
+//}
+//
+//TWSAInitializerSig::~TWSAInitializerSig()
+//{
+//    WSACleanup();
+//}
 
-TWSAInitializerSig::~TWSAInitializerSig()
-{
-    WSACleanup();
-}
-
-TWSAInitializerSig _init_wsa;
+//TWSAInitializerSig _init_wsa;
 
 SignalingSocket::SignalingSocket()
     : m_sockfd(NULL), server(),m_state(0),m_delimiter("-+")

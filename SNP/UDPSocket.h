@@ -2,23 +2,26 @@
 
 class UDPSocket;
 #define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+
 #include <windows.h>
-#include <winsock.h>
 
 #include "Util/Exceptions.h"
 #include "Util/MemoryFrame.h"
 
-class TWSAInitializer
-{
-public:
-  TWSAInitializer();
-  ~TWSAInitializer();
+#include "TWSAInitializer.h"
 
-public:
-  static HANDLE completion_port;
-};
-
-extern TWSAInitializer _init_wsa;
+//class TWSAInitializer
+//{
+//public:
+//  TWSAInitializer();
+//  ~TWSAInitializer();
+//
+//public:
+//  static HANDLE completion_port;
+//};
+//
+//extern TWSAInitializer _init_wsa;
 
 typedef sockaddr_in UDPAddr;
 

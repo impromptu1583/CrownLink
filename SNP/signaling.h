@@ -9,16 +9,17 @@ class SignalingSocket;
 #include <ws2tcpip.h>
 #include "Util/Exceptions.h"
 #include <vector>
+#include "TWSAInitializer.h"
 
-class TWSAInitializerSig
-{
-public:
-	TWSAInitializerSig();
-	~TWSAInitializerSig();
-
-public:
-	static HANDLE completion_port;
-};
+//class TWSAInitializerSig
+//{
+//public:
+//	TWSAInitializerSig();
+//	~TWSAInitializerSig();
+//
+//public:
+//	static HANDLE completion_port;
+//};
 enum Signal_message_type {
 	SERVER_START_ADVERTISING = 1,
 	SERVER_STOP_ADVERTISING,

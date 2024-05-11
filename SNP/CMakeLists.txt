@@ -29,7 +29,7 @@ set(MODULE_FILES
 	signaling.h
 	signaling.cpp
 	ThQueue/ThQueue.h
-)
+ "TWSAInitializer.h" "TWSAInitializer.cpp")
 
 add_library (SNP SHARED ${MODULE_FILES})
 
@@ -42,7 +42,7 @@ set(TEST_FILES
 	JuiceManager.cpp
 	SignallingTest.cpp
 	ThQueue/ThQueue.h
-)
+ "TWSAInitializer.h" "TWSAInitializer.cpp")
 
 add_executable (SIGNALTEST ${TEST_FILES})
 
