@@ -1,0 +1,19 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "JuiceSNP.snp (SNP\\JuiceSNP.snp)",
+      "name": "JuiceSNP.snp (SNP\\JuiceSNP.snp)"
+    },
+    {
+      "type": "dll",
+      "exe": "",
+      "project": "CMakeLists.txt",
+      "projectTarget": "juice.dll (_deps\\juice-build\\juice.dll)",
+      "name": "juice.dll (_deps\\juice-build\\juice.dll)"
+    }
+  ]
+}

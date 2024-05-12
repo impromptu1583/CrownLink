@@ -20,6 +20,16 @@
 SignalingSocket::SignalingSocket()
     : m_sockfd(NULL), server(),m_state(0),m_delimiter("-+")
 {
+
+	// init winsock
+	WSADATA wsaData;
+	WORD wVersionRequested;
+	int err;
+
+	wVersionRequested = MAKEWORD(2, 2);
+	err = WSAStartup(wVersionRequested, &wsaData);
+	
+
 	release();
 
 	struct addrinfo hints, * res, * p;
@@ -30,7 +40,7 @@ SignalingSocket::SignalingSocket()
 	hints.ai_flags = AI_PASSIVE;
 	//159.223.202.177
 
-	if ((rv = getaddrinfo("127.0.0.1", "9999", &hints, &res)) != 0) {
+	if ((rv = getaddrinfo("159.223.202.177", "9999", &hints, &res)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return;
 	}
@@ -71,6 +81,7 @@ SignalingSocket::SignalingSocket()
 SignalingSocket::~SignalingSocket()
 {
     release();
+	WSACleanup();
 }
 
 void SignalingSocket::init()

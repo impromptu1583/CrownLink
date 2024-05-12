@@ -8,6 +8,8 @@
 #include <windows.h>
 static void sleep(unsigned int secs) { Sleep(secs * 1000); }
 #define BUFFER_SIZE 4096
+#include <string>
+
 
 
 //static void copy_clipboard(const char* output) {
@@ -165,6 +167,10 @@ namespace DRIP
     host.sin_addr.s_addr = inet_addr(getHostIPString());
     host.sin_port = htons(atoi(getHostPortString()));
     session.sendPacket(host, sendBuffer.getFrameUpto(ping_server));
+    //JUICE
+    std::string msg;
+    msg += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
+    signaling_socket.send_packet(signaling_socket.server, msg);
   }
   void DirectIP::sendAsyn(const UDPAddr& him, Util::MemoryFrame packet)
   {
@@ -192,10 +198,18 @@ namespace DRIP
     rebind();
     adData = ad;
     isAdvertising = true;
+    //JUICE
+    std::string msg;
+    msg += Signal_message_type(SERVER_START_ADVERTISING);
+    signaling_socket.send_packet(signaling_socket.server, msg);
   }
   void DirectIP::stopAdvertising()
   {
     isAdvertising = false;
+    //JUICE
+    std::string msg;
+    msg += Signal_message_type(SERVER_STOP_ADVERTISING);
+    signaling_socket.send_packet(signaling_socket.server, msg);
   }
   //------------------------------------------------------------------------------------------------------------------------------------
 };

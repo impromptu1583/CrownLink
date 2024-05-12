@@ -1,0 +1,20 @@
+{
+  "OutputFoldersPerTargetSystem": {
+    "Local Machine": [
+      "out\\build\\x86-debug",
+      "out\\install\\x86-debug",
+      "out\\build\\x86-release",
+      "out\\install\\x86-release"
+    ]
+  },
+  "ExpandedNodes": [
+    "",
+    "\\signaling",
+    "\\SNP",
+    "\\SNP\\Storm",
+    "\\SNP\\ThQueue",
+    "\\SNP\\Util"
+  ],
+  "SelectedNode": "\\SNP\\SignallingTest.cpp",
+  "PreviewInSolutionExplorer": false
+}

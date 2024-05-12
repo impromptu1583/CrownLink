@@ -9,19 +9,19 @@ class UDPSocket;
 #include "Util/Exceptions.h"
 #include "Util/MemoryFrame.h"
 
-#include "TWSAInitializer.h"
+//#include "TWSAInitializer.h"
 
-//class TWSAInitializer
-//{
-//public:
-//  TWSAInitializer();
-//  ~TWSAInitializer();
-//
-//public:
-//  static HANDLE completion_port;
-//};
-//
-//extern TWSAInitializer _init_wsa;
+class TWSAInitializer
+{
+public:
+  TWSAInitializer();
+  ~TWSAInitializer();
+
+public:
+  static HANDLE completion_port;
+};
+
+extern TWSAInitializer _init_wsa;
 
 typedef sockaddr_in UDPAddr;
 

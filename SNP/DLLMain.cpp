@@ -11,7 +11,6 @@
 //include "LocalPC.h"
 //define SMEM_ID 1
 
-
 BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD *dwNetworkCode, char **ppszNetworkName, char **ppszNetworkDescription, CAPS **ppCaps)
 {
   if ( dwNetworkCode && ppszNetworkName && ppszNetworkDescription && ppCaps )

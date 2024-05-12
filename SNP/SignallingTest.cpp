@@ -22,7 +22,7 @@ void printhex(const char* hex) {
 
 int main(int argc, char* argv[])
 {
-
+	juice_set_log_level(JUICE_LOG_LEVEL_DEBUG);
 	SignalingSocket signaling_socket;
 
 	std::string msg;
