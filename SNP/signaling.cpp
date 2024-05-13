@@ -1,22 +1,5 @@
 #include "signaling.h"
 
-#define BUFFER_SIZE 4096
-
-//TWSAInitializerSig::TWSAInitializerSig()
-//{
-//    WSADATA WsaDat;
-//    if (WSAStartup(MAKEWORD(2, 2), &WsaDat) != 0)
-//        throw GeneralException("WSA initialization failed");
-//    // TWSAInitializer::completion_port = CreateIoCompletionPort(NULL, NULL, NULL, 0);
-//}
-//
-//TWSAInitializerSig::~TWSAInitializerSig()
-//{
-//    WSACleanup();
-//}
-
-//TWSAInitializerSig _init_wsa;
-
 SignalingSocket::SignalingSocket()
     : m_sockfd(NULL), server(),m_state(0),m_delimiter("-+")
 {
@@ -151,4 +134,24 @@ void SignalingSocket::set_blocking_mode(bool block)
 	{
 		throw GeneralException("::ioctlsocket failed");
 	}
+}
+
+void SignalingSocket::start_advertising()
+{
+	std::string message;
+	message += Signal_message_type(SERVER_START_ADVERTISING);
+	send_packet(server, message);
+}
+
+void SignalingSocket::stop_advertising()
+{
+	std::string message;
+	message += Signal_message_type(SERVER_STOP_ADVERTISING);
+	send_packet(server, message);
+}
+void SignalingSocket::request_advertisers()
+{
+	std::string message;
+	message += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
+	send_packet(server, message);
 }

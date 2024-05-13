@@ -25,15 +25,21 @@ set(MODULE_FILES
 	CriticalSection.h
 	DirectIP.cpp
 	DirectIP.h
+	JuiceP2P.cpp
+	JuiceP2P.h
 	DLLMain.cpp
 	signaling.h
 	signaling.cpp
-	ThQueue/ThQueue.h
+	JuiceManager.h
+	JuiceManager.cpp
+	concurrentqueue/concurrentqueue.h
   )
 
 add_library (SNP SHARED ${MODULE_FILES})
 
 set(TEST_FILES
+	Util/MemoryFrame.cpp
+	Util/MemoryFrame.h
 	Util/Exceptions.h
 	Util/Exceptions.cpp
 	signaling.h
@@ -41,7 +47,7 @@ set(TEST_FILES
 	JuiceManager.h
 	JuiceManager.cpp
 	SignallingTest.cpp
-	ThQueue/ThQueue.h
+	concurrentqueue/concurrentqueue.h
   )
 
 add_executable (SIGNALTEST ${TEST_FILES})
@@ -70,7 +76,7 @@ set_target_properties (SNP
 )
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
-include_directories(${CMAKE_SOURCE_DIR}/SNP/ThQueue)
+include_directories(${CMAKE_SOURCE_DIR}/SNP/concurrentqueue)
 
 include(FetchContent)
 #juice

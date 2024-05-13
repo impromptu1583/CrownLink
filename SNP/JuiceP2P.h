@@ -2,31 +2,32 @@
 
 #include "SNPNetwork.h"
 
+#include "Output.h"
+
 #include "Util/Types.h"
-#include "UDPSocket.h"
 #include "signaling.h"
+#include "JuiceManager.h"
 #include <string>
 
-namespace DRIP
+namespace JP2P
 {
   extern SNP::NetworkInfo networkInfo;
 
-  class DirectIP : public SNP::Network<UDPAddr>
+  class JuiceP2P : public SNP::Network<SNETADDR>
   {
   public:
-    DirectIP(){};
-    ~DirectIP(){};
+    JuiceP2P(){};
+    ~JuiceP2P(){};
 
     void initialize();
     void destroy();
     void requestAds();
-    void sendAsyn(const UDPAddr& to, Util::MemoryFrame packet);
+    void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
     void receive();
     void receive_signaling();
     void startAdvertising(Util::MemoryFrame ad);
     void stopAdvertising();
 
     void processIncomingPackets();
-    void processIncomingJuicePackets();
   };
 };

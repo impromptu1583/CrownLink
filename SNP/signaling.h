@@ -41,6 +41,9 @@ public:
 	void send_packet(std::string dest, const std::string& msg);
 	std::vector<std::string> receive_packets();
 	void set_blocking_mode(bool block);
+	void start_advertising();
+	void stop_advertising();
+	void request_advertisers();
 	std::string server;
 
 private:

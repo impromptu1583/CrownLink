@@ -4,13 +4,16 @@
 #include "Util/Types.h"
 #include "Storm/storm.h"
 
+constexpr auto MAX_PACKET_SIZE = 500;
+
+
 //
 // The Network interface separates the Storm stuff from pure networking
 //
 
 namespace SNP
 {
-  const int PACKET_SIZE = 500;
+  const int PACKET_SIZE = MAX_PACKET_SIZE;
 
   struct NetworkInfo
   {

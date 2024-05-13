@@ -1,3 +1,4 @@
+#pragma once
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -37,7 +38,10 @@ public:
         if (m_ended && m_queue.empty()) {
             // Not sure I love this, but not sure how else to end the wait,
             // without having to return like std::optional or std::expected
+            std::cout << "throw didn't happen";
             throw ThQueueEnded{};
+            
+             
         }
         
         T result = std::move(m_queue.front());

@@ -8,20 +8,7 @@
 #include <windows.h>
 static void sleep(unsigned int secs) { Sleep(secs * 1000); }
 #define BUFFER_SIZE 4096
-#include <string>
-
-
-
-//static void copy_clipboard(const char* output) {
-//    const size_t len = strlen(output) + 1;
-//    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, len);
-//    memcpy(GlobalLock(hMem), output, len);
-//    GlobalUnlock(hMem);
-//    OpenClipboard(0);
-//    EmptyClipboard();
-//    SetClipboardData(CF_TEXT, hMem);
-//    CloseClipboard();
-//}
+constexpr auto ADDRESS_SIZE = 16;
 
 namespace DRIP
 {
@@ -34,8 +21,7 @@ namespace DRIP
   {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
 
   UDPSocket session;
-  SignalingSocket signaling_socket;
-  
+ 
 
   // ----------------- game list section -----------------------
   Util::MemoryFrame adData;
@@ -70,6 +56,7 @@ namespace DRIP
       setStatusString("local port fail");
     }
   }
+
   void DirectIP::processIncomingPackets()
   {
 
@@ -147,36 +134,30 @@ namespace DRIP
   {
     hideSettingsDialog();
     session.release();
-    // destroy juice agents & signalling
+
   }
   void DirectIP::requestAds()
   {
     rebind();
-    processIncomingPackets(); //receive()
+    receive();
 
     // send game state request
     char sendBufferBytes[600];
     Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
     Util::MemoryFrame ping_server = sendBuffer;
     ping_server.writeAs<int>(PacketType_RequestGameStats);
-    // sending a single int to request game state
-    // replace with signaling?
 
     UDPAddr host;
     host.sin_family = AF_INET;
     host.sin_addr.s_addr = inet_addr(getHostIPString());
     host.sin_port = htons(atoi(getHostPortString()));
     session.sendPacket(host, sendBuffer.getFrameUpto(ping_server));
-    //JUICE
-    std::string msg;
-    msg += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
-    signaling_socket.send_packet(signaling_socket.server, msg);
+
   }
   void DirectIP::sendAsyn(const UDPAddr& him, Util::MemoryFrame packet)
   {
 
-    processIncomingPackets(); //receive()
-
+    receive();
     // create header
     char sendBufferBytes[600];
     Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
@@ -193,23 +174,18 @@ namespace DRIP
     // receive from juice agents (queue)
     processIncomingPackets();
   }
+
   void DirectIP::startAdvertising(Util::MemoryFrame ad)
   {
     rebind();
     adData = ad;
     isAdvertising = true;
     //JUICE
-    std::string msg;
-    msg += Signal_message_type(SERVER_START_ADVERTISING);
-    signaling_socket.send_packet(signaling_socket.server, msg);
   }
   void DirectIP::stopAdvertising()
   {
     isAdvertising = false;
     //JUICE
-    std::string msg;
-    msg += Signal_message_type(SERVER_STOP_ADVERTISING);
-    signaling_socket.send_packet(signaling_socket.server, msg);
   }
-  //------------------------------------------------------------------------------------------------------------------------------------
+  //------------------------------------------------------------------------------------------------
 };

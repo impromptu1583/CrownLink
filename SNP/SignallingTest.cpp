@@ -5,6 +5,8 @@
 #include <memory>
 #include <chrono>
 #include <thread>
+#include "concurrentqueue.h"
+#include "SNPNetwork.h"
 
 constexpr auto ADDRESS_SIZE = 16;
 
@@ -22,29 +24,36 @@ void printhex(const char* hex) {
 
 int main(int argc, char* argv[])
 {
-	juice_set_log_level(JUICE_LOG_LEVEL_DEBUG);
+	//juice_set_log_level(JUICE_LOG_LEVEL_DEBUG);
 	SignalingSocket signaling_socket;
 
 	std::string msg;
 	msg += Signal_message_type(SERVER_START_ADVERTISING);
-	std::cout << "start advertising message";
+	std::cout << "start advertising message\n";
 	
 	signaling_socket.send_packet(signaling_socket.server, msg);
 
 	std::string msg2;
 	msg2 += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
-	std::cout << "sending  msg";
+	std::cout << "sending  msg\n";
 	signaling_socket.send_packet(signaling_socket.server, msg2);
 
 	// juice
-	//auto p_recv_queue = std::make_shared<ThQueue<std::string>>();
-	JuiceMAN juice_manager(signaling_socket);
 
+	//moodycamel::ConcurrentQueue<int> receive_queue;
+	moodycamel::ConcurrentQueue<std::string> receive_queue;
+
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	std::cout << "creating manager\n";
+	JuiceMAN juice_manager(signaling_socket,&receive_queue);
+	std::cout << "done\n";
 	std::string peer_id;
 
 	//std::string buf;
 	//int res;
 	std::vector<std::string> output;
+	int sendcounter = 0;
 	while (true) {
 		output = signaling_socket.receive_packets();
 		for (auto i : output) {
@@ -67,13 +76,11 @@ int main(int argc, char* argv[])
 					// do something here
 					for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= rcv_msg.size(); i++) {
 						std::string chunk = rcv_msg.substr(i+1, ADDRESS_SIZE);
-						if (i == 0) {
-							peer_id += chunk;
-						}
+
 						printhex(chunk.c_str());
 						//char* testmsg = "hi";
 						//juice_manager.send_p2p(peer_id, testmsg);
-						juice_manager.create_if_not_exist(peer_id);
+						juice_manager.create_if_not_exist(chunk);
 					}
 
 					
@@ -89,8 +96,15 @@ int main(int argc, char* argv[])
 
 		}
 		// do stuff here outside of receive loop
-		std::string p2pmsg = "sentent";
+		sendcounter++;
+		std::string p2pmsg = std::format("Send number: {}", sendcounter);
 		juice_manager.send_all(p2pmsg);
+		// do the thing
+		std::string item;
+		while (receive_queue.try_dequeue(item)) {
+			std::cout << "queue received from:" << item.substr(0,16) << " message: " << item.substr(16) << "\n";
+		}
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 	}
