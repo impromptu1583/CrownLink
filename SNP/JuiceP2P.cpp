@@ -116,7 +116,8 @@ namespace JP2P
 
         // send packet
         std::string peer_str;
-        peer_str.append((char)peer_ID.address, sizeof(SNETADDR));
+        peer_str.append((char*)peer_ID.address, sizeof(SNETADDR));
+
         juice_manager.send_p2p(peer_str, sendBuffer.getFrameUpto(spacket));
     }
     void JuiceP2P::receive()
