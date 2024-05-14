@@ -15,10 +15,23 @@ enum Signal_message_type {
 	SERVER_START_ADVERTISING = 1,
 	SERVER_STOP_ADVERTISING,
 	SERVER_REQUEST_ADVERTISERS,
-	SERVER_SOLICIT,
+	SERVER_SOLICIT_ADS,
 	SERVER_GAME_AD,
+	SERVER_RELAY_TO_PEER,
 	SERVER_SET_ID = 254,
 	SERVER_ECHO = 255
+};
+
+struct Signal_packet {
+	Signal_packet(std::string& packet_string)
+	{
+		memcpy((void*)&(peer_ID.address), packet_string.c_str(), sizeof(SNETADDR));
+		message_type = Signal_message_type(std::stoi(packet_string.substr(sizeof(SNETADDR),1)));
+		data = packet_string.substr(sizeof(SNETADDR) + sizeof(Signal_message_type));
+	};
+	SNETADDR peer_ID;
+	Signal_message_type message_type;
+	std::string data;
 };
 
 class SignalingSocket
@@ -30,7 +43,8 @@ public:
 	void release() noexcept;
 	void send_packet(std::string dest, const std::string& msg);
 	void send_packet(SNETADDR dest, const std::string& msg);
-	std::vector<std::string> receive_packets();
+	void send_packet_type(SNETADDR dest, const Signal_message_type msg_type, std::string msg="");
+	std::vector<Signal_packet> receive_packets();
 	void set_blocking_mode(bool block);
 	void start_advertising();
 	void stop_advertising();
@@ -38,7 +52,7 @@ public:
 	SNETADDR server;
 
 private:
-	std::vector<std::string> split(const std::string& s);
+	std::vector<Signal_packet> split_into_packets(const std::string& s);
 	SOCKET m_sockfd;
 	int m_state;
 	const std::string m_delimiter;

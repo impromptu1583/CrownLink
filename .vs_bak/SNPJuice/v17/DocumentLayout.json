@@ -1,0 +1,245 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\JuiceManager.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\JuiceP2P.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\CMakeLists.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\DLLMain.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\DLLMain.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\JuiceP2P.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\JuiceManager.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\signaling.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\signaling.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\SNPModule.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPNetwork.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\SNPNetwork.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\SNPModule.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\Storm\\storm.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:SNP\\Storm\\storm.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 10,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{75188d03-9892-4ae2-abf1-207126247ce5}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "CMakeLists.txt",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\CMakeLists.txt",
+              "RelativeDocumentMoniker": "SNP\\CMakeLists.txt",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\CMakeLists.txt",
+              "RelativeToolTip": "SNP\\CMakeLists.txt",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABgAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2024-05-14T15:16:39.362Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "signaling.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.cpp",
+              "RelativeDocumentMoniker": "SNP\\signaling.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.cpp",
+              "RelativeToolTip": "SNP\\signaling.cpp",
+              "ViewState": "AQIAAD8AAAAAAAAAAAAAAGoAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T05:34:53.4Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DLLMain.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\DLLMain.cpp",
+              "RelativeDocumentMoniker": "SNP\\DLLMain.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\DLLMain.cpp",
+              "RelativeToolTip": "SNP\\DLLMain.cpp",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAADMAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T04:55:52.737Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "SNPNetwork.h",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPNetwork.h",
+              "RelativeDocumentMoniker": "SNP\\SNPNetwork.h",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPNetwork.h",
+              "RelativeToolTip": "SNP\\SNPNetwork.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAAQAAAAYAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-05-14T04:50:28.96Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "SNPModule.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.cpp",
+              "RelativeDocumentMoniker": "SNP\\SNPModule.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.cpp",
+              "RelativeToolTip": "SNP\\SNPModule.cpp",
+              "ViewState": "AQIAAM8BAAAAAAAAAAAgwOgBAAAnAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T04:50:06.749Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "SNPModule.h",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.h",
+              "RelativeDocumentMoniker": "SNP\\SNPModule.h",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\SNPModule.h",
+              "RelativeToolTip": "SNP\\SNPModule.h",
+              "ViewState": "AQIAABAAAAAAAAAAAAAAAAwAAAAqAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-05-14T04:50:04.497Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "JuiceManager.h",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.h",
+              "RelativeDocumentMoniker": "SNP\\JuiceManager.h",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.h",
+              "RelativeToolTip": "SNP\\JuiceManager.h",
+              "ViewState": "AQIAABIAAAAAAAAAAAAAABAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-05-14T02:28:49.806Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "JuiceP2P.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.cpp",
+              "RelativeDocumentMoniker": "SNP\\JuiceP2P.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.cpp",
+              "RelativeToolTip": "SNP\\JuiceP2P.cpp",
+              "ViewState": "AQIAAJMAAAAAAAAAAAAAAKsAAAA2AAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T02:28:33.027Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "storm.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\Storm\\storm.cpp",
+              "RelativeDocumentMoniker": "SNP\\Storm\\storm.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\Storm\\storm.cpp",
+              "RelativeToolTip": "SNP\\Storm\\storm.cpp",
+              "ViewState": "AQIAAGYAAAAAAAAAAAAAAAIAAAAeAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T04:51:39.372Z"
+            }
+          ]
+        },
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "JuiceManager.cpp",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.cpp",
+              "RelativeDocumentMoniker": "SNP\\JuiceManager.cpp",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceManager.cpp",
+              "RelativeToolTip": "SNP\\JuiceManager.cpp",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABsAAAAiAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2024-05-14T02:28:50.835Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "signaling.h",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.h",
+              "RelativeDocumentMoniker": "SNP\\signaling.h",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\signaling.h",
+              "RelativeToolTip": "SNP\\signaling.h",
+              "ViewState": "AQIAAAkAAAAAAAAAAAAAABAAAAAcAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-05-14T05:34:52.796Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "JuiceP2P.h",
+              "DocumentMoniker": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.h",
+              "RelativeDocumentMoniker": "SNP\\JuiceP2P.h",
+              "ToolTip": "C:\\Users\\Jesse\\source\\repos\\SNPJuice\\SNP\\JuiceP2P.h",
+              "RelativeToolTip": "SNP\\JuiceP2P.h",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAABwAAAAyAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
+              "WhenOpened": "2024-05-14T02:28:33.6Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

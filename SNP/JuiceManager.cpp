@@ -39,10 +39,26 @@ void JuiceWrapper::send_signaling_message(char* msg, Juice_signal msgtype)
 	m_signalling_socket.send_packet(m_ID, send_buffer);
 }
 
-void JuiceWrapper::signal_handler(const std::string& msg)
+//void JuiceWrapper::signal_handler(const std::string& msg)
+//{
+//	std::string message_without_type = msg.substr(1);
+//	switch (msg[0])
+//	{
+//	case juice_signal_local_description:
+//		juice_set_remote_description(m_agent, message_without_type.c_str());
+//		break;
+//	case juice_signal_candidate:
+//		juice_add_remote_candidate(m_agent, message_without_type.c_str());
+//		break;
+//	case juice_signal_gathering_done:
+//		juice_set_remote_gathering_done(m_agent);
+//		break;
+//	}
+//}
+void JuiceWrapper::signal_handler(const Signal_packet packet)
 {
-	std::string message_without_type = msg.substr(1);
-	switch (msg[0])
+	std::string message_without_type = packet.data.substr(1);
+	switch (packet.data[0])
 	{
 	case juice_signal_local_description:
 		juice_set_remote_description(m_agent, message_without_type.c_str());
@@ -154,16 +170,25 @@ void JuiceMAN::send_p2p(const std::string& ID, Util::MemoryFrame frame)
 }
 
 
-void JuiceMAN::signal_handler(const std::string& source_ID, const std::string& msg)
+//void JuiceMAN::signal_handler(const std::string& source_ID, const std::string& msg)
+//{
+//	std::cout << "received signal: " << msg << "\n";
+//	if (!m_agents.count(source_ID)) {
+//		//m_agents[source_ID] = std::unique_ptr<JuiceWrapper>(new JuiceWrapper(source_ID, m_signaling_socket,msg));
+//		m_agents.insert(std::make_pair(source_ID, new JuiceWrapper(source_ID, m_signaling_socket, p_receive_queue,msg)));
+//	}
+//	m_agents[source_ID]->signal_handler(msg);
+//}
+void JuiceMAN::signal_handler(const Signal_packet packet)
 {
-	std::cout << "received signal: " << msg << "\n";
-	if (!m_agents.count(source_ID)) {
+	std::string peerstr;
+	peerstr.append((char*)packet.peer_ID.address, sizeof(SNETADDR));
+	if (!m_agents.count(peerstr)) {
 		//m_agents[source_ID] = std::unique_ptr<JuiceWrapper>(new JuiceWrapper(source_ID, m_signaling_socket,msg));
-		m_agents.insert(std::make_pair(source_ID, new JuiceWrapper(source_ID, m_signaling_socket, p_receive_queue,msg)));
+		m_agents.insert(std::make_pair(peerstr, new JuiceWrapper(peerstr, m_signaling_socket, p_receive_queue, packet.data)));
 	}
-	m_agents[source_ID]->signal_handler(msg);
+	m_agents[peerstr]->signal_handler(packet);
 }
-
 
 
 void JuiceMAN::send_all(const std::string& msg)
@@ -189,4 +214,14 @@ void JuiceMAN::send_all(Util::MemoryFrame frame)
 		kv.second->send_message(frame);
 		std::cout << "sending message peer " << (char*)kv.second->m_ID.address << " with status:" << kv.second->p2p_state << "\n";
 	}
+}
+
+juice_state JuiceMAN::peer_status(SNETADDR peer_ID)
+{
+	// yes, it's ugly but I'm still working on changing out strings for SNETADDR
+	std::string id((char*)peer_ID.address, sizeof(SNETADDR));
+	if (m_agents.count(id)) {
+		return m_agents[id]->p2p_state;
+	}
+	return juice_state(JUICE_STATE_DISCONNECTED);
 }

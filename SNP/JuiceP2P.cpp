@@ -21,7 +21,7 @@ namespace JP2P
     SignalingSocket signaling_socket;
     moodycamel::ConcurrentQueue<std::string> receive_queue;
     JuiceMAN juice_manager(signaling_socket,&receive_queue);
-  
+    std::vector<SNETADDR> m_known_advertisers;
 
     // ----------------- game list section -----------------------
     Util::MemoryFrame adData;
@@ -105,6 +105,14 @@ namespace JP2P
         //JUICE
         signaling_socket.request_advertisers();
         juice_manager.send_all(sendBuffer.getFrameUpto(ping_server));
+        // new behavior
+        for ( auto& advertiser : m_known_advertisers) {
+            if (juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED
+                || juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED)
+            {
+                signaling_socket.send_packet_type(advertiser, SERVER_SOLICIT_ADS);
+            }
+        }
     }
     void JuiceP2P::sendAsyn(const SNETADDR& peer_ID, Util::MemoryFrame packet)
     {
@@ -129,41 +137,67 @@ namespace JP2P
     }
     void JuiceP2P::receive_signaling()
     {
-        std::vector<std::string> incoming_packets;
+        std::vector<Signal_packet> incoming_packets;
 
         incoming_packets = signaling_socket.receive_packets();
         for (auto packet : incoming_packets)
         {
-            if (packet.empty()) continue;
-            std::string from_address = packet.substr(0, 16);
-            std::string received_message = packet.substr(16);
-            if (signaling_socket.server.compare(from_address) == 0)
+            if (packet.data.empty()) continue;
+            //std::string from_address = packet.substr(0, 16);
+            //std::string received_message = packet.substr(16);
+            if (signaling_socket.server.compare(packet.peer_ID) == 0)
             {
                 // communication from server, not peer
-                switch (received_message.at(0))
+                switch (packet.message_type)
                 {
-                case Signal_message_type(SERVER_START_ADVERTISING):
+                case SERVER_START_ADVERTISING:
                     // confirmed advertising
                     break;
-                case Signal_message_type(SERVER_STOP_ADVERTISING):
+                case SERVER_STOP_ADVERTISING:
                     // confirmed stop advertising
                     break;
-                case Signal_message_type(SERVER_REQUEST_ADVERTISERS):
+                case SERVER_REQUEST_ADVERTISERS:
                     // list of advertisers returned
                     // split into individual addresses & create juice peers
-                    for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= received_message.size(); i++)
-                    {
-                        std::string peer_id = received_message.substr(i + 1, ADDRESS_SIZE);
-                        juice_manager.create_if_not_exist(peer_id);
-                    }
+                    update_known_advertisers(packet.data);
                     break;
                 }
             }
             else
             {
                 // message is relayed from a peer
-                juice_manager.signal_handler(packet.substr(0, 16), received_message);
+                Util::MemoryFrame ad_packet((void*)packet.data.c_str(), packet.data.size());
+                switch (packet.message_type)
+                {
+                case SERVER_SOLICIT_ADS:
+                    if (isAdvertising)
+                    {
+                        std::string send_buffer;
+                        send_buffer.append((char*)adData.begin(), adData.size());
+                        signaling_socket.send_packet_type(packet.peer_ID, SERVER_GAME_AD, send_buffer);
+                    }
+                    break;
+                case SERVER_GAME_AD:
+                    // -------------- PACKET: GAME STATS -------------------------------
+                    // give the ad to storm
+                    
+                    passAdvertisement(packet.peer_ID, ad_packet);
+                    break;
+                case SERVER_RELAY_TO_PEER:
+                    break;
+                }
+                juice_manager.signal_handler(packet);
             }
+        }
+    }
+    void JuiceP2P::update_known_advertisers(std::string& received_message)
+    {
+        m_known_advertisers.clear();
+        for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= received_message.size(); i++)
+        {
+            std::string peer_id = received_message.substr(i + 1, ADDRESS_SIZE);
+            m_known_advertisers.push_back(SNETADDR(peer_id));
+            juice_manager.create_if_not_exist(peer_id);
         }
     }
     void JuiceP2P::startAdvertising(Util::MemoryFrame ad)

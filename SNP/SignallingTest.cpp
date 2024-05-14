@@ -52,14 +52,15 @@ int main(int argc, char* argv[])
 
 	//std::string buf;
 	//int res;
-	std::vector<std::string> output;
+	std::vector<Signal_packet> output;
 	int sendcounter = 0;
 	while (true) {
 		output = signaling_socket.receive_packets();
 		for (auto i : output) {
-			if (i.empty()) continue;
-			std::string from_address = i.substr(0, 16);
-			std::string rcv_msg = i.substr(16);
+			if (i.data.empty()) continue;
+			std::string from_address;
+			from_address.append((char*)i.peer_ID.address, sizeof(SNETADDR));
+			std::string rcv_msg = i.data;
 			if (signaling_socket.server.compare(from_address)==0){
 				// message came from server
 				std::cout << "new message from server:";
@@ -90,7 +91,7 @@ int main(int argc, char* argv[])
 			else {
 				// from a peer??
 				std::cout << "got a message from a peer: " << rcv_msg << "\n";
-				juice_manager.signal_handler(i.substr(0, 16), rcv_msg);
+				juice_manager.signal_handler(i);
 			}
 
 

@@ -92,27 +92,38 @@ void SignalingSocket::send_packet(SNETADDR dest, const std::string& msg) {
 	int n_bytes = send(m_sockfd, send_buffer.c_str(), send_buffer.size(), 0);
 	if (n_bytes == -1) perror("send error");
 }
+void SignalingSocket::send_packet_type(SNETADDR dest,
+	const Signal_message_type msg_type,std::string msg)
+{
+	std::string send_buffer;
+	send_buffer.append((char*)dest.address, sizeof(SNETADDR));
+	send_buffer += (const char)msg_type;
+	send_buffer += msg;
+	send_buffer += m_delimiter;
 
-std::vector<std::string> SignalingSocket::split(const std::string& s) {
-	size_t pos_start = 0, pos_end, delim_len = m_delimiter.length();
-	std::string token;
-	std::vector<std::string> res;
-	size_t s_len = s.length();
-	while ((pos_end = s.find(m_delimiter, pos_start)) != std::string::npos) {
-		token = s.substr(pos_start, pos_end - pos_start);
-		s_len = token.length();
-		pos_start = pos_end + delim_len;
-		res.push_back(token);
-	}
-
-	return res;
+	int n_bytes = send(m_sockfd, send_buffer.c_str(), send_buffer.size(), 0);
+	if (n_bytes == -1) perror("send error");
 }
 
-std::vector<std::string> SignalingSocket::receive_packets() {
+std::vector<Signal_packet> SignalingSocket::split_into_packets(const std::string& s) {
+	size_t pos_start = 0, pos_end, delim_len = m_delimiter.length();
+	std::string token;
+	std::vector<Signal_packet> output;
+	//size_t s_len = s.length();
+	while ((pos_end = s.find(m_delimiter, pos_start)) != std::string::npos) {
+		token = s.substr(pos_start, pos_end - pos_start);
+		pos_start = pos_end + delim_len;
+		output.push_back(Signal_packet(token));
+	}
+
+	return output;
+}
+
+std::vector<Signal_packet> SignalingSocket::receive_packets() {
 	const unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
-	std::string rcv;
-	std::vector<std::string> output;
+	std::string receive_buffer;
+	std::vector<Signal_packet> output;
 	int n_bytes;
 
 	// try to receive
@@ -127,11 +138,13 @@ std::vector<std::string> SignalingSocket::receive_packets() {
 	}
 	else {
 		buffer.resize(n_bytes);
-		rcv.append(buffer.cbegin(), buffer.cend());
-		output = split(rcv);
+		receive_buffer.append(buffer.cbegin(), buffer.cend());
+		output = split_into_packets(receive_buffer);
 		return output;
 	}
 }
+
+
 
 void SignalingSocket::set_blocking_mode(bool block)
 {

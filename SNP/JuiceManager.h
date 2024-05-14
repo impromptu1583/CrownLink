@@ -22,7 +22,7 @@ public:
 		moodycamel::ConcurrentQueue<std::string>* receive_queue,
 		std::string init_message);
 	~JuiceWrapper();
-	void signal_handler(const std::string& msg);
+	void signal_handler(const Signal_packet packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
 	void send_message(Util::MemoryFrame frame);
@@ -60,10 +60,13 @@ public:
 	void create_if_not_exist(const std::string& ID);
 	void send_p2p(const std::string& ID, const std::string& msg);
 	void send_p2p(const std::string& ID, Util::MemoryFrame frame);
-	void signal_handler(const std::string& source_ID, const std::string& msg);
+	//void signal_handler(const std::string& source_ID, const std::string& msg);
+	void signal_handler(const Signal_packet packet);
 	void send_all(const std::string&);
 	void send_all(const char* begin, const size_t size);
 	void send_all(Util::MemoryFrame frame);
+	juice_state peer_status(SNETADDR peer_ID);
+
 private:
 	std::unordered_map<std::string,JuiceWrapper*> m_agents;
 	SignalingSocket m_signaling_socket;

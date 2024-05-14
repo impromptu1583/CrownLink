@@ -15,16 +15,16 @@ set(MODULE_FILES
 	SNPModule.cpp
 	SNPModule.h
 	SNPNetwork.h
-	UDPSocket.h
+	CriticalSection.h
 	CriticalSection.cpp
 	UI.rc
 	caps.mpq
 	resource.h
 	SNPModule.def
-	UDPSocket.cpp
-	CriticalSection.h
-	DirectIP.cpp
-	DirectIP.h
+	#UDPSocket.cpp
+	#UDPSocket.h
+	#DirectIP.cpp
+	#DirectIP.h
 	JuiceP2P.cpp
 	JuiceP2P.h
 	DLLMain.cpp
