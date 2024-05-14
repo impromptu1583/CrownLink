@@ -54,11 +54,6 @@ SignalingSocket::SignalingSocket()
 	freeaddrinfo(res);
 
 	// server address: each byte is 11111111
-	//memset(&server, 255, sizeof(server));
-	//char addr[16];
-	//memset(&addr, 255, sizeof(addr));
-	//server.append(addr,16);
-
 	memset(&server, 255, sizeof(SNETADDR));
 
 	set_blocking_mode(false);
@@ -110,7 +105,6 @@ std::vector<std::string> SignalingSocket::split(const std::string& s) {
 		res.push_back(token);
 	}
 
-	//res.push_back(s.substr(pos_start));
 	return res;
 }
 

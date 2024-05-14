@@ -10,24 +10,6 @@ class SignalingSocket;
 #include "Util/Exceptions.h"
 #include <vector>
 #include "SNETADDR.h"
-//#include "TWSAInitializer.h"
-
-//class TWSAInitializerSig
-//{
-//public:
-//	TWSAInitializerSig();
-//	~TWSAInitializerSig();
-//
-//public:
-//	static HANDLE completion_port;
-//};
-
-
-// message type solicit
-// server will only deliver to advertisers
-// advertisers will init p2p and (if) p2p is established
-// send back game packet
-
 
 enum Signal_message_type {
 	SERVER_START_ADVERTISING = 1,
