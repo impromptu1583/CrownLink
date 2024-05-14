@@ -59,6 +59,8 @@ namespace JP2P
                 // -------------- PACKET: REQUEST GAME STATES -----------------------
                 if (isAdvertising)
                 {
+                    // if state is connected
+                    // send game ad through signaling
                     // send back game stats
                     char sendBufferBytes[600];
                     Util::MemoryFrame sendBuffer(sendBufferBytes, 600);

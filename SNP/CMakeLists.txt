@@ -33,7 +33,7 @@ set(MODULE_FILES
 	JuiceManager.h
 	JuiceManager.cpp
 	concurrentqueue/concurrentqueue.h
-  )
+   "SNETADDR.h")
 
 add_library (SNP SHARED ${MODULE_FILES})
 
@@ -48,7 +48,7 @@ set(TEST_FILES
 	JuiceManager.cpp
 	SignallingTest.cpp
 	concurrentqueue/concurrentqueue.h
-  )
+   "SNETADDR.h")
 
 add_executable (SIGNALTEST ${TEST_FILES})
 

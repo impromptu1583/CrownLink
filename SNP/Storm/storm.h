@@ -6,7 +6,7 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <winuser.h>
-
+#include "../SNETADDR.h"
 #include <ddraw.h>
 
 // Note to self: Linker error => forgot a return value in cpp
@@ -52,9 +52,11 @@ typedef struct _WSIZE
   WORD  cy;
 } WSIZE, *PWSIZE;
 
+#ifndef SNETADDR_H
 struct SNETADDR {
     BYTE address[16];
 };
+#endif
 
 // Game states
 #define GAMESTATE_PRIVATE 0x01

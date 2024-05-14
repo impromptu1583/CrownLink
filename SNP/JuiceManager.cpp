@@ -3,7 +3,7 @@
 //----------------------------JuiceWrapper----------------------------//
 // Used for individual P2P connections                                //
 //--------------------------------------------------------------------//
-JuiceWrapper::JuiceWrapper(const std::string& ID, SignalingSocket& sig_sock,
+JuiceWrapper::JuiceWrapper(const SNETADDR& ID, SignalingSocket& sig_sock,
 	moodycamel::ConcurrentQueue<std::string>* receive_queue,
 	std::string init_message="")
 	: p2p_state(JUICE_STATE_DISCONNECTED),p_receive_queue(receive_queue),
@@ -105,21 +105,37 @@ void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, 
 
 	std::cout << "received p2p:" << recv_buffer << "\n";
 	JuiceWrapper* parent = (JuiceWrapper*)user_ptr;
-	recv_buffer.append(parent->m_ID);
+	recv_buffer.append((char*)parent->m_ID.address,sizeof(SNETADDR));
 	recv_buffer.append(data, size);
 	parent->p_receive_queue->enqueue(recv_buffer);
 
+	// new version
 }
+//void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
+//	struct GamePacket
+//	{
+//		SNETADDR sender;
+//		int packetSize;
+//		DWORD timeStamp;
+//		char data[512];
+//	};
+//	GamePacket gamepacket;
+//	memcpy(gamepacket.data, data, size);
+//	gamepacket.packetSize = size;
+//	gamepacket.sender = parent->snet_ID;
+//	gamepacket.timeStamp = GetTickCount();
+//	gpqueue.push(gamePacket);
+//}
+
+
 
 //------------------------------JuiceMAN------------------------------//
 // Maps individual P2P connections (JuiceWrapper)                     //
 //--------------------------------------------------------------------//
 void JuiceMAN::create_if_not_exist(const std::string& ID)
 {
-	
 	if (!m_agents.count(ID))
 	{
-		//m_agents[ID] = JuiceWrapper(ID, m_signaling_socket,p_receive_queue));
 		m_agents.insert(std::make_pair(ID, new JuiceWrapper(ID, m_signaling_socket,p_receive_queue)));
 	}
 }
@@ -154,7 +170,7 @@ void JuiceMAN::send_all(const std::string& msg)
 {
 	for (const auto& kv : m_agents) {
 		//std::cout << "\x1b[2K" << "peer status: " << kv.second->p2p_state;
-		std::cout << "sending message peer " << kv.second->m_ID << " with status:" << kv.second->p2p_state << "\n";
+		std::cout << "sending message peer " << (char*)kv.second->m_ID.address << " with status:" << kv.second->p2p_state << "\n";
 		kv.second->send_message(msg);
 	}
 }
@@ -162,7 +178,7 @@ void JuiceMAN::send_all(const char* begin, const size_t size)
 {
 	for (const auto& kv : m_agents) {
 		//std::cout << "\x1b[2K" << "peer status: " << kv.second->p2p_state;
-		std::cout << "sending message peer " << kv.second->m_ID << " with status:" << kv.second->p2p_state << "\n";
+		std::cout << "sending message peer " << (char*)kv.second->m_ID.address << " with status:" << kv.second->p2p_state << "\n";
 		kv.second->send_message(begin,size);
 	}
 }
@@ -171,6 +187,6 @@ void JuiceMAN::send_all(Util::MemoryFrame frame)
 	for (const auto& kv : m_agents) {
 		//std::cout << "\x1b[2K" << "peer status: " << kv.second->p2p_state;
 		kv.second->send_message(frame);
-		std::cout << "sending message peer " << kv.second->m_ID << " with status:" << kv.second->p2p_state << "\n";
+		std::cout << "sending message peer " << (char*)kv.second->m_ID.address << " with status:" << kv.second->p2p_state << "\n";
 	}
 }

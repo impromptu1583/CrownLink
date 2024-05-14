@@ -55,9 +55,12 @@ SignalingSocket::SignalingSocket()
 
 	// server address: each byte is 11111111
 	//memset(&server, 255, sizeof(server));
-	char addr[16];
-	memset(&addr, 255, sizeof(addr));
-	server.append(addr,16);
+	//char addr[16];
+	//memset(&addr, 255, sizeof(addr));
+	//server.append(addr,16);
+
+	memset(&server, 255, sizeof(SNETADDR));
+
 	set_blocking_mode(false);
 }
 
@@ -83,6 +86,15 @@ void SignalingSocket::send_packet(std::string dest, const std::string& msg) {
 	dest += m_delimiter;
 
 	int n_bytes = send(m_sockfd, dest.c_str(), dest.size(), 0);
+	if (n_bytes == -1) perror("send error");
+}
+void SignalingSocket::send_packet(SNETADDR dest, const std::string& msg) {
+	std::string send_buffer;
+	send_buffer.append((char*)dest.address, sizeof(SNETADDR));
+	send_buffer += msg;
+	send_buffer += m_delimiter;
+
+	int n_bytes = send(m_sockfd, send_buffer.c_str(), send_buffer.size(), 0);
 	if (n_bytes == -1) perror("send error");
 }
 

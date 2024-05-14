@@ -7,6 +7,7 @@
 #include "Util/MemoryFrame.h"
 #include "iostream"
 #include "concurrentqueue.h"
+#include "SNETADDR.h"
 
 enum Juice_signal {
 	juice_signal_local_description = 1,
@@ -17,7 +18,7 @@ enum Juice_signal {
 class JuiceWrapper
 {
 public:
-	JuiceWrapper(const std::string& ID, SignalingSocket& sig_sock,
+	JuiceWrapper(const SNETADDR& ID, SignalingSocket& sig_sock,
 		moodycamel::ConcurrentQueue<std::string>* receive_queue,
 		std::string init_message);
 	~JuiceWrapper();
@@ -27,7 +28,8 @@ public:
 	void send_message(Util::MemoryFrame frame);
 	juice_state p2p_state;
 	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
-	std::string m_ID;
+	SNETADDR m_ID;
+
 private:
 	void send_signaling_message(char* msg, Juice_signal msgtype);
 	static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
