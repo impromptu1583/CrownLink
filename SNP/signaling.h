@@ -9,6 +9,7 @@ class SignalingSocket;
 #include <ws2tcpip.h>
 #include "Util/Exceptions.h"
 #include <vector>
+#include "SNETADDR.h"
 //#include "TWSAInitializer.h"
 
 //class TWSAInitializerSig
@@ -22,11 +23,18 @@ class SignalingSocket;
 //};
 
 
+// message type solicit
+// server will only deliver to advertisers
+// advertisers will init p2p and (if) p2p is established
+// send back game packet
+
 
 enum Signal_message_type {
 	SERVER_START_ADVERTISING = 1,
 	SERVER_STOP_ADVERTISING,
 	SERVER_REQUEST_ADVERTISERS,
+	SERVER_SOLICIT,
+	SERVER_GAME_AD,
 	SERVER_SET_ID = 254,
 	SERVER_ECHO = 255
 };
@@ -39,12 +47,13 @@ public:
 	void init();
 	void release() noexcept;
 	void send_packet(std::string dest, const std::string& msg);
+	void send_packet(SNETADDR dest, const std::string& msg);
 	std::vector<std::string> receive_packets();
 	void set_blocking_mode(bool block);
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();
-	std::string server;
+	SNETADDR server;
 
 private:
 	std::vector<std::string> split(const std::string& s);

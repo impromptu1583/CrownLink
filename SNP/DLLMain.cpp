@@ -6,10 +6,10 @@
 
 
 // these modi are implemented in this DLL
-#include "DirectIP.h"
-#define DRIP_ID 0
+//#include "DirectIP.h"
+//#define DRIP_ID 0
 #include "JuiceP2P.h"
-#define JP2P_ID 1
+#define JP2P_ID 0
 //include "LocalPC.h"
 //define SMEM_ID 1
 
@@ -19,12 +19,12 @@ BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD *dwNetworkCode, char **ppszNetworkName
   {
     switch (dwIndex)
     {
-    case DRIP_ID:
-      *dwNetworkCode          =  DRIP::networkInfo.dwIdentifier;
-      *ppszNetworkName        =  DRIP::networkInfo.pszName;
-      *ppszNetworkDescription =  DRIP::networkInfo.pszDescription;
-      *ppCaps                 = &DRIP::networkInfo.caps;
-      return TRUE;
+    //case DRIP_ID:
+    //  *dwNetworkCode          =  DRIP::networkInfo.dwIdentifier;
+    //  *ppszNetworkName        =  DRIP::networkInfo.pszName;
+    //  *ppszNetworkDescription =  DRIP::networkInfo.pszDescription;
+    //  *ppCaps                 = &DRIP::networkInfo.caps;
+    //  return TRUE;
     case JP2P_ID:
       *dwNetworkCode          =  JP2P::networkInfo.dwIdentifier;
       *ppszNetworkName        =  JP2P::networkInfo.pszName;
@@ -44,10 +44,10 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
   {
     switch (dwIndex)
     {
-    case DRIP_ID:
-      *ppFxns = &SNP::spiFunctions;
-      SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new DRIP::DirectIP());
-      return TRUE;
+    //case DRIP_ID:
+    //  *ppFxns = &SNP::spiFunctions;
+    //  SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new DRIP::DirectIP());
+    //  return TRUE;
     case JP2P_ID:
       *ppFxns = &SNP::spiFunctions;
       SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new JP2P::JuiceP2P());
