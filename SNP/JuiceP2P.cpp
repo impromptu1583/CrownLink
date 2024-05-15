@@ -18,7 +18,7 @@ namespace JP2P
     // CAPS:
     {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
 
-    SignalingSocket signaling_socket;
+    signaling::SignalingSocket signaling_socket;
     moodycamel::ConcurrentQueue<std::string> receive_queue;
     JuiceMAN juice_manager(signaling_socket,&receive_queue);
     std::vector<SNETADDR> m_known_advertisers;
@@ -32,9 +32,7 @@ namespace JP2P
     char recvBufferBytes[1024];
 
     // ---------------  packet IDs  ------------------------------
-    //const int PacketType_RequestGameStats = 1;
-    //const int PacketType_GameStats = 2;
-    //const int PacketType_GamePacket = 3;
+
     enum PacketType
     {
         PacketType_Solicitation = 1,
@@ -95,22 +93,12 @@ namespace JP2P
     void JuiceP2P::requestAds()
     {
         receive();
-
-        // send game state request
-        char sendBufferBytes[600];
-        Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
-        Util::MemoryFrame ping_server = sendBuffer;
-        ping_server.writeAs<int>(PacketType(PacketType_Solicitation));
-
-        //JUICE
         signaling_socket.request_advertisers();
-        juice_manager.send_all(sendBuffer.getFrameUpto(ping_server));
-        // new behavior
         for ( auto& advertiser : m_known_advertisers) {
             if (juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED
                 || juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED)
             {
-                signaling_socket.send_packet_type(advertiser, SERVER_SOLICIT_ADS);
+                signaling_socket.send_packet(advertiser, signaling::SIGNAL_SOLICIT_ADS);
             }
         }
     }
@@ -137,65 +125,55 @@ namespace JP2P
     }
     void JuiceP2P::receive_signaling()
     {
-        std::vector<Signal_packet> incoming_packets;
+        std::vector<signaling::Signal_packet> incoming_packets;
 
         incoming_packets = signaling_socket.receive_packets();
         for (auto packet : incoming_packets)
         {
-            if (packet.data.empty()) continue;
-            //std::string from_address = packet.substr(0, 16);
-            //std::string received_message = packet.substr(16);
-            if (signaling_socket.server.compare(packet.peer_ID) == 0)
+            
+            //if (packet.data.empty()) continue;
+            Util::MemoryFrame ad_packet((void*)packet.data.c_str(), packet.data.size());
+
+            switch (packet.message_type)
             {
-                // communication from server, not peer
-                switch (packet.message_type)
+            case signaling::SIGNAL_START_ADVERTISING:
+                break;
+            case signaling::SIGNAL_STOP_ADVERTISING:
+                break;
+            case signaling::SIGNAL_REQUEST_ADVERTISERS:
+                // list of advertisers returned
+                // split into individual addresses & create juice peers
+                update_known_advertisers(packet.data);
+                break;
+            case signaling::SIGNAL_SOLICIT_ADS:
+                if (isAdvertising)
                 {
-                case SERVER_START_ADVERTISING:
-                    // confirmed advertising
-                    break;
-                case SERVER_STOP_ADVERTISING:
-                    // confirmed stop advertising
-                    break;
-                case SERVER_REQUEST_ADVERTISERS:
-                    // list of advertisers returned
-                    // split into individual addresses & create juice peers
-                    update_known_advertisers(packet.data);
-                    break;
+                    std::string send_buffer;
+                    send_buffer.append((char*)adData.begin(), adData.size());
+                    signaling_socket.send_packet(packet.peer_ID, signaling::SIGNAL_GAME_AD, send_buffer);
                 }
-            }
-            else
-            {
-                // message is relayed from a peer
-                Util::MemoryFrame ad_packet((void*)packet.data.c_str(), packet.data.size());
-                switch (packet.message_type)
-                {
-                case SERVER_SOLICIT_ADS:
-                    if (isAdvertising)
-                    {
-                        std::string send_buffer;
-                        send_buffer.append((char*)adData.begin(), adData.size());
-                        signaling_socket.send_packet_type(packet.peer_ID, SERVER_GAME_AD, send_buffer);
-                    }
-                    break;
-                case SERVER_GAME_AD:
-                    // -------------- PACKET: GAME STATS -------------------------------
-                    // give the ad to storm
+                break;
+            case signaling::SIGNAL_GAME_AD:
+                // -------------- PACKET: GAME STATS -------------------------------
+                // give the ad to storm
                     
-                    passAdvertisement(packet.peer_ID, ad_packet);
-                    break;
-                case SERVER_RELAY_TO_PEER:
-                    break;
-                }
+                passAdvertisement(packet.peer_ID, ad_packet);
+                break;
+            case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
+            case signaling::SIGNAL_JUICE_CANDIDATE:
+            case signaling::SIGNAL_JUICE_DONE:
                 juice_manager.signal_handler(packet);
+                break;
             }
         }
     }
-    void JuiceP2P::update_known_advertisers(std::string& received_message)
+    void JuiceP2P::update_known_advertisers(std::string& data)
     {
+        std::string data_decoded = base64::from_base64(data);
         m_known_advertisers.clear();
-        for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= received_message.size(); i++)
+        for (size_t i = 0; (i + 1) * sizeof(SNETADDR) <= data_decoded.size(); i++)
         {
-            std::string peer_id = received_message.substr(i + 1, ADDRESS_SIZE);
+            std::string peer_id = data_decoded.substr(i, sizeof(SNETADDR));
             m_known_advertisers.push_back(SNETADDR(peer_id));
             juice_manager.create_if_not_exist(peer_id);
         }

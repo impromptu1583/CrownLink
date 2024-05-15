@@ -8,6 +8,10 @@ struct SNETADDR {
     SNETADDR() {
         memset(&address, 0, sizeof(SNETADDR));
     };
+    SNETADDR(BYTE* addr)
+    {
+        memcpy(&address, addr, sizeof(SNETADDR));
+    }
     SNETADDR(std::string ID) {
         memset(&address, 0, sizeof(SNETADDR));
         memcpy(&address, ID.c_str(), sizeof(SNETADDR));

@@ -18,11 +18,11 @@ enum Juice_signal {
 class JuiceWrapper
 {
 public:
-	JuiceWrapper(const SNETADDR& ID, SignalingSocket& sig_sock,
+	JuiceWrapper(const SNETADDR& ID, signaling::SignalingSocket& sig_sock,
 		moodycamel::ConcurrentQueue<std::string>* receive_queue,
 		std::string init_message);
 	~JuiceWrapper();
-	void signal_handler(const Signal_packet packet);
+	void signal_handler(const signaling::Signal_packet packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
 	void send_message(Util::MemoryFrame frame);
@@ -41,7 +41,7 @@ private:
 	juice_config_t m_config;
 	const std::string m_stun_server = "stun.l.google.com";
 	const int m_stun_server_port = 19302;
-	SignalingSocket m_signalling_socket;
+	signaling::SignalingSocket m_signaling_socket;
 	juice_agent_t *m_agent;
 	char m_sdp[JUICE_MAX_SDP_STRING_LEN];
 
@@ -51,7 +51,7 @@ private:
 class JuiceMAN
 {
 public:
-	JuiceMAN(SignalingSocket& sig_sock,
+	JuiceMAN(signaling::SignalingSocket& sig_sock,
 		moodycamel::ConcurrentQueue<std::string>* receive_queue)
 		: m_agents(), m_signaling_socket(sig_sock), p_receive_queue(receive_queue)
 	{};
@@ -61,7 +61,7 @@ public:
 	void send_p2p(const std::string& ID, const std::string& msg);
 	void send_p2p(const std::string& ID, Util::MemoryFrame frame);
 	//void signal_handler(const std::string& source_ID, const std::string& msg);
-	void signal_handler(const Signal_packet packet);
+	void signal_handler(const signaling::Signal_packet packet);
 	void send_all(const std::string&);
 	void send_all(const char* begin, const size_t size);
 	void send_all(Util::MemoryFrame frame);
@@ -69,7 +69,7 @@ public:
 
 private:
 	std::unordered_map<std::string,JuiceWrapper*> m_agents;
-	SignalingSocket m_signaling_socket;
+	signaling::SignalingSocket m_signaling_socket;
 	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
 };
 
