@@ -12,7 +12,12 @@ namespace JP2P
 {
     char nName[] = "Juice P2P";
     char nDesc[] = "";
-
+    
+    struct AdFile
+    {
+        game gameInfo;
+        char extraBytes[32];
+    };
 
     SNP::NetworkInfo networkInfo = { nName, 'JP2P', nDesc,
     // CAPS:
@@ -123,17 +128,24 @@ namespace JP2P
     receive_signaling();
     processIncomingPackets();
     }
+    
     void JuiceP2P::receive_signaling()
     {
         std::vector<signaling::Signal_packet> incoming_packets;
 
         incoming_packets = signaling_socket.receive_packets();
+
+        char sendBufferBytes[600];
+        Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
+        Util::MemoryFrame ad_packet = sendBuffer;
+        AdFile ad;
+        std::string decoded_data;
+
         for (auto packet : incoming_packets)
         {
             
             //if (packet.data.empty()) continue;
-            Util::MemoryFrame ad_packet;
-            std::string decoded_data;
+
             //ad_packet.write()
             //ad_packet((void*)packet.data.c_str(), packet.data.size());
 
@@ -161,8 +173,8 @@ namespace JP2P
                 // -------------- PACKET: GAME STATS -------------------------------
                 // give the ad to storm
                 decoded_data = base64::from_base64(packet.data);
-                ad_packet.writeAs<std::string>(decoded_data);
-                passAdvertisement(packet.peer_ID, ad_packet);
+                memcpy(&ad, decoded_data.c_str(), decoded_data.size());                
+                passAdvertisement(packet.peer_ID, Util::MemoryFrame::from(ad));
                 break;
             case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
             case signaling::SIGNAL_JUICE_CANDIDATE:
