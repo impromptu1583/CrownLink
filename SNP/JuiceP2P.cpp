@@ -132,7 +132,10 @@ namespace JP2P
         {
             
             //if (packet.data.empty()) continue;
-            Util::MemoryFrame ad_packet((void*)packet.data.c_str(), packet.data.size());
+            Util::MemoryFrame ad_packet;
+            std::string decoded_data;
+            //ad_packet.write()
+            //ad_packet((void*)packet.data.c_str(), packet.data.size());
 
             switch (packet.message_type)
             {
@@ -150,13 +153,15 @@ namespace JP2P
                 {
                     std::string send_buffer;
                     send_buffer.append((char*)adData.begin(), adData.size());
-                    signaling_socket.send_packet(packet.peer_ID, signaling::SIGNAL_GAME_AD, send_buffer);
+                    signaling_socket.send_packet(packet.peer_ID, signaling::SIGNAL_GAME_AD,
+                        base64::to_base64(send_buffer));
                 }
                 break;
             case signaling::SIGNAL_GAME_AD:
                 // -------------- PACKET: GAME STATS -------------------------------
                 // give the ad to storm
-                    
+                decoded_data = base64::from_base64(packet.data);
+                ad_packet.writeAs<std::string>(decoded_data);
                 passAdvertisement(packet.peer_ID, ad_packet);
                 break;
             case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
