@@ -8,9 +8,14 @@
 #include "iostream"
 #include "concurrentqueue.h"
 #include "SNETADDR.h"
+#include "ThQueue/Logger.h"
+#include "ThQueue/ThQueue.h"
 
 extern moodycamel::ConcurrentQueue<std::string> game_packet_queue;
+extern ThQueue<GamePacket> receive_queue;
 extern HANDLE receiveEvent;
+extern LogFile trace_file;
+extern Logger log_trace;
 
 enum Juice_signal {
 	juice_signal_local_description = 1,

@@ -10,6 +10,7 @@
 
 HANDLE receiveEvent;
 
+
 namespace SNP
 {
   //------------------------------------------------------------------------------------------------------------------------------------
@@ -449,39 +450,25 @@ each second
 
       while(true)
       {
-        // check if packets available
-        std::string recv_buffer;
-        
-        if(!game_packet_queue.try_dequeue(recv_buffer))
-        {
-            SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
-            return FALSE;
-        }
+          GamePacket* loan = new GamePacket();
+          if (!receive_queue.try_pop_dont_wait(*loan)) {
+              SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+              return FALSE;
+          }
+          std::string debugstr(loan->data, loan->packetSize);
+          log_trace.debug("spiReceive: {} :: {}",loan->timeStamp,debugstr);
 
-        // save the packet before removing it from queue
-        GamePacket *loan = new GamePacket();
-        loan->sender = SNETADDR(recv_buffer.substr(0, sizeof(SNETADDR)));
-        loan->packetSize = recv_buffer.size() - sizeof(SNETADDR);
-        memcpy(loan->data, recv_buffer.substr(sizeof(SNETADDR)).c_str(), loan->packetSize);
-        //*loan = incomingGamePackets.front();
-        //incomingGamePackets.pop();
-        log_trace.debug("spiReceive: {}", recv_buffer);
-        memcpy(loan, recv_buffer.c_str(), recv_buffer.size());
+          if (GetTickCount() > loan->timeStamp + 10000)
+          {
+              DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timeStamp);
+              continue;
+          }
 
-        // paket outdated?
-        //if(GetTickCount() > loan->timeStamp + 10000)
-        //{
-        //  DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timeStamp);
-        //  continue;
-        //}
+          *senderPeer = &loan->sender;
+          *data = loan->data;
+          *databytes = loan->packetSize;
 
-        // give saved data to storm
-        *senderPeer =&loan->sender;
-        *data       = loan->data;
-        *databytes  = loan->packetSize;
-//        DropMessage(0, "R %s", sprintfBytes(*data, *databytes));
-//        DropMessage(0, "Received storm packet %d bytes", *databytes);
-        break;
+          break;
       }
     }
     catch(GeneralException &e)

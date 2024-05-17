@@ -10,6 +10,8 @@ constexpr auto ADDRESS_SIZE = 16;
 
 LogFile trace_file{ "trace" };
 Logger log_trace(&trace_file, "Trace");
+ThQueue<GamePacket> receive_queue;
+
 
 namespace JP2P
 {

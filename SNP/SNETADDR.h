@@ -28,6 +28,7 @@ struct GamePacket
 {
     SNETADDR sender;
     int packetSize;
+    DWORD timeStamp;
     char data[512];
 };
 

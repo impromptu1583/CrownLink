@@ -12,6 +12,7 @@
 #include <thread>
 #include <chrono>
 #include "ThQueue/Logger.h"
+#include "ThQueue/ThQueue.h"
 
 namespace JP2P
 {

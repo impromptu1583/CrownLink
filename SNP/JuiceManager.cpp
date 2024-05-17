@@ -95,12 +95,26 @@ void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, 
 {
 
 	JuiceWrapper* parent = (JuiceWrapper*)user_ptr;
-	std::string recv_buffer;
-	//std::cout << "received p2p:" << recv_buffer << "\n";
-	recv_buffer.append((char*)parent->m_ID.address,sizeof(SNETADDR));
-	recv_buffer.append(data, size);
-	game_packet_queue.enqueue(recv_buffer);
+
+	GamePacket gamePacket;
+	memcpy(gamePacket.data, data, size);
+	gamePacket.packetSize = size;
+	gamePacket.sender = parent->m_ID;
+	gamePacket.timeStamp = GetTickCount();
+	receive_queue.push(GamePacket(gamePacket));
 	SetEvent(receiveEvent);
+
+	/*std::string recv_buffer;*/
+	//std::cout << "received p2p:" << recv_buffer << "\n";
+	//recv_buffer.append((char*)parent->m_ID.address,sizeof(SNETADDR));
+	//recv_buffer.append(data, size);
+	//game_packet_queue.enqueue(recv_buffer);
+	//bool success = SetEvent(receiveEvent);
+	//if (success) {
+	//	log_trace.debug("set event successfully");
+	//} else {
+	//	log_trace.error("set event error");
+	//}
 }
 
 
