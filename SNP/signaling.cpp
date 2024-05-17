@@ -131,7 +131,7 @@ namespace signaling
 
 		return output;
 	}
-
+	
 	std::vector<Signal_packet> SignalingSocket::receive_packets() {
 		const unsigned int MAX_BUF_LENGTH = 4096;
 		std::vector<char> buffer(MAX_BUF_LENGTH);

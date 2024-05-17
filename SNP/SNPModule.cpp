@@ -8,10 +8,14 @@
 #include <queue>
 #include <list>
 
+HANDLE receiveEvent;
+
 namespace SNP
 {
   //------------------------------------------------------------------------------------------------------------------------------------
   Network<SNETADDR> *pluggedNetwork = NULL;
+    
+  Logger log_trace_module = log_trace["SNPModule"];
 
   client_info gameAppInfo;
 
@@ -19,15 +23,9 @@ namespace SNP
   CriticalSection::Lock *critSecExLock = NULL;
 #define INTERLOCKED CriticalSection::Lock critSecLock(critSec);
 
-  struct GamePacket
-  {
-    SNETADDR sender;
-    int packetSize;
-    DWORD timeStamp;
-    char data[512];
-  };
+
   std::queue<GamePacket> incomingGamePackets;
-  HANDLE receiveEvent;
+  //HANDLE receiveEvent;
 
   struct AdFile
   {
@@ -111,18 +109,27 @@ each second
   void removeAdvertisement(const SNETADDR& host)
   {
   }
-  void passPacket(const SNETADDR& sender, Util::MemoryFrame packet)
+  //void passPacket(const SNETADDR& sender, Util::MemoryFrame packet)
+  //{
+  //  INTERLOCKED;
+  //  GamePacket gamePacket;
+  //  memcpy(gamePacket.data, packet.begin(), packet.size());
+  //  gamePacket.packetSize = packet.size();
+  //  gamePacket.sender = sender;
+  //  gamePacket.timeStamp = GetTickCount();
+
+  //  incomingGamePackets.push(gamePacket);
+
+  //  SetEvent(receiveEvent);
+  //}
+  void passPacket(GamePacket& packet)
   {
-    INTERLOCKED;
-    GamePacket gamePacket;
-    memcpy(gamePacket.data, packet.begin(), packet.size());
-    gamePacket.packetSize = packet.size();
-    gamePacket.sender = sender;
-    gamePacket.timeStamp = GetTickCount();
-
-    incomingGamePackets.push(gamePacket);
-
-    SetEvent(receiveEvent);
+      INTERLOCKED;
+      //GamePacket gamePacket;
+      //memcpy(&gamePacket, &packet, sizeof(GamePacket));
+      //gamePacket.timeStamp = GetTickCount();
+      incomingGamePackets.push(packet);
+      SetEvent(receiveEvent);
   }
   //------------------------------------------------------------------------------------------------------------------------------------
   BOOL __stdcall spiInitialize(client_info *gameClientInfo,
@@ -392,7 +399,6 @@ each second
   BOOL __stdcall spiSend(DWORD addrCount, SNETADDR * *addrList, char *buf, DWORD bufLen)
   {
 //    DropMessage(0, "spiSend %d", GetCurrentThreadId());
-
     if(!addrCount)
       return TRUE;
 
@@ -408,6 +414,10 @@ each second
       //memcpy(&(him), &shim, sizeof(shim));
 
       // send packet over the network module
+      std::string tmp;
+      tmp.append(buf, bufLen);
+      log_trace.debug("spiSend: {}", tmp);
+
       pluggedNetwork->sendAsyn(him, Util::MemoryFrame(buf, bufLen));
 
       // debug
@@ -422,6 +432,7 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
+
   BOOL __stdcall spiReceive(SNETADDR **senderPeer, char **data, DWORD *databytes)
   {
     INTERLOCKED;
@@ -439,23 +450,30 @@ each second
       while(true)
       {
         // check if packets available
-        if(incomingGamePackets.empty())
+        std::string recv_buffer;
+        
+        if(!game_packet_queue.try_dequeue(recv_buffer))
         {
-          SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
-          return FALSE;
+            SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+            return FALSE;
         }
 
         // save the packet before removing it from queue
         GamePacket *loan = new GamePacket();
-        *loan = incomingGamePackets.front();
-        incomingGamePackets.pop();
+        loan->sender = SNETADDR(recv_buffer.substr(0, sizeof(SNETADDR)));
+        loan->packetSize = recv_buffer.size() - sizeof(SNETADDR);
+        memcpy(loan->data, recv_buffer.substr(sizeof(SNETADDR)).c_str(), loan->packetSize);
+        //*loan = incomingGamePackets.front();
+        //incomingGamePackets.pop();
+        log_trace.debug("spiReceive: {}", recv_buffer);
+        memcpy(loan, recv_buffer.c_str(), recv_buffer.size());
 
         // paket outdated?
-        if(GetTickCount() > loan->timeStamp + 10000)
-        {
-          DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timeStamp);
-          continue;
-        }
+        //if(GetTickCount() > loan->timeStamp + 10000)
+        //{
+        //  DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timeStamp);
+        //  continue;
+        //}
 
         // give saved data to storm
         *senderPeer =&loan->sender;

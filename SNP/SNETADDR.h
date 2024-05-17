@@ -23,3 +23,11 @@ struct SNETADDR {
         return strncmp((const char*)address, (const char*)other.address, 16);
     }
 };
+
+struct GamePacket
+{
+    SNETADDR sender;
+    int packetSize;
+    char data[512];
+};
+

@@ -9,6 +9,9 @@
 #include "JuiceManager.h"
 #include <string>
 #include <vector>
+#include <thread>
+#include <chrono>
+#include "ThQueue/Logger.h"
 
 namespace JP2P
 {
@@ -25,6 +28,7 @@ namespace JP2P
         void requestAds();
         void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
         void receive();
+        void receive_thread();
         void receive_signaling();
         void update_known_advertisers(std::string& message);
         void startAdvertising(Util::MemoryFrame ad);

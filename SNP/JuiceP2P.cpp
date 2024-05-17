@@ -8,8 +8,12 @@
 #define BUFFER_SIZE 4096
 constexpr auto ADDRESS_SIZE = 16;
 
+LogFile trace_file{ "trace" };
+Logger log_trace(&trace_file, "Trace");
+
 namespace JP2P
 {
+
     char nName[] = "Juice P2P";
     char nDesc[] = "";
     
@@ -24,9 +28,12 @@ namespace JP2P
     {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
 
     signaling::SignalingSocket signaling_socket;
-    moodycamel::ConcurrentQueue<std::string> receive_queue;
-    JuiceMAN juice_manager(signaling_socket,&receive_queue);
+    //moodycamel::ConcurrentQueue<GamePacket> receive_queue;
+    
+
+    JuiceMAN juice_manager(signaling_socket);
     std::vector<SNETADDR> m_known_advertisers;
+    
 
     // ----------------- game list section -----------------------
     Util::MemoryFrame adData;
@@ -49,46 +56,22 @@ namespace JP2P
 
     void JuiceP2P::processIncomingPackets()
     {
-        std::string incoming_packet;
-        while (receive_queue.try_dequeue(incoming_packet)) {
-            SNETADDR peer_ID;
-            std::string peer_str = incoming_packet.substr(0, 16);
-            memcpy(&peer_ID, peer_str.c_str(), sizeof(SNETADDR));
-            std::string data = incoming_packet.substr(16);
-            Util::MemoryFrame packet((void*)data.c_str(), data.size());
-            int type = packet.readAs<int>();
-            if (type == PacketType(PacketType_Solicitation))
-            {
-                // -------------- PACKET: REQUEST GAME STATES -----------------------
-                if (isAdvertising)
-                {
-                    // if state is connected
-                    // send game ad through signaling
-                    // send back game stats
-                    char sendBufferBytes[600];
-                    Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
-                    Util::MemoryFrame spacket = sendBuffer;
-                    spacket.writeAs<int>(PacketType(PacketType_Advertisement));
-                    spacket.write(adData);
-                    juice_manager.send_p2p(peer_str,
-                        sendBuffer.getFrameUpto(spacket));
-                }
-            }
-            else if (type == PacketType(PacketType_Advertisement))
-            {
-                // -------------- PACKET: GAME STATS -------------------------------
-                // give the ad to storm
-                passAdvertisement(peer_ID, packet);
-            }
-            else if (type == PacketType(PacketType_GamePacket))
-            {
-                // -------------- PACKET: GAME PACKET ------------------------------
-                // pass strom packet to strom
-                passPacket(peer_ID, packet);
-            }
-        }
+        GamePacket packet;
+        //std::string incoming_packet;
+        //while (receive_queue.try_dequeue(incoming_packet)) {
+        //    SNETADDR peer_ID;
+        //    std::string peer_str = incoming_packet.substr(0, 16);
+        //    memcpy(&peer_ID, peer_str.c_str(), sizeof(SNETADDR));
+        //    std::string data = incoming_packet.substr(16);
+        //    Util::MemoryFrame packet((void*)data.c_str(), data.size());
+        //    passPacket(peer_ID, packet);
+        //    return;
+
+        //}
     }
     //------------------------------------------------------------------------------------------------------------------------------------
+    
+    
     void JuiceP2P::initialize()
     {
     }
@@ -120,15 +103,15 @@ namespace JP2P
         // send packet
         std::string peer_str;
         peer_str.append((char*)peer_ID.address, sizeof(SNETADDR));
-
-        juice_manager.send_p2p(peer_str, sendBuffer.getFrameUpto(spacket));
+        juice_manager.send_p2p(peer_str, packet);
+        //juice_manager.send_p2p(peer_str, sendBuffer.getFrameUpto(spacket));
     }
     void JuiceP2P::receive()
     {
     receive_signaling();
     processIncomingPackets();
     }
-    
+
     void JuiceP2P::receive_signaling()
     {
         std::vector<signaling::Signal_packet> incoming_packets;
@@ -143,12 +126,6 @@ namespace JP2P
 
         for (auto packet : incoming_packets)
         {
-            
-            //if (packet.data.empty()) continue;
-
-            //ad_packet.write()
-            //ad_packet((void*)packet.data.c_str(), packet.data.size());
-
             switch (packet.message_type)
             {
             case signaling::SIGNAL_START_ADVERTISING:
@@ -174,7 +151,7 @@ namespace JP2P
                 // give the ad to storm
                 decoded_data = base64::from_base64(packet.data);
                 memcpy(&ad, decoded_data.c_str(), decoded_data.size());                
-                passAdvertisement(packet.peer_ID, Util::MemoryFrame::from(ad));
+                SNP::passAdvertisement(packet.peer_ID, Util::MemoryFrame::from(ad));
                 break;
             case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
             case signaling::SIGNAL_JUICE_CANDIDATE:

@@ -9,6 +9,9 @@
 #include "concurrentqueue.h"
 #include "SNETADDR.h"
 
+extern moodycamel::ConcurrentQueue<std::string> game_packet_queue;
+extern HANDLE receiveEvent;
+
 enum Juice_signal {
 	juice_signal_local_description = 1,
 	juice_signal_candidate = 2,
@@ -19,7 +22,6 @@ class JuiceWrapper
 {
 public:
 	JuiceWrapper(const SNETADDR& ID, signaling::SignalingSocket& sig_sock,
-		moodycamel::ConcurrentQueue<std::string>* receive_queue,
 		std::string init_message);
 	~JuiceWrapper();
 	void signal_handler(const signaling::Signal_packet packet);
@@ -27,7 +29,6 @@ public:
 	void send_message(const char* begin, const size_t size);
 	void send_message(Util::MemoryFrame frame);
 	juice_state p2p_state;
-	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
 	SNETADDR m_ID;
 
 private:
@@ -51,9 +52,8 @@ private:
 class JuiceMAN
 {
 public:
-	JuiceMAN(signaling::SignalingSocket& sig_sock,
-		moodycamel::ConcurrentQueue<std::string>* receive_queue)
-		: m_agents(), m_signaling_socket(sig_sock), p_receive_queue(receive_queue)
+	JuiceMAN(signaling::SignalingSocket& sig_sock)
+		: m_agents(), m_signaling_socket(sig_sock)
 	{};
 	~JuiceMAN() {};
 
@@ -70,6 +70,5 @@ public:
 private:
 	std::unordered_map<std::string,JuiceWrapper*> m_agents;
 	signaling::SignalingSocket m_signaling_socket;
-	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
 };
 

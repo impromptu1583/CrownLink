@@ -2,6 +2,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "SNPNetwork.h"
+#include "ThQueue/Logger.h"
+
+extern moodycamel::ConcurrentQueue<std::string> game_packet_queue;
+extern LogFile trace_file;
+extern Logger log_trace;
 
 namespace SNP
 {

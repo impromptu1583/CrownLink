@@ -13,6 +13,7 @@
 #include <format>
 #include "json.hpp"
 #include "base64.hpp"
+#include "SNPNetwork.h"
 
 using json = nlohmann::json;
 namespace signaling

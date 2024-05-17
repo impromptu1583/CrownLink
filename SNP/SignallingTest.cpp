@@ -44,11 +44,11 @@ int main(int argc, char* argv[])
 	signaling_socket.request_advertisers();
 
 
-	moodycamel::ConcurrentQueue<std::string> receive_queue;
+	//moodycamel::ConcurrentQueue<GamePacket> receive_queue;
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	std::cout << "creating manager\n";
-	JuiceMAN juice_manager(signaling_socket,&receive_queue);
+	JuiceMAN juice_manager(signaling_socket);
 	std::cout << "done\n";
 	std::string item;
 	std::vector<signaling::Signal_packet> incoming_packets;
@@ -122,9 +122,9 @@ int main(int argc, char* argv[])
 
 		}
 
-		while (receive_queue.try_dequeue(item)) {
-			std::cout << "queue received from:" << item.substr(0,16) << " message: " << item.substr(16) << "\n";
-		}
+		//while (receive_queue.try_dequeue(item)) {
+		//	std::cout << "queue received from:" << item.substr(0,16) << " message: " << item.substr(16) << "\n";
+		//}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 

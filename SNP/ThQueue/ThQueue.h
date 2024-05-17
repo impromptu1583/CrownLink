@@ -1,11 +1,6 @@
-#pragma once
 #include <queue>
 #include <mutex>
 #include <condition_variable>
-
-struct ThQueueEnded : std::runtime_error {
-    ThQueueEnded() : std::runtime_error{"ThQueue has ended!"} {};
-};
 
 template <typename T, typename Queue = std::queue<T>>
 class ThQueue {
@@ -24,29 +19,49 @@ public:
         m_cv.notify_one();
     }
 
-    template <typename... Ts>
-    void emplace(Ts&&... args) {
+    void emplace(auto&&... args) {
         std::unique_lock lock{m_mutex};
-        m_queue.emplace(std::forward<Ts>(args)...);
+        m_queue.emplace(std::forward<decltype(args)>(args)...);
         m_cv.notify_one();
     }
 
-    T pop() {
+    bool try_pop(T& out) {
         std::unique_lock lock{m_mutex};
         m_cv.wait(lock, [this]{ return m_ended || !m_queue.empty(); });
-
         if (m_ended && m_queue.empty()) {
-            // Not sure I love this, but not sure how else to end the wait,
-            // without having to return like std::optional or std::expected
-            std::cout << "throw didn't happen";
-            throw ThQueueEnded{};
-            
-             
+            return false;
         }
         
-        T result = std::move(m_queue.front());
+        out = std::move(m_queue.front());
         m_queue.pop();
-        return result;
+        return true;
+    }
+
+    std::optional<T> pop() {
+        T result;
+        if (try_pop(result)) {
+            return {std::move(result)};
+        }
+        return {};
+    }
+
+    bool try_pop_dont_wait(T& out) {
+        std::unique_lock lock{m_mutex};
+        if (m_queue.empty()) {
+            return false;
+        }
+        
+        out = std::move(m_queue.front());
+        m_queue.pop();
+        return true;
+    }
+
+    std::optional<T> pop_dont_wait() {
+        T result;
+        if (try_pop_dont_wait(result)) {
+            return {std::move(result)};
+        }
+        return {};
     }
 
     void end() {
@@ -69,9 +84,8 @@ public:
         m_queue.push(std::forward<Pair>(value));
     }
 
-    template <typename... Ts>
-    void emplace(Ts&&... args) {
-        m_queue.emplace(std::forward<Ts>(args)...);
+    void emplace(auto&&... args) {
+        m_queue.emplace(std::forward<decltype(args)>(args)...);
     }
 
     Pair front() {

@@ -3,8 +3,10 @@
 #include "Util/MemoryFrame.h"
 #include "Util/Types.h"
 #include "Storm/storm.h"
+#include "concurrentqueue.h"
 
 constexpr auto MAX_PACKET_SIZE = 500;
+
 
 
 //
@@ -14,7 +16,7 @@ constexpr auto MAX_PACKET_SIZE = 500;
 namespace SNP
 {
   const int PACKET_SIZE = MAX_PACKET_SIZE;
-
+  
   struct NetworkInfo
   {
     char          *pszName;
@@ -24,11 +26,12 @@ namespace SNP
   };
 
   typedef ::SOCKADDR SOCKADDR;
-  typedef ::SNETADDR SNETADDR;
+  //typedef ::SNETADDR SNETADDR;
 
   extern void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad);
   extern void removeAdvertisement(const SNETADDR& host);
-  extern void passPacket(const SNETADDR& host, Util::MemoryFrame packet);
+  //extern void passPacket(const SNETADDR& host, Util::MemoryFrame packet);
+  extern void passPacket(GamePacket& parket);
 
   template<typename PEERID>
   class Network
@@ -52,15 +55,16 @@ namespace SNP
     // callback functions that take network specific arguments and cast them away
     void passAdvertisement(const PEERID& host, Util::MemoryFrame ad)
     {
-      SNP::passAdvertisement(makeBin(host), ad);
+      SNP::passAdvertisement(host, ad);
     }
     void removeAdvertisement(const PEERID& host)
     {
-      SNP::removeAdvertisement(makeBin(host));
+      SNP::removeAdvertisement(host);
     }
     void passPacket(const PEERID& host, Util::MemoryFrame packet)
     {
-      SNP::passPacket(makeBin(host), packet);
+        SNP::passPacket(host, packet);
+      //SNP::passPacket(makeBin(host), packet);
     }
 
     // network plug functions
