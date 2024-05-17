@@ -8,26 +8,30 @@
 #include "signaling.h"
 #include "JuiceManager.h"
 #include <string>
+#include <vector>
+#include <thread>
+#include <chrono>
+#include "ThQueue/Logger.h"
+#include "ThQueue/ThQueue.h"
 
 namespace JP2P
 {
-  extern SNP::NetworkInfo networkInfo;
+    extern SNP::NetworkInfo networkInfo;
 
-  class JuiceP2P : public SNP::Network<SNETADDR>
-  {
-  public:
-    JuiceP2P(){};
-    ~JuiceP2P(){};
+    class JuiceP2P : public SNP::Network<SNETADDR>
+    {
+    public:
+        JuiceP2P(){};
+        ~JuiceP2P(){};
 
-    void initialize();
-    void destroy();
-    void requestAds();
-    void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
-    void receive();
-    void receive_signaling();
-    void startAdvertising(Util::MemoryFrame ad);
-    void stopAdvertising();
-
-    void processIncomingPackets();
-  };
+        void initialize();
+        void destroy();
+        void requestAds();
+        void receive();
+        void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
+        static void receive_signaling();
+        static void update_known_advertisers(std::string& message);
+        void startAdvertising(Util::MemoryFrame ad);
+        void stopAdvertising();
+    };
 };

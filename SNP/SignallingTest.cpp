@@ -5,7 +5,6 @@
 #include <memory>
 #include <chrono>
 #include <thread>
-#include "concurrentqueue.h"
 #include "SNPNetwork.h"
 
 constexpr auto ADDRESS_SIZE = 16;
@@ -21,104 +20,114 @@ void printhex(const char* hex) {
 	printf("\n");
 }
 
-
 int main(int argc, char* argv[])
 {
-	//juice_set_log_level(JUICE_LOG_LEVEL_DEBUG);
-	SignalingSocket signaling_socket;
 
-	std::string msg;
-	msg += Signal_message_type(SERVER_START_ADVERTISING);
+	signaling::SignalingSocket signaling_socket;
+
+	//signaling::Signal_packet p{ signaling_socket.server,
+	//	signaling::SIGNAL_START_ADVERTISING, "" };
+
+	//signaling_socket.send_packet(p);
+	//signaling_socket.stop_advertising();
+	signaling_socket.send_packet(signaling_socket.server,signaling::SIGNAL_START_ADVERTISING, "" );
+
+	DWORD last_time = 0;
+	DWORD now_time = GetTickCount();
+	DWORD interval = 1000;
+
+	std::vector<SNETADDR> m_known_advertisers;
+
 	std::cout << "start advertising message\n";
-	
-	signaling_socket.send_packet(signaling_socket.server, msg);
-
-	std::string msg2;
-	msg2 += Signal_message_type(SERVER_REQUEST_ADVERTISERS);
-	std::cout << "sending  msg\n";
-	signaling_socket.send_packet(signaling_socket.server, msg2);
-
-	// juice
-
-	//moodycamel::ConcurrentQueue<int> receive_queue;
-	moodycamel::ConcurrentQueue<std::string> receive_queue;
+	signaling_socket.start_advertising();
+	signaling_socket.request_advertisers();
 
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	std::cout << "creating manager\n";
-	JuiceMAN juice_manager(signaling_socket,&receive_queue);
+	JuiceMAN juice_manager(signaling_socket);
 	std::cout << "done\n";
-	std::string peer_id;
-
-	//std::string buf;
-	//int res;
-	std::vector<std::string> output;
+	std::string item;
+	std::vector<signaling::Signal_packet> incoming_packets;
 	int sendcounter = 0;
+	std::string data_decoded;
 	while (true) {
-		output = signaling_socket.receive_packets();
-		for (auto i : output) {
-			if (i.empty()) continue;
-			std::string from_address = i.substr(0, 16);
-			std::string rcv_msg = i.substr(16);
-			if (signaling_socket.server.compare(from_address)==0){
-				// message came from server
-				std::cout << "new message from server:";
-				std::cout << rcv_msg << std::endl;
-				switch (rcv_msg.at(0)) {
-				case Signal_message_type(SERVER_START_ADVERTISING):
-					std::cout << "confirmed advertising\n";
-					break;
-				case Signal_message_type(SERVER_STOP_ADVERTISING):
-					std::cout << "confirmed stopped advertising\n";
-					break;
-				case Signal_message_type(SERVER_REQUEST_ADVERTISERS):
-					std::cout << "list of advertisers returned\n";
-					// do something here
-					for (size_t i = 0; (i + 1) * ADDRESS_SIZE + 1 <= rcv_msg.size(); i++) {
-						std::string chunk = rcv_msg.substr(i+1, ADDRESS_SIZE);
-
-						printhex(chunk.c_str());
-						//char* testmsg = "hi";
-						//juice_manager.send_p2p(peer_id, testmsg);
-						juice_manager.create_if_not_exist(chunk);
-					}
-
-					
-					break;
+		incoming_packets = signaling_socket.receive_packets();
+		for (auto packet : incoming_packets) {
+			//if (packet.data.empty()) continue;
+			std::cout << "data received:" << packet.data << "\n";
+			std::cout << "data type:" << (int)packet.message_type << "\n";
+			switch (packet.message_type)
+			{
+			case signaling::SIGNAL_START_ADVERTISING:
+				std::cout << "start advertising confirmed\n";
+				break;
+			case signaling::SIGNAL_STOP_ADVERTISING:
+				std::cout << "stop advertising confirmed\n";
+				break;
+			case signaling::SIGNAL_REQUEST_ADVERTISERS:
+				data_decoded = base64::from_base64(packet.data);
+				m_known_advertisers.clear();
+				for (size_t i = 0; (i + 1) * sizeof(SNETADDR) <= data_decoded.size(); i++)
+				{
+					std::string peer_id = data_decoded.substr(i, sizeof(SNETADDR));
+					m_known_advertisers.push_back(SNETADDR(peer_id));
+					juice_manager.create_if_not_exist(peer_id);
 				}
+				std::cout << "got " << data_decoded.size() / sizeof(SNETADDR) << " peers\n";
+				break;
+			case signaling::SIGNAL_SOLICIT_ADS:
+				if (true)
+				{
+					std::cout << "solicitaiton received\n";
+					signaling_socket.send_packet(packet.peer_ID, signaling::SIGNAL_GAME_AD, "Your Ad Here");
+				}
+				break;
+			case signaling::SIGNAL_GAME_AD:
+				std::cout << "received game ad:" << packet.data << "\n";
+				break;
+			case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
+				std::cout << "got local juice description";
+				juice_manager.signal_handler(packet);
+				break;
+			case signaling::SIGNAL_JUICE_CANDIDATE:
+				std::cout << "got candidate";
+				juice_manager.signal_handler(packet);
+				break;
+			case signaling::SIGNAL_JUICE_DONE:
+				std::cout << "juice done";
+				juice_manager.signal_handler(packet);
+				break;
 			}
-			else {
-				// from a peer??
-				std::cout << "got a message from a peer: " << rcv_msg << "\n";
-				juice_manager.signal_handler(i.substr(0, 16), rcv_msg);
-			}
-
-
 		}
 		// do stuff here outside of receive loop
-		sendcounter++;
-		std::string p2pmsg = std::format("Send number: {}", sendcounter);
-		juice_manager.send_all(p2pmsg);
-		// do the thing
-		std::string item;
-		while (receive_queue.try_dequeue(item)) {
-			std::cout << "queue received from:" << item.substr(0,16) << " message: " << item.substr(16) << "\n";
+		
+		now_time = GetTickCount();
+		if (now_time - last_time > 1000) {
+			last_time = now_time;
+			sendcounter++;
+			signaling_socket.request_advertisers();
+			for (auto& advertiser : m_known_advertisers) {
+				if (juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED
+					|| juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED)
+				{
+					signaling_socket.send_packet(advertiser, signaling::SIGNAL_SOLICIT_ADS);
+				}
+			}
+			std::string p2pmsg = std::format("Send number: {}", sendcounter);
+			juice_manager.send_all(p2pmsg);
+
 		}
+
+		//while (receive_queue.try_dequeue(item)) {
+		//	std::cout << "queue received from:" << item.substr(0,16) << " message: " << item.substr(16) << "\n";
+		//}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 	}
 
 
-	/*
-	recvsvr();
-	msg = reinterpret_cast<const char*>(server.address);
-	msg += 3;
-	sendsvr(server, msg);
-	recvsvr();
-
-	recvsvr();
-	closesocket(sockfd);*/
 
 
 }

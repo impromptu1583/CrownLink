@@ -10,21 +10,14 @@ set(MODULE_FILES
 	Util/Exceptions.cpp
 	Output.cpp
 	Output.h
-	SettingsDialog.cpp
-	SettingsDialog.h
 	SNPModule.cpp
 	SNPModule.h
 	SNPNetwork.h
-	UDPSocket.h
+	CriticalSection.h
 	CriticalSection.cpp
-	UI.rc
 	caps.mpq
 	resource.h
 	SNPModule.def
-	UDPSocket.cpp
-	CriticalSection.h
-	DirectIP.cpp
-	DirectIP.h
 	JuiceP2P.cpp
 	JuiceP2P.h
 	DLLMain.cpp
@@ -32,8 +25,10 @@ set(MODULE_FILES
 	signaling.cpp
 	JuiceManager.h
 	JuiceManager.cpp
-	concurrentqueue/concurrentqueue.h
-   "SNETADDR.h")
+	json.hpp
+	"include/base64.hpp"
+    SNETADDR.h
+)
 
 add_library (SNP SHARED ${MODULE_FILES})
 
@@ -47,23 +42,26 @@ set(TEST_FILES
 	JuiceManager.h
 	JuiceManager.cpp
 	SignallingTest.cpp
-	concurrentqueue/concurrentqueue.h
-   "SNETADDR.h")
+	json.hpp
+    SNETADDR.h
+	"include/base64.hpp"
+	ThQueue/Logger.h
+)
 
-add_executable (SIGNALTEST ${TEST_FILES})
+#add_executable (SIGNALTEST ${TEST_FILES})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
-  set_property(TARGET SIGNALTEST PROPERTY CXX_STANDARD 20)
+#  set_property(TARGET SIGNALTEST PROPERTY CXX_STANDARD 20)
 endif()
 
-target_link_libraries(SIGNALTEST
-	PUBLIC ws2_32
-	PRIVATE juice-static
-)
+#target_link_libraries(SIGNALTEST
+#	PUBLIC ws2_32
+#	PRIVATE juice-static
+#)
 
 
 set(outname "JuiceSNP")
@@ -76,7 +74,7 @@ set_target_properties (SNP
 )
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
-include_directories(${CMAKE_SOURCE_DIR}/SNP/concurrentqueue)
+include_directories(${CMAKE_SOURCE_DIR}/SNP/include)
 
 include(FetchContent)
 #juice
@@ -88,7 +86,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Juice)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
-target_include_directories(SIGNALTEST PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
+#target_include_directories(SIGNALTEST PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
 #	PUBLIC wsock32
 	PUBLIC ws2_32
@@ -117,4 +115,4 @@ install(TARGETS SNP
 
 
 
-# mklink linked.snp "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\JuiceSNP.snp
+# mklink "C:\Cosmonarchy\Starcraft\linked.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\JuiceSNP.snp

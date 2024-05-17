@@ -50,7 +50,7 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
     //  return TRUE;
     case JP2P_ID:
       *ppFxns = &SNP::spiFunctions;
-      SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new JP2P::JuiceP2P());
+      SNP::pluggedNetwork = (SNP::Network<SNETADDR>*)(new JP2P::JuiceP2P());
       return TRUE;
     default:
       return FALSE;

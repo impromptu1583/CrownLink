@@ -8,6 +8,10 @@ struct SNETADDR {
     SNETADDR() {
         memset(&address, 0, sizeof(SNETADDR));
     };
+    SNETADDR(BYTE* addr)
+    {
+        memcpy(&address, addr, sizeof(SNETADDR));
+    }
     SNETADDR(std::string ID) {
         memset(&address, 0, sizeof(SNETADDR));
         memcpy(&address, ID.c_str(), sizeof(SNETADDR));
@@ -19,3 +23,12 @@ struct SNETADDR {
         return strncmp((const char*)address, (const char*)other.address, 16);
     }
 };
+
+struct GamePacket
+{
+    SNETADDR sender;
+    int packetSize;
+    DWORD timeStamp;
+    char data[512];
+};
+

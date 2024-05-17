@@ -5,12 +5,8 @@
 void example1() {
     ThQueue<int> queue;
     std::jthread thread{[&queue]{
-        try {
-            while (true) {
-                std::cout << queue.pop() << "\n";
-            }
-        } catch (const ThQueueEnded&) {
-            // end...
+        while (const auto value = queue.pop()) {
+            std::cout << *value << "\n";
         }
     }};
 
@@ -23,12 +19,9 @@ void example1() {
 void example2() {
     ThQueue<std::string> queue;
     std::jthread thread{[&queue]{
-        try {
-            while (true) {
-                std::cout << queue.pop() << "\n";
-            }
-        } catch (const ThQueueEnded&) {
-            // end...
+        std::string str;
+        while (queue.try_pop(str)) {
+            std::cout << str << "\n";
         }
     }};
 
@@ -51,13 +44,9 @@ std::ostream& operator<<(std::ostream& out, Priority priority) {
 void example3() {
     ThPriorityQueue<Priority, int> queue;
     std::jthread thread{[&queue]{
-        try {
-            while (true) {
-                auto [priority, value] = queue.pop();
-                std::cout << priority << " " << value << "\n";
-            }
-        } catch (const ThQueueEnded&) {
-            // end...
+        while (const auto pair = queue.pop()) {
+            auto [priority, value] = *pair;
+            std::cout << priority << " " << value << "\n";
         }
     }};
 
@@ -69,6 +58,26 @@ void example3() {
     queue.emplace(Priority::High, 432);
     queue.push({Priority::Low, 123});
     queue.end();
+}
+
+void example4() {
+    bool game_loop_is_running = true;
+
+    ThQueue<std::string> queue;
+    std::jthread thread{[&queue, &game_loop_is_running]{
+        while (game_loop_is_running) {
+            std::cout << "Game Tick!\n";
+            while (const auto str = queue.pop_dont_wait()) {
+                std::cout << *str << "\n";
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+    }};
+
+    queue.emplace("Hello");
+    queue.emplace("World");
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    game_loop_is_running = false;
 }
 
 #define RUN(func) do {\
@@ -83,6 +92,7 @@ int main(int argc, char** argv) {
     RUN(example1);
     RUN(example2);
     RUN(example3);
+    RUN(example4);
 
     return 0;
 }

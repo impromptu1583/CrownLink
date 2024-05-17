@@ -6,8 +6,14 @@
 #include "signaling.h"
 #include "Util/MemoryFrame.h"
 #include "iostream"
-#include "concurrentqueue.h"
 #include "SNETADDR.h"
+#include "ThQueue/Logger.h"
+#include "ThQueue/ThQueue.h"
+
+extern ThQueue<GamePacket> receive_queue;
+extern HANDLE receiveEvent;
+extern LogFile trace_file;
+extern Logger log_trace;
 
 enum Juice_signal {
 	juice_signal_local_description = 1,
@@ -18,16 +24,14 @@ enum Juice_signal {
 class JuiceWrapper
 {
 public:
-	JuiceWrapper(const SNETADDR& ID, SignalingSocket& sig_sock,
-		moodycamel::ConcurrentQueue<std::string>* receive_queue,
+	JuiceWrapper(const SNETADDR& ID, signaling::SignalingSocket& sig_sock,
 		std::string init_message);
 	~JuiceWrapper();
-	void signal_handler(const std::string& msg);
+	void signal_handler(const signaling::Signal_packet packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
 	void send_message(Util::MemoryFrame frame);
 	juice_state p2p_state;
-	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
 	SNETADDR m_ID;
 
 private:
@@ -41,7 +45,7 @@ private:
 	juice_config_t m_config;
 	const std::string m_stun_server = "stun.l.google.com";
 	const int m_stun_server_port = 19302;
-	SignalingSocket m_signalling_socket;
+	signaling::SignalingSocket m_signaling_socket;
 	juice_agent_t *m_agent;
 	char m_sdp[JUICE_MAX_SDP_STRING_LEN];
 
@@ -51,22 +55,23 @@ private:
 class JuiceMAN
 {
 public:
-	JuiceMAN(SignalingSocket& sig_sock,
-		moodycamel::ConcurrentQueue<std::string>* receive_queue)
-		: m_agents(), m_signaling_socket(sig_sock), p_receive_queue(receive_queue)
+	JuiceMAN(signaling::SignalingSocket& sig_sock)
+		: m_agents(), m_signaling_socket(sig_sock)
 	{};
 	~JuiceMAN() {};
 
 	void create_if_not_exist(const std::string& ID);
 	void send_p2p(const std::string& ID, const std::string& msg);
 	void send_p2p(const std::string& ID, Util::MemoryFrame frame);
-	void signal_handler(const std::string& source_ID, const std::string& msg);
+	//void signal_handler(const std::string& source_ID, const std::string& msg);
+	void signal_handler(const signaling::Signal_packet packet);
 	void send_all(const std::string&);
 	void send_all(const char* begin, const size_t size);
 	void send_all(Util::MemoryFrame frame);
+	juice_state peer_status(SNETADDR peer_ID);
+
 private:
 	std::unordered_map<std::string,JuiceWrapper*> m_agents;
-	SignalingSocket m_signaling_socket;
-	moodycamel::ConcurrentQueue<std::string>* p_receive_queue;
+	signaling::SignalingSocket m_signaling_socket;
 };
 
