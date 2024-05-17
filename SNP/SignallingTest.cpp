@@ -5,7 +5,6 @@
 #include <memory>
 #include <chrono>
 #include <thread>
-#include "concurrentqueue.h"
 #include "SNPNetwork.h"
 
 constexpr auto ADDRESS_SIZE = 16;
@@ -43,8 +42,6 @@ int main(int argc, char* argv[])
 	signaling_socket.start_advertising();
 	signaling_socket.request_advertisers();
 
-
-	//moodycamel::ConcurrentQueue<GamePacket> receive_queue;
 
 	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	std::cout << "creating manager\n";

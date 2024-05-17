@@ -25,7 +25,6 @@ set(MODULE_FILES
 	signaling.cpp
 	JuiceManager.h
 	JuiceManager.cpp
-	concurrentqueue/concurrentqueue.h
 	json.hpp
 	"include/base64.hpp"
     SNETADDR.h
@@ -43,7 +42,6 @@ set(TEST_FILES
 	JuiceManager.h
 	JuiceManager.cpp
 	SignallingTest.cpp
-	concurrentqueue/concurrentqueue.h
 	json.hpp
     SNETADDR.h
 	"include/base64.hpp"
@@ -76,7 +74,6 @@ set_target_properties (SNP
 )
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
 include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
-include_directories(${CMAKE_SOURCE_DIR}/SNP/concurrentqueue)
 include_directories(${CMAKE_SOURCE_DIR}/SNP/include)
 
 include(FetchContent)

@@ -27,13 +27,11 @@ namespace JP2P
         void initialize();
         void destroy();
         void requestAds();
-        void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
         void receive();
-        void receive_thread();
-        void receive_signaling();
-        void update_known_advertisers(std::string& message);
+        void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
+        static void receive_signaling();
+        static void update_known_advertisers(std::string& message);
         void startAdvertising(Util::MemoryFrame ad);
         void stopAdvertising();
-        void processIncomingPackets();
     };
 };

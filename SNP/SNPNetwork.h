@@ -3,7 +3,6 @@
 #include "Util/MemoryFrame.h"
 #include "Util/Types.h"
 #include "Storm/storm.h"
-#include "concurrentqueue.h"
 
 constexpr auto MAX_PACKET_SIZE = 500;
 

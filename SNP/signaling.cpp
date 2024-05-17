@@ -18,15 +18,6 @@ namespace signaling
 		j.at("data").get_to(p.data);
 	};
 
-	Signal_packet test_json(Signal_packet& p) {
-		json j = p;
-		std::string out_str = j.dump();
-		std::cout << "converted to:" << out_str << "\n";
-		json n = json::parse(out_str);
-		auto p2 = n.template get<Signal_packet>();
-		return p2;
-	}
-
 	SignalingSocket::SignalingSocket()
 		: m_sockfd(NULL), server(), m_state(0), m_delimiter("-+")
 	{
@@ -82,7 +73,7 @@ namespace signaling
 		// server address: each byte is 11111111
 		memset(&server, 255, sizeof(SNETADDR));
 
-		set_blocking_mode(false);
+		set_blocking_mode(true);
 	}
 
 	SignalingSocket::~SignalingSocket()

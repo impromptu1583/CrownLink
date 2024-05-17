@@ -5,7 +5,6 @@
 #include "ThQueue/Logger.h"
 #include "ThQueue/ThQueue.h"
 
-extern moodycamel::ConcurrentQueue<std::string> game_packet_queue;
 extern ThQueue<GamePacket> receive_queue;
 extern LogFile trace_file;
 extern Logger log_trace;

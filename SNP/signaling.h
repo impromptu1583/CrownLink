@@ -54,8 +54,6 @@ namespace signaling
 		std::string data;
 	};
 
-	Signal_packet test_json(Signal_packet& p);
-
 	class SignalingSocket
 	{
 
@@ -63,8 +61,6 @@ namespace signaling
 		SignalingSocket();
 		~SignalingSocket();
 		void release() noexcept;
-		//void send_packet(std::string dest, const std::string& msg);
-		//void send_packet(SNETADDR dest, const std::string& msg);
 		void send_packet(SNETADDR dest, const Signal_message_type msg_type, std::string msg = "");
 		void send_packet(const Signal_packet);
 		std::vector<Signal_packet> receive_packets();

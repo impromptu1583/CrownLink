@@ -4,8 +4,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-// global packet queue
-moodycamel::ConcurrentQueue<std::string> game_packet_queue;
 
 // these modi are implemented in this DLL
 //#include "DirectIP.h"

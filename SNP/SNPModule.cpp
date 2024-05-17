@@ -446,7 +446,6 @@ each second
 
     try
     {
-      pluggedNetwork->receive();
 
       while(true)
       {
