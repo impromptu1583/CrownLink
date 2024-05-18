@@ -96,12 +96,13 @@ void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, 
 
 	JuiceWrapper* parent = (JuiceWrapper*)user_ptr;
 
-	GamePacket gamePacket;
-	memcpy(gamePacket.data, data, size);
-	gamePacket.packetSize = size;
-	gamePacket.sender = parent->m_ID;
-	gamePacket.timeStamp = GetTickCount();
-	receive_queue.push(GamePacket(gamePacket));
+	//GamePacket gamePacket;
+	//memcpy(gamePacket.data, data, size);
+	//gamePacket.packetSize = size;
+	//gamePacket.sender = parent->m_ID;
+	//gamePacket.timeStamp = GetTickCount();
+	//receive_queue.push(GamePacket(gamePacket));
+	receive_queue.emplace(GamePacket{ parent->m_ID,size,data });
 	SetEvent(receiveEvent);
 }
 

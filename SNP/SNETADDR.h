@@ -5,9 +5,7 @@
 #include <string>
 
 struct SNETADDR {
-    SNETADDR() {
-        memset(&address, 0, sizeof(SNETADDR));
-    };
+    SNETADDR() = default;
     SNETADDR(BYTE* addr)
     {
         memcpy(&address, addr, sizeof(SNETADDR));
@@ -26,6 +24,13 @@ struct SNETADDR {
 
 struct GamePacket
 {
+    GamePacket() = default;
+    GamePacket(const SNETADDR& sender_ID, size_t size, const char* dataarray) {
+        sender = sender_ID;
+        packetSize = static_cast<int>(size); // technically unsafe but size can never be bigger than max MTU of the connection (1500 typically)
+        memcpy(data, dataarray, size);
+        timeStamp = GetTickCount();
+    };
     SNETADDR sender;
     int packetSize;
     DWORD timeStamp;
