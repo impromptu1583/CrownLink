@@ -5,9 +5,7 @@
 #include <string>
 
 struct SNETADDR {
-    SNETADDR() {
-        memset(&address, 0, sizeof(SNETADDR));
-    };
+    SNETADDR() = default;
     SNETADDR(BYTE* addr)
     {
         memcpy(&address, addr, sizeof(SNETADDR));
@@ -26,6 +24,13 @@ struct SNETADDR {
 
 struct GamePacket
 {
+    GamePacket() = default;
+    GamePacket(SNETADDR& sender_ID, const char* recv_data, const size_t size) {
+        sender = SNETADDR(sender_ID);
+        timeStamp = GetTickCount();
+        packetSize = size;
+        memcpy(data, recv_data, size);
+    };
     SNETADDR sender;
     int packetSize;
     DWORD timeStamp;

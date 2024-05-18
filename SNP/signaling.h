@@ -63,7 +63,7 @@ namespace signaling
 		void release() noexcept;
 		void send_packet(SNETADDR dest, const Signal_message_type msg_type, std::string msg = "");
 		void send_packet(const Signal_packet);
-		std::vector<Signal_packet> receive_packets();
+		void receive_packets(std::vector<Signal_packet>& incoming_packets);
 		void set_blocking_mode(bool block);
 		void start_advertising();
 		void stop_advertising();
@@ -71,7 +71,7 @@ namespace signaling
 		SNETADDR server;
 
 	private:
-		std::vector<Signal_packet> split_into_packets(const std::string& s);
+		void split_into_packets(const std::string& s, std::vector<Signal_packet>& incoming_packets);
 		SOCKET m_sockfd;
 		int m_state;
 		const std::string m_delimiter;

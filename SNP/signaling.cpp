@@ -105,11 +105,12 @@ namespace signaling
 		if (n_bytes == -1) perror("send error");
 	}
 
-	std::vector<Signal_packet> SignalingSocket::split_into_packets(const std::string& s) {
+	void SignalingSocket::split_into_packets(const std::string& s,std::vector<Signal_packet>& incoming_packets) {
 		size_t pos_start = 0, pos_end, delim_len = m_delimiter.length();
 		std::string token;
-		std::vector<Signal_packet> output;
+		//std::vector<Signal_packet> output;
 		//size_t s_len = s.length();
+		incoming_packets.clear();
 		while ((pos_end = s.find(m_delimiter, pos_start)) != std::string::npos) {
 			token = s.substr(pos_start, pos_end - pos_start);
 			pos_start = pos_end + delim_len;
@@ -117,34 +118,33 @@ namespace signaling
 			json j = json::parse(token);
 			Signal_packet p = j.template get<Signal_packet>();
 
-			output.push_back(p);
+			incoming_packets.push_back(p);
 		}
 
-		return output;
+		return;
 	}
-	
-	std::vector<Signal_packet> SignalingSocket::receive_packets() {
+
+	void SignalingSocket::receive_packets(std::vector<Signal_packet>& incoming_packets){
 		const unsigned int MAX_BUF_LENGTH = 4096;
 		std::vector<char> buffer(MAX_BUF_LENGTH);
 		std::string receive_buffer;
 		std::vector<Signal_packet> output;
 		int n_bytes;
-
 		// try to receive
 		n_bytes = recv(m_sockfd, &buffer[0], buffer.size(), 0);
 		if (n_bytes == SOCKET_ERROR) {
 			m_state = WSAGetLastError();
 			if (m_state == WSAEWOULDBLOCK || m_state == WSAECONNRESET) {
 				// we're waiting for data or connection is reset
-				return output; //will be empty
+				return;
 			}
 			else throw GeneralException("::recv failed");
 		}
 		else {
 			buffer.resize(n_bytes);
 			receive_buffer.append(buffer.cbegin(), buffer.cend());
-			output = split_into_packets(receive_buffer);
-			return output;
+			split_into_packets(receive_buffer,incoming_packets);
+			return;
 		}
 	}
 
