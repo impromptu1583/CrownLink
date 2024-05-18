@@ -25,11 +25,11 @@ struct SNETADDR {
 struct GamePacket
 {
     GamePacket() = default;
-    GamePacket(const SNETADDR& sender_ID, size_t size, const char* dataarray) {
-        sender = sender_ID;
-        packetSize = static_cast<int>(size); // technically unsafe but size can never be bigger than max MTU of the connection (1500 typically)
-        memcpy(data, dataarray, size);
+    GamePacket(SNETADDR& sender_ID, const char* recv_data, const size_t size) {
+        sender = SNETADDR(sender_ID);
         timeStamp = GetTickCount();
+        packetSize = size;
+        memcpy(data, recv_data, size);
     };
     SNETADDR sender;
     int packetSize;

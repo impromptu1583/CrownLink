@@ -22,7 +22,7 @@ namespace JP2P
     struct AdFile
     {
         game gameInfo;
-        char extraBytes[32];
+        char extraBytes[32] = "";
     };
 
     SNP::NetworkInfo networkInfo = { nName, 'JP2P', nDesc,
@@ -46,6 +46,7 @@ namespace JP2P
     }
     void JuiceP2P::destroy()
     {
+        //TODO cleanup properly so we don't get an error on close
     }
     void JuiceP2P::requestAds()
     {
@@ -61,15 +62,8 @@ namespace JP2P
     void JuiceP2P::receive() {};//unused
     void JuiceP2P::sendAsyn(const SNETADDR& peer_ID, Util::MemoryFrame packet)
     {
-        // create header
-        char sendBufferBytes[600];
-        Util::MemoryFrame sendBuffer(sendBufferBytes, 600);
-        Util::MemoryFrame spacket = sendBuffer;
-        spacket.write(packet);
-
-        // send packet
-        std::string peer_str((char*)peer_ID.address, sizeof(SNETADDR));
-        juice_manager.send_p2p(peer_str, packet);
+        juice_manager.send_p2p(
+            std::string((char*)peer_ID.address,sizeof(SNETADDR)), packet);
     }
 
     void JuiceP2P::receive_signaling()
@@ -82,9 +76,8 @@ namespace JP2P
         AdFile ad;
         std::string decoded_data;
 
-        // should block here now
         while (true) {
-            incoming_packets = signaling_socket.receive_packets();
+            signaling_socket.receive_packets(incoming_packets);
             log_trace.debug("received incoming signaling");
             for (auto packet : incoming_packets)
             {
