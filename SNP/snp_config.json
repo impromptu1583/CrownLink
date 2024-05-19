@@ -1,5 +1,5 @@
 {
     "server": "159.223.202.177",
-    "port": 9988,
-    "log level": "debug"
+    "port": "9988",
+    "log level": 6
 }

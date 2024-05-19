@@ -15,8 +15,6 @@ namespace SNP
 {
   //------------------------------------------------------------------------------------------------------------------------------------
   Network<SNETADDR> *pluggedNetwork = NULL;
-    
-  Logger log_trace_module = log_trace["SNPModule"];
 
   client_info gameAppInfo;
 
@@ -417,7 +415,7 @@ each second
       // send packet over the network module
       std::string tmp;
       tmp.append(buf, bufLen);
-      log_trace.debug("spiSend: {}", tmp);
+      g_logger.trace("spiSend: {}", tmp);
 
       pluggedNetwork->sendAsyn(him, Util::MemoryFrame(buf, bufLen));
 
@@ -455,7 +453,7 @@ each second
               return FALSE;
           }
           std::string debugstr(loan->data, loan->packetSize);
-          log_trace.debug("spiReceive: {} :: {}",loan->timeStamp,debugstr);
+          g_logger.trace("spiReceive: {} :: {}",loan->timeStamp,debugstr);
 
           if (GetTickCount() > loan->timeStamp + 10000)
           {

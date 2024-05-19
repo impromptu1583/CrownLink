@@ -1,17 +1,12 @@
 #pragma once
 
+#include "common.h"
 #include "SNPNetwork.h"
-
 #include "Output.h"
-
 #include "Util/Types.h"
-#include "signaling.h"
-#include "JuiceManager.h"
-#include <string>
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "ThQueue/Logger.h"
 #include "ThQueue/ThQueue.h"
 
 namespace JP2P

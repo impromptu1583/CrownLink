@@ -3,10 +3,9 @@
 //----------------------------JuiceWrapper----------------------------//
 // Used for individual P2P connections                                //
 //--------------------------------------------------------------------//
-JuiceWrapper::JuiceWrapper(const SNETADDR& ID, signaling::SignalingSocket& sig_sock,
-	std::string init_message="")
+JuiceWrapper::JuiceWrapper(const SNETADDR& ID, std::string init_message="")
 	: p2p_state(JUICE_STATE_DISCONNECTED), m_ID(ID), m_config(),
-	m_stun_server("stun.l.google.com"),	m_stun_server_port(19302), m_signaling_socket(sig_sock), m_sdp()
+	m_stun_server("stun.l.google.com"),	m_stun_server_port(19302), m_sdp()
 {
 
 	memset(&m_config, 0, sizeof(m_config));
@@ -24,24 +23,24 @@ JuiceWrapper::JuiceWrapper(const SNETADDR& ID, signaling::SignalingSocket& sig_s
 	}
 	juice_get_local_description(m_agent, m_sdp, JUICE_MAX_SDP_STRING_LEN);
 	//send_signaling_message(m_sdp, juice_signal_local_description);
-	m_signaling_socket.send_packet(m_ID, signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION,m_sdp);
+	signaling_socket.send_packet(m_ID, SIGNAL_JUICE_LOCAL_DESCRIPTION,m_sdp);
 	juice_gather_candidates(m_agent);
 }
 JuiceWrapper::~JuiceWrapper()
 {
 }
-void JuiceWrapper::signal_handler(const signaling::Signal_packet packet)
+void JuiceWrapper::signal_handler(const Signal_packet packet)
 {
 
 	switch (packet.message_type)
 	{
-	case signaling::SIGNAL_JUICE_LOCAL_DESCRIPTION:
+	case SIGNAL_JUICE_LOCAL_DESCRIPTION:
 		juice_set_remote_description(m_agent, packet.data.c_str());
 		break;
-	case signaling::SIGNAL_JUICE_CANDIDATE:
+	case SIGNAL_JUICE_CANDIDATE:
 		juice_add_remote_candidate(m_agent, packet.data.c_str());
 		break;
-	case signaling::SIGNAL_JUICE_DONE:
+	case SIGNAL_JUICE_DONE:
 		juice_set_remote_gathering_done(m_agent);
 		break;
 	}
@@ -83,13 +82,13 @@ void JuiceWrapper::on_state_changed(juice_agent_t* agent, juice_state_t state, v
 void JuiceWrapper::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr)
 {
 	JuiceWrapper* parent = (JuiceWrapper*)user_ptr;
-	parent->m_signaling_socket.send_packet(parent->m_ID, signaling::SIGNAL_JUICE_CANDIDATE, sdp);
+	signaling_socket.send_packet(parent->m_ID, SIGNAL_JUICE_CANDIDATE, sdp);
 
 }
 void JuiceWrapper::on_gathering_done(juice_agent_t* agent, void* user_ptr)
 {
 	JuiceWrapper* parent = (JuiceWrapper*)user_ptr;
-	parent->m_signaling_socket.send_packet(parent->m_ID, signaling::SIGNAL_JUICE_DONE);
+	signaling_socket.send_packet(parent->m_ID, SIGNAL_JUICE_DONE);
 }
 void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr)
 {
@@ -108,7 +107,7 @@ void JuiceMAN::create_if_not_exist(const std::string& ID)
 {
 	if (!m_agents.count(ID))
 	{
-		m_agents.insert(std::make_pair(ID, new JuiceWrapper(ID, m_signaling_socket)));
+		m_agents.insert(std::make_pair(ID, new JuiceWrapper(ID)));
 	}
 }
 
@@ -135,13 +134,13 @@ void JuiceMAN::send_p2p(const std::string& ID, Util::MemoryFrame frame)
 //	}
 //	m_agents[source_ID]->signal_handler(msg);
 //}
-void JuiceMAN::signal_handler(const signaling::Signal_packet packet)
+void JuiceMAN::signal_handler(const Signal_packet packet)
 {
 	std::string peerstr;
 	peerstr.append((char*)packet.peer_ID.address, sizeof(SNETADDR));
 	if (!m_agents.count(peerstr)) {
 		//m_agents[source_ID] = std::unique_ptr<JuiceWrapper>(new JuiceWrapper(source_ID, m_signaling_socket,msg));
-		m_agents.insert(std::make_pair(peerstr, new JuiceWrapper(peerstr, m_signaling_socket, packet.data)));
+		m_agents.insert(std::make_pair(peerstr, new JuiceWrapper(peerstr, packet.data)));
 	}
 	m_agents[peerstr]->signal_handler(packet);
 }

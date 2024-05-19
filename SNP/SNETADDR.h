@@ -3,6 +3,8 @@
 #include <windows.h>
 #define SNETADDR_H
 #include <string>
+#include "base64.hpp"
+
 
 struct SNETADDR {
     SNETADDR() = default;
@@ -20,7 +22,12 @@ struct SNETADDR {
     int compare(SNETADDR other) {
         return strncmp((const char*)address, (const char*)other.address, 16);
     }
+
+    std::string b64() const volatile {
+        return base64::to_base64(std::string((char*)address, sizeof(SNETADDR)));
+    }
 };
+
 
 struct GamePacket
 {

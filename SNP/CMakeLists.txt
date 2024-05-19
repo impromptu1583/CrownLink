@@ -28,9 +28,9 @@ set(MODULE_FILES
 	json.hpp
 	"include/base64.hpp"
     SNETADDR.h
-)
+ "config.h")
 
-add_library (SNP SHARED ${MODULE_FILES})
+add_library (SNP SHARED ${MODULE_FILES} "common.h")
 
 set(TEST_FILES
 	Util/MemoryFrame.cpp
