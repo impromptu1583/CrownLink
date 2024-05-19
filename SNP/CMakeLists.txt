@@ -18,8 +18,8 @@ set(MODULE_FILES
 	caps.mpq
 	resource.h
 	SNPModule.def
-	JuiceP2P.cpp
-	JuiceP2P.h
+	"CrownLink.cpp"
+	"CrownLink.h"
 	DLLMain.cpp
 	signaling.h
 	signaling.cpp
@@ -28,9 +28,9 @@ set(MODULE_FILES
 	json.hpp
 	"include/base64.hpp"
     SNETADDR.h
-)
+ "config.h")
 
-add_library (SNP SHARED ${MODULE_FILES})
+add_library (SNP SHARED ${MODULE_FILES} "common.h")
 
 set(TEST_FILES
 	Util/MemoryFrame.cpp
@@ -116,3 +116,4 @@ install(TARGETS SNP
 
 
 # mklink "C:\Cosmonarchy\Starcraft\linked.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\JuiceSNP.snp
+# mklink "C:\Cosmonarchy\Starcraft\snp_config.json" "C:\Users\Jesse\source\repos\SNPJuice\SNP\snp_config.json

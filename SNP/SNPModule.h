@@ -1,13 +1,9 @@
 #pragma once
+#include "common.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "SNPNetwork.h"
-#include "ThQueue/Logger.h"
 #include "ThQueue/ThQueue.h"
-
-extern ThQueue<GamePacket> receive_queue;
-extern LogFile trace_file;
-extern Logger log_trace;
 
 namespace SNP
 {
