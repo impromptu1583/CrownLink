@@ -67,5 +67,4 @@ private:
 	bool m_config_found = false;
 };
 
-inline auto snpconfig = SNPConfig{ "c:\\Cosmonarchy\\Starcraft\\snp_config.json"};
-//"snp_config.json" , "..\\Starcraft\\snp_config.json" , 
+inline auto snpconfig = SNPConfig{ "CrownLink_config.json","..\\Starcraft\\CrownLink_config.json","C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json" };

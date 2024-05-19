@@ -18,8 +18,8 @@ set(MODULE_FILES
 	caps.mpq
 	resource.h
 	SNPModule.def
-	"CrownLink.cpp"
-	"CrownLink.h"
+	CrownLink.cpp
+	CrownLink.h
 	DLLMain.cpp
 	signaling.h
 	signaling.cpp
@@ -28,7 +28,7 @@ set(MODULE_FILES
 	json.hpp
 	"include/base64.hpp"
     SNETADDR.h
- "config.h")
+	config.h)
 
 add_library (SNP SHARED ${MODULE_FILES} "common.h")
 
@@ -64,7 +64,7 @@ endif()
 #)
 
 
-set(outname "JuiceSNP")
+set(outname "CrownLink")
 
 set_target_properties (SNP
 	PROPERTIES
@@ -115,5 +115,5 @@ install(TARGETS SNP
 
 
 
-# mklink "C:\Cosmonarchy\Starcraft\linked.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\JuiceSNP.snp
-# mklink "C:\Cosmonarchy\Starcraft\snp_config.json" "C:\Users\Jesse\source\repos\SNPJuice\SNP\snp_config.json
+# mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\CrownLink.snp
+# mklink "C:\Cosmonarchy\Starcraft\CrownLink_config.json" "C:\Users\Jesse\source\repos\SNPJuice\SNP\CrownLink_config.json
