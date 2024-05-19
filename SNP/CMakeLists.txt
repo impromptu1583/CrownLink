@@ -18,8 +18,8 @@ set(MODULE_FILES
 	caps.mpq
 	resource.h
 	SNPModule.def
-	JuiceP2P.cpp
-	JuiceP2P.h
+	"CrownLink.cpp"
+	"CrownLink.h"
 	DLLMain.cpp
 	signaling.h
 	signaling.cpp

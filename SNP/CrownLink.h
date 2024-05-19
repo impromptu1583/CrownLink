@@ -9,7 +9,7 @@
 #include <chrono>
 #include "ThQueue/ThQueue.h"
 
-namespace JP2P
+namespace CLNK
 {
     extern SNP::NetworkInfo networkInfo;
 

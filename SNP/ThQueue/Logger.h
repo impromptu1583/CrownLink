@@ -97,6 +97,7 @@ public:
     }
 
     inline void set_log_level(Log_Level level) { m_log_level = level; }
+    inline Log_Level log_level() { return m_log_level; }
 
     Logger operator[](std::string sv) {
         Logger copy = *this;

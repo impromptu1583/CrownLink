@@ -1,13 +1,13 @@
 
-#include "JuiceP2P.h"
+#include "CrownLink.h"
 
 #define BUFFER_SIZE 4096
 constexpr auto ADDRESS_SIZE = 16;
 
-namespace JP2P
+namespace CLNK
 {
-
-    char nName[] = "Juice P2P";
+    
+    char nName[] = "CrownLink";
     char nDesc[] = "";
     
     struct AdFile
@@ -16,7 +16,7 @@ namespace JP2P
         char extraBytes[32] = "";
     };
 
-    SNP::NetworkInfo networkInfo = { nName, 'JP2P', nDesc,
+    SNP::NetworkInfo networkInfo = { nName, 'CLNK', nDesc,
     // CAPS:
     {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
 

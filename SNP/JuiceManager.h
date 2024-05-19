@@ -28,6 +28,7 @@ public:
 	void send_message(Util::MemoryFrame frame);
 	juice_state p2p_state;
 	SNETADDR m_ID;
+	std::string m_ID_b64;
 
 private:
 	//void send_signaling_message(char* msg, Juice_signal msgtype);
