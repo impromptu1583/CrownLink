@@ -14,6 +14,11 @@
 #include "json.hpp"
 #include "base64.hpp"
 #include "SNPNetwork.h"
+#include <fstream>
+#include "ThQueue/Logger.h"
+#include <initializer_list>
+
+extern Logger log_trace;
 
 using json = nlohmann::json;
 namespace signaling
@@ -36,9 +41,7 @@ namespace signaling
 	};
 
 	struct Signal_packet {
-		Signal_packet()
-			:peer_ID(), message_type(), data()
-		{};
+		Signal_packet() = default;
 		Signal_packet(SNETADDR ID, Signal_message_type type, std::string d)
 			:peer_ID(ID), message_type(type), data(d)
 		{};
@@ -72,8 +75,11 @@ namespace signaling
 
 	private:
 		void split_into_packets(const std::string& s, std::vector<Signal_packet>& incoming_packets);
+		bool load_config(std::initializer_list<std::string> config_file_locations);
 		SOCKET m_sockfd;
 		int m_state;
 		const std::string m_delimiter;
+		std::string m_host;
+		std::string m_port;
 	};
 }

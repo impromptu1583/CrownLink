@@ -116,3 +116,4 @@ install(TARGETS SNP
 
 
 # mklink "C:\Cosmonarchy\Starcraft\linked.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\JuiceSNP.snp
+# mklink "C:\Cosmonarchy\Starcraft\snp_config.json" "C:\Users\Jesse\source\repos\SNPJuice\SNP\snp_config.json
