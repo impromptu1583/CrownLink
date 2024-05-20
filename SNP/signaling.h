@@ -57,6 +57,7 @@ public:
 	SignalingSocket();
 	~SignalingSocket();
 	//void release() noexcept;
+	bool initialize();
 	void send_packet(const SNETADDR dest, const Signal_message_type msg_type, const std::string msg = "");
 	void send_packet(const Signal_packet&);
 	void receive_packets(std::vector<Signal_packet>& incoming_packets);
@@ -73,6 +74,7 @@ private:
 	const std::string m_delimiter;
 	std::string m_host;
 	std::string m_port;
+	bool m_initialized;
 };
 
 

@@ -24,7 +24,17 @@ void from_json(const json& j, Signal_packet& p) {
 };
 
 SignalingSocket::SignalingSocket()
-	: m_sockfd(NULL), server(), m_state(0), m_delimiter("-+"), m_host(), m_port()
+	: m_sockfd(NULL), server(), m_state(0), m_delimiter("-+"), m_host(), m_port(), m_initialized(false)
+{
+	//initialize();
+}
+
+SignalingSocket::~SignalingSocket()
+{
+	closesocket(m_sockfd);
+	WSACleanup();
+}
+bool SignalingSocket::initialize()
 {
 	// init winsock
 	WSADATA wsaData;
@@ -34,7 +44,7 @@ SignalingSocket::SignalingSocket()
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
 	if (err != 0) {
-		g_logger.fatal("WSAStartup failed with error {}",err);
+		g_logger.fatal("WSAStartup failed with error {}", err);
 	}
 
 	struct addrinfo hints, * res, * p;
@@ -44,7 +54,7 @@ SignalingSocket::SignalingSocket()
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-		
+
 	if ((rv = getaddrinfo(
 		snpconfig.load_or_default("server", "159.223.202.177").c_str(),
 		snpconfig.load_or_default("port", "9988").c_str(),
@@ -52,7 +62,7 @@ SignalingSocket::SignalingSocket()
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		g_logger.fatal("getaddrinfo failed with error: ", rv);
 		WSACleanup();
-		return;
+		return false;
 	}
 
 	for (p = res; p != NULL; p = p->ai_next) {
@@ -76,7 +86,7 @@ SignalingSocket::SignalingSocket()
 	if (p == NULL) {
 		g_logger.fatal("signaling client failed to connect");
 		throw GeneralException("connection failed");
-		return;
+		return false;
 	}
 
 	freeaddrinfo(res);
@@ -84,27 +94,22 @@ SignalingSocket::SignalingSocket()
 	// server address: each byte is 11111111
 	memset(&server, 255, sizeof(SNETADDR));
 
+	m_initialized = true;
 	set_blocking_mode(true);
+	return true;
 }
 
-	SignalingSocket::~SignalingSocket()
-{
-	closesocket(m_sockfd);
-	WSACleanup();
-}
-
-//void SignalingSocket::release() noexcept
-//{
-//	::closesocket(m_sockfd);
-//}
-
-void SignalingSocket::send_packet(const SNETADDR dest,
+	void SignalingSocket::send_packet(const SNETADDR dest,
 	const Signal_message_type msg_type, const std::string msg){
 	//Signal_packet packet(dest, msg_type, msg);
 	send_packet(Signal_packet(dest,msg_type,msg));
 }
 void SignalingSocket::send_packet(const Signal_packet& packet)
 {
+	if (!m_initialized) {
+		g_logger.error("signal send_packet attempted but provider isn't initialized yet");
+		return;
+	}
 	//std::string send_buffer;
 	json j = packet;
 	auto send_buffer = j.dump();

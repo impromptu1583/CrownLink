@@ -28,7 +28,8 @@ namespace CLNK
 
     void JuiceP2P::initialize()
     {
-        g_logger.info("Initializing");
+        g_logger.info("Initializing, version {}", CL_VERSION);
+        signaling_socket.initialize();
         std::jthread signal_thread(receive_signaling);
         signal_thread.detach();
     }
@@ -61,6 +62,7 @@ namespace CLNK
 
         AdFile ad;
         std::string decoded_data;
+        auto teststr = std::string("test change game name");
 
         while (true) {
             signaling_socket.receive_packets(incoming_packets);
@@ -96,7 +98,33 @@ namespace CLNK
                     g_logger.debug("received lobby info from {}", packet.peer_ID.b64());
                     decoded_data = base64::from_base64(packet.data);
                     memcpy(&ad, decoded_data.c_str(), decoded_data.size());
+                    //auto teststr = std::string("test change game name");
+                    //memcpy(ad.gameInfo.szGameName, teststr.c_str(), teststr.size());
                     SNP::passAdvertisement(packet.peer_ID, Util::MemoryFrame::from(ad));
+
+                    g_logger.debug("Game Info Received:\n"
+                        "  dwIndex: {}\n"
+                        "  dwGameState: {}\n"
+                        "  saHost: {}\n"
+                        "  dwTimer: {}\n"
+                        "  szGameName[128]: {}\n"
+                        "  szGameStatString[128]: {}\n"
+                        "  dwExtraBytes: {}\n"
+                        "  dwProduct: {}\n"
+                        "  dwVersion: {}\n",
+                        ad.gameInfo.dwIndex,
+                        ad.gameInfo.dwGameState,
+                        ad.gameInfo.saHost.b64(),
+                        ad.gameInfo.dwTimer,
+                        ad.gameInfo.szGameName,
+                        ad.gameInfo.szGameStatString,
+                        ad.gameInfo.dwExtraBytes,
+                        ad.gameInfo.dwProduct,
+                        ad.gameInfo.dwVersion
+                    );
+                    
+
+
                     break;
                 case SIGNAL_JUICE_LOCAL_DESCRIPTION:
                 case SIGNAL_JUICE_CANDIDATE:
