@@ -1,6 +1,4 @@
 import asyncio, json, uuid, time, logging, sys, base64
-from tkinter import Label
-from re import L, S
 from enum import IntEnum
 from copy import copy
 
@@ -69,15 +67,17 @@ class Signal_packet():
     def as_json(self,json_string):
         if isinstance(json_string,bytes):
             json_string = json_string.decode()
-        print(json_string)
-        j = json.loads(json_string)
-        self.peer_ID_base64 = j["peer_ID"]
-        self.message_type = j["message_type"]
-        self.data = j["data"]
-
+        try:
+            j = json.loads(json_string)
+            self.peer_ID_base64 = j["peer_ID"]
+            self.message_type = j["message_type"]
+            self.data = j["data"]
+        except Exception as e:
+            print(f"JSON ERROR: {e}, when processing string {json_string}")
 
 class ServerProtocol(asyncio.Protocol):
     _peer_ID = b''
+    remainder = None
 
     def __init__(self):
         self.peer_ID = uuid.uuid4().bytes
@@ -127,14 +127,23 @@ class ServerProtocol(asyncio.Protocol):
 
     def data_received(self,data):
         logger.debug(f"Data received from {self.addr}: {data}")
-        raw_packets = data.split(DELIMINATER);
-        print(f"{len(raw_packets)} packets received")
+        
+        if (self.remainder): #if a remaining partial packet exists, add it
+            data = self.remainder+data
+            self.remainder = None
+        raw_packets = data.split(DELIMINATER)
+        if raw_packets[-1][-len(DELIMINATER):] != DELIMINATER:
+            self.remainder = raw_packets.pop() # remove partial packet
+
+        #print(f"{len(raw_packets)} packets received")
         for raw_packet in raw_packets:
             if not len(raw_packet):
                 continue # empty packet
             packet = Signal_packet(raw_packet)
-            print(raw_packet)
-            print(f"type:{packet.message_type}")
+            #print(raw_packet)
+            ### if doesn't end in delim then wait save remainder to temp then add to next message
+            ### add error handling
+            #print(f"type:{packet.message_type}")
             match(Signal_message_type(packet.message_type)):
                 case Signal_message_type.SIGNAL_START_ADVERTISING:
                     self.advertising = True;
@@ -172,10 +181,6 @@ async def main():
     print("Starting TCP server")
 
     loop = asyncio.get_running_loop()
-    # on_con_lost = loop.create_future()
-    # transport, protocol = await loop.create_datagram_endpoint(
-    #     lambda: ServerProtocol(on_con_lost),
-    #     local_addr=('127.0.0.1', 9999))
 
     server = await loop.create_server(
         lambda: ServerProtocol(),

@@ -120,6 +120,7 @@ void SignalingSocket::send_packet(const Signal_packet& packet)
 	json j = packet;
 	auto send_buffer = j.dump();
 	send_buffer += m_delimiter;
+	g_logger.debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
 	int n_bytes = send(m_sockfd, send_buffer.c_str(), send_buffer.size(), 0);
 	if (n_bytes == -1) {
@@ -164,13 +165,18 @@ void SignalingSocket::receive_packets(std::vector<Signal_packet>& incoming_packe
 		if (m_last_error == WSAECONNRESET) {
 			// connection reset by server
 			// not sure if this should be a fatal or something
-			g_logger.error("signaling socket receive error: connection reset by server");
+			g_logger.error("signaling socket receive error: connection reset by server, attempting reconnect");
+			de_initialize();
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			initialize();
+
 		}
 		else throw GeneralException("::recv failed");
 	}
-	else if (n_bytes == 0) {
-		// maybe we're disconnected?
-		// need to try to reconnect here
+	if (n_bytes <1) {
+		// 0 = connection closed by remote end
+		// -1 = winsock error
+		// anything more = we actually got data
 		g_logger.error("server connection closed, attempting reconnect");
 		de_initialize();
 		std::this_thread::sleep_for(std::chrono::seconds(1));
