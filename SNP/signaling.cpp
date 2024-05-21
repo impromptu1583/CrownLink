@@ -44,7 +44,7 @@ bool SignalingSocket::initialize()
 	wVersionRequested = MAKEWORD(2, 2);
 	err = WSAStartup(wVersionRequested, &wsaData);
 	if (err != 0) {
-		g_logger.fatal("WSAStartup failed with error {}", err);
+		g_logger.error("WSAStartup failed with error {}", err);
 	}
 
 	struct addrinfo hints, * res, * p;
@@ -60,7 +60,7 @@ bool SignalingSocket::initialize()
 		snpconfig.load_or_default("port", "9988").c_str(),
 		&hints, &res)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		g_logger.fatal("getaddrinfo failed with error: ", rv);
+		g_logger.error("getaddrinfo failed with error: ", rv);
 		WSACleanup();
 		return false;
 	}
@@ -84,7 +84,7 @@ bool SignalingSocket::initialize()
 		break;
 	}
 	if (p == NULL) {
-		g_logger.fatal("signaling client failed to connect");
+		g_logger.error("signaling client failed to connect");
 		throw GeneralException("connection failed");
 		return false;
 	}

@@ -25,6 +25,7 @@ namespace CLNK
     std::vector<SNETADDR> m_known_advertisers;
     auto adData = Util::MemoryFrame();
     auto isAdvertising = false;
+    std::stop_source stop_source;
 
     void JuiceP2P::initialize()
     {
@@ -66,7 +67,6 @@ namespace CLNK
 
         while (true) {
             signaling_socket.receive_packets(incoming_packets);
-            //g_logger.trace("received incoming signaling");
             for (auto packet : incoming_packets)
             {
                 switch (packet.message_type)

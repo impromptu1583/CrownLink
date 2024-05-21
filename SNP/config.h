@@ -20,7 +20,7 @@ public:
 					m_config_found = true;
 				}
 				catch (const json::parse_error& e){
-					g_logger.fatal("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
+					g_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 				}
 			}
 		}
