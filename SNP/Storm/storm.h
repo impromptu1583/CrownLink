@@ -255,11 +255,11 @@ typedef struct _game
 {
   DWORD     dwIndex;
   DWORD     dwGameState;
-  DWORD     dwUnk_08;
+  DWORD     dwUnk_08; // creation time
   SNETADDR  saHost;
-  DWORD     dwUnk_1C;
+  DWORD     dwUnk_1C; // host latency
   DWORD     dwTimer;
-  DWORD     dwUnk_24;
+  DWORD     dwUnk_24; // game category bits
   char      szGameName[128];
   char      szGameStatString[128];
   _game     *pNext;

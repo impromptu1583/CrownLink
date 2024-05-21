@@ -73,9 +73,11 @@ each second
     spiFree             // free allocated
   */
   //------------------------------------------------------------------------------------------------------------------------------------
-  void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad)
+  
+      void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad)
   {
     INTERLOCKED;
+
 
     // find if the list already has an ad from this host
     AdFile *adFile = nullptr;
@@ -98,12 +100,30 @@ each second
       adFile->gameInfo.dwIndex = ++nextGameAdID;
     }
 
+
+
+
     // init the new entry
-    Util::MemoryFrame::from(adFile->gameInfo).writeAs(ad.readAs<game>());
+    int indx = adFile->gameInfo.dwIndex;
+    Util::MemoryFrame::from(adFile->gameInfo).writeAs(ad.readAs<game>()); // this overwrites the index lol
     Util::MemoryFrame::from(adFile->extraBytes).write(ad);
+
+    // check game version
+    if (gameAppInfo.dwVerbyte != adFile->gameInfo.dwVersion) {
+        g_logger.info("version byte mismatch");
+        auto newName = std::string("[!ver]");
+        newName.append(adFile->gameInfo.szGameName);
+        if (newName.size() > 128) {
+            newName = newName.substr(0, 128);
+        }
+        memcpy(adFile->gameInfo.szGameName, newName.c_str(), newName.size());
+    }
+
+
     adFile->gameInfo.dwTimer = GetTickCount();
     adFile->gameInfo.saHost = host;
     adFile->gameInfo.pExtra = adFile->extraBytes;
+    adFile->gameInfo.dwIndex = indx;
   }
   void removeAdvertisement(const SNETADDR& host)
   {
@@ -183,11 +203,33 @@ each second
     // Strom locks the game list to access it
 //    DropMessage(0, "spiLockGameList");
 
+
+    //new removed outdated entries
+
+    //while ( currAd != gameList.end() )
+    //{
+    //  if(GetTickCount() > currAd->gameInfo.dwTimer + 2000) 
+    //  {
+    //    // outdated, remove
+    //    currAd = gameList.erase(currAd);
+    //  }
+    //  else  // otherwise continue
+    //  {
+    //    ++currAd;
+    //  }
+    //}
+
+
     // interlink gamelist entries (for storm)
     AdFile *lastAd = nullptr;
+
+    auto a = gameList.size();
+//    DWORD indx = 1;
     for ( auto &it : gameList)
     {
       it.gameInfo.pExtra = it.extraBytes;
+//      it.gameInfo.dwIndex = indx;
+//      indx++;
       if ( lastAd )
         lastAd->gameInfo.pNext = &it.gameInfo;
         
@@ -200,7 +242,9 @@ each second
     // remove outdated entries
     //std::list<AdFile>::iterator nextAd = gameList.begin();
     //std::list<AdFile>::iterator currAd;
+   
     auto currAd = gameList.begin();
+
     while ( currAd != gameList.end() )
     {
       if(GetTickCount() > currAd->gameInfo.dwTimer + 2000)

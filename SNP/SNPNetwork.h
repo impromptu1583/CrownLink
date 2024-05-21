@@ -26,7 +26,6 @@ namespace SNP
 
   typedef ::SOCKADDR SOCKADDR;
   //typedef ::SNETADDR SNETADDR;
-
   extern void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad);
   extern void removeAdvertisement(const SNETADDR& host);
   //extern void passPacket(const SNETADDR& host, Util::MemoryFrame packet);

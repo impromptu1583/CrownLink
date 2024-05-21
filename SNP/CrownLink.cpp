@@ -25,6 +25,7 @@ namespace CLNK
     std::vector<SNETADDR> m_known_advertisers;
     auto adData = Util::MemoryFrame();
     auto isAdvertising = false;
+    std::stop_source stop_source;
 
     void JuiceP2P::initialize()
     {
@@ -66,7 +67,6 @@ namespace CLNK
 
         while (true) {
             signaling_socket.receive_packets(incoming_packets);
-            //g_logger.trace("received incoming signaling");
             for (auto packet : incoming_packets)
             {
                 switch (packet.message_type)
@@ -135,17 +135,24 @@ namespace CLNK
             }
         }
     }
-    void JuiceP2P::update_known_advertisers(std::string& data)
+    void JuiceP2P::update_known_advertisers(const std::string& data)
     {
-        std::string data_decoded = base64::from_base64(data);
         m_known_advertisers.clear();
-        for (size_t i = 0; (i + 1) * sizeof(SNETADDR) <= data_decoded.size(); i++)
-        {
-            std::string peer_id = data_decoded.substr(i, sizeof(SNETADDR));
-            g_logger.trace("[update_known_advertisers] potential lobby owner received: {}",base64::to_base64(peer_id));
-            m_known_advertisers.push_back(SNETADDR(peer_id));
-            juice_manager.create_if_not_exist(peer_id);
+        // SNETADDR in base64 encoding is always 24 characters
+        g_logger.trace("[update_known_advertisers] data received: {}", data);
+        for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
+            try {
+                auto peer_str = base64::from_base64(data.substr(i*24, 24));
+                g_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
+                m_known_advertisers.push_back(SNETADDR(peer_str));
+                juice_manager.create_if_not_exist(peer_str);
+            }
+            catch (const std::exception &exc) {
+                g_logger.error("[update_known_advertisers] processing: {} error: {}",data.substr(i,24), exc.what());
+
+            }
         }
+
     }
     void JuiceP2P::startAdvertising(Util::MemoryFrame ad)
     {
