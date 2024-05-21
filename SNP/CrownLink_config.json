@@ -1,5 +1,5 @@
 {
     "server": "crownlink.platypus.coffee",
     "port": "9988",
-    "log level": 5
+    "log level": 6
 }

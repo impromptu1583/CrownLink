@@ -25,7 +25,7 @@ namespace CLNK
         void receive();
         void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet);
         static void receive_signaling();
-        static void update_known_advertisers(std::string& message);
+        static void update_known_advertisers(const std::string& message);
         void startAdvertising(Util::MemoryFrame ad);
         void stopAdvertising();
     };

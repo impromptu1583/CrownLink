@@ -24,19 +24,8 @@ void from_json(const json& j, Signal_packet& p) {
 };
 
 SignalingSocket::SignalingSocket()
-	: m_sockfd(NULL), server(), m_state(0), m_delimiter("-+"), m_host(), m_port(), m_initialized(false)
+	: m_sockfd(NULL), server(), current_state(SOCKET_STATE_UNINITIALIZED), m_last_error(0), m_delimiter("-+"), m_host(), m_port(), m_initialized(false)
 {
-	//initialize();
-}
-
-SignalingSocket::~SignalingSocket()
-{
-	closesocket(m_sockfd);
-	WSACleanup();
-}
-bool SignalingSocket::initialize()
-{
-	// init winsock
 	WSADATA wsaData;
 	WORD wVersionRequested;
 	int err;
@@ -46,7 +35,23 @@ bool SignalingSocket::initialize()
 	if (err != 0) {
 		g_logger.error("WSAStartup failed with error {}", err);
 	}
+	//initialize();
+}
 
+SignalingSocket::~SignalingSocket()
+{
+	de_initialize();
+	WSACleanup();
+}
+
+void SignalingSocket::de_initialize() {
+	closesocket(m_sockfd);
+}
+
+bool SignalingSocket::initialize()
+{
+	g_logger.info("connecting to matchmaking server");
+	current_state = SOCKET_STATE_CONNECTING;
 	struct addrinfo hints, * res, * p;
 	int rv;
 	memset(&hints, 0, sizeof hints);
@@ -68,16 +73,15 @@ bool SignalingSocket::initialize()
 	for (p = res; p != NULL; p = p->ai_next) {
 		if ((m_sockfd = socket(p->ai_family, p->ai_socktype,
 			p->ai_protocol)) == -1) {
-			g_logger.debug("client: socket {}", std::strerror(errno));
+			g_logger.debug("client: socket failed with error: {}", std::strerror(errno));
 			throw GeneralException("socket failed");
 			continue;
 		}
 
 		if (connect(m_sockfd, p->ai_addr, p->ai_addrlen) == -1) {
 			closesocket(m_sockfd);
-			perror("client: connect");
-			g_logger.error("client: connect {}", std::strerror(errno));
-			throw GeneralException("connection failed");
+			g_logger.error("client: couldn't connect to server: {}", std::strerror(errno));
+			throw GeneralException("server connection failed");
 			continue;
 		}
 
@@ -85,7 +89,7 @@ bool SignalingSocket::initialize()
 	}
 	if (p == NULL) {
 		g_logger.error("signaling client failed to connect");
-		throw GeneralException("connection failed");
+		throw GeneralException("server connection failed");
 		return false;
 	}
 
@@ -96,6 +100,8 @@ bool SignalingSocket::initialize()
 
 	m_initialized = true;
 	set_blocking_mode(true);
+	g_logger.info("successfully connected to matchmaking server");
+	current_state = SOCKET_STATE_READY;
 	return true;
 }
 
@@ -106,8 +112,8 @@ bool SignalingSocket::initialize()
 }
 void SignalingSocket::send_packet(const Signal_packet& packet)
 {
-	if (!m_initialized) {
-		g_logger.error("signal send_packet attempted but provider isn't initialized yet");
+	if (current_state != SOCKET_STATE_READY) {
+		g_logger.error("signal send_packet attempted but provider is not ready. State: {}",(int)current_state);
 		return;
 	}
 	//std::string send_buffer;
@@ -147,24 +153,33 @@ void SignalingSocket::receive_packets(std::vector<Signal_packet>& incoming_packe
 	// try to receive
 	auto n_bytes = recv(m_sockfd, &buffer[0], buffer.size(), 0);
 	if (n_bytes == SOCKET_ERROR) {
-		m_state = WSAGetLastError();
-		if (m_state == WSAEWOULDBLOCK || m_state == WSAECONNRESET) {
+		m_last_error = WSAGetLastError();
+		g_logger.debug("receive error: {}", m_last_error);
+		if (m_last_error == WSAEWOULDBLOCK) {
 			// we're waiting for data or connection is reset
 			// this is legacy of the old non-blocking code
 			// we now block in a thread instead
 			return;
 		}
-		if (m_state == WSAECONNRESET) {
+		if (m_last_error == WSAECONNRESET) {
 			// connection reset by server
 			// not sure if this should be a fatal or something
 			g_logger.error("signaling socket receive error: connection reset by server");
 		}
 		else throw GeneralException("::recv failed");
 	}
-	else {
+	else if (n_bytes == 0) {
+		// maybe we're disconnected?
+		// need to try to reconnect here
+		g_logger.error("server connection closed, attempting reconnect");
+		de_initialize();
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		initialize();
+	} else {
 		buffer.resize(n_bytes);
 		receive_buffer.append(buffer.cbegin(), buffer.cend());
 		split_into_packets(receive_buffer,incoming_packets);
+		g_logger.trace("received {}", n_bytes);
 		return;
 	}
 }

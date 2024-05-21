@@ -33,7 +33,8 @@ public:
     }
 
     friend LogFile& operator<<(LogFile& out, const auto& value) {
-        out.m_out << value;
+        out.m_out << value << std::flush;
+
         return out;
     }
 

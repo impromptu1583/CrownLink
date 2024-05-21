@@ -73,9 +73,11 @@ each second
     spiFree             // free allocated
   */
   //------------------------------------------------------------------------------------------------------------------------------------
-  void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad)
+  
+      void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad)
   {
     INTERLOCKED;
+
 
     // find if the list already has an ad from this host
     AdFile *adFile = nullptr;
@@ -96,6 +98,17 @@ each second
       gameList.push_back(g);
       adFile = &gameList.back();
       adFile->gameInfo.dwIndex = ++nextGameAdID;
+    }
+
+    // check game version
+    if (gameAppInfo.dwVerbyte != adFile->gameInfo.dwVersion) {
+        g_logger.info("version byte mismatch");
+        auto newName = std::string("[!ver]");
+        newName.append(adFile->gameInfo.szGameName);
+        if (newName.size() > 128) {
+            newName = newName.substr(0, 128);
+        }
+        memcpy(adFile->gameInfo.szGameName, newName.c_str(), newName.size());
     }
 
     // init the new entry
