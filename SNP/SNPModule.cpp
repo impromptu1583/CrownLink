@@ -8,9 +8,6 @@
 #include <queue>
 #include <list>
 
-HANDLE receiveEvent;
-
-
 namespace SNP
 {
   //------------------------------------------------------------------------------------------------------------------------------------
@@ -110,7 +107,7 @@ each second
 
     // check game version
     if (gameAppInfo.dwVerbyte != adFile->gameInfo.dwVersion) {
-        g_logger.info("version byte mismatch");
+        g_root_logger.info("version byte mismatch");
         auto newName = std::string("[!ver]");
         newName.append(adFile->gameInfo.szGameName);
         if (newName.size() > 128) {
@@ -148,7 +145,7 @@ each second
       //memcpy(&gamePacket, &packet, sizeof(GamePacket));
       //gamePacket.timeStamp = GetTickCount();
       incomingGamePackets.push(packet);
-      SetEvent(receiveEvent);
+      SetEvent(g_receive_event);
   }
   //------------------------------------------------------------------------------------------------------------------------------------
   BOOL __stdcall spiInitialize(client_info *gameClientInfo,
@@ -162,7 +159,7 @@ each second
 
     gameAppInfo = *gameClientInfo;
 
-    receiveEvent = hEvent;
+    g_receive_event = hEvent;
 
     critSec.init();
 
@@ -459,7 +456,7 @@ each second
       // send packet over the network module
       std::string tmp;
       tmp.append(buf, bufLen);
-      g_logger.trace("spiSend: {}", tmp);
+      g_root_logger.trace("spiSend: {}", tmp);
 
       pluggedNetwork->sendAsyn(him, Util::MemoryFrame(buf, bufLen));
 
@@ -497,7 +494,7 @@ each second
               return FALSE;
           }
           std::string debugstr(loan->data, loan->packetSize);
-          g_logger.trace("spiReceive: {} :: {}",loan->timeStamp,debugstr);
+          g_root_logger.trace("spiReceive: {} :: {}",loan->timeStamp,debugstr);
 
           if (GetTickCount() > loan->timeStamp + 10000)
           {

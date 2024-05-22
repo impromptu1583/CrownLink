@@ -28,7 +28,7 @@ set(MODULE_FILES
 	json.hpp
 	"include/base64.hpp"
     SNETADDR.h
-	config.h)
+	config.h )
 
 add_library (SNP SHARED ${MODULE_FILES} "common.h")
 

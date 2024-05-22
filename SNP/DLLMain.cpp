@@ -26,10 +26,10 @@ BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD *dwNetworkCode, char **ppszNetworkName
     //  *ppCaps                 = &DRIP::networkInfo.caps;
     //  return TRUE;
     case CLNK_ID:
-      *dwNetworkCode          =  CLNK::networkInfo.dwIdentifier;
-      *ppszNetworkName        =  CLNK::networkInfo.pszName;
-      *ppszNetworkDescription =  CLNK::networkInfo.pszDescription;
-      *ppCaps                 = &CLNK::networkInfo.caps;
+      *dwNetworkCode          =  CLNK::g_network_info.dwIdentifier;
+      *ppszNetworkName        =  CLNK::g_network_info.pszName;
+      *ppszNetworkDescription =  CLNK::g_network_info.pszDescription;
+      *ppCaps                 = &CLNK::g_network_info.caps;
       return TRUE;
     default:
       return FALSE;
@@ -61,17 +61,27 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
 
 HINSTANCE hInstance;
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
-{
-  switch(fdwReason)
-  {
-  case DLL_PROCESS_ATTACH:
-    hInstance = hinstDLL;
-    break;
-  case DLL_PROCESS_DETACH:
-    break;
-  default:
-    break;
-  }
-  return TRUE;
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+	// init winsock
+	WSADATA wsaData;
+	WORD wVersionRequested;
+	int err;
+
+	wVersionRequested = MAKEWORD(2, 2);
+	err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+		g_root_logger.fatal("WSAStartup failed with error {}", err);
+	}
+
+	switch(fdwReason) {
+	    case DLL_PROCESS_ATTACH:
+		    hInstance = hinstDLL;
+			break;
+		case DLL_PROCESS_DETACH:
+			break;
+		default:
+			break;
+	}
+	WSACleanup();
+	return TRUE;
 }

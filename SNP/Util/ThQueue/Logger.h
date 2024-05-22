@@ -5,7 +5,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-static constexpr auto FileDateFormat = "%d-%m-%Y;%H-%M";
+static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
 static constexpr auto LogDateFormat = "%d-%m-%Y %H:%M:%S";
 
 #define AnsiWhite   "\033[37m"
@@ -16,15 +16,37 @@ static constexpr auto LogDateFormat = "%d-%m-%Y %H:%M:%S";
 #define AnsiBoldRed "\033[91m"
 #define AnsiReset   "\033[0m"
 
-enum Log_Level {
-    log_level_none,
-    log_level_fatal,
-    log_level_error,
-    log_level_warn,
-    log_level_info,
-    log_level_debug,
-    log_level_trace
+enum class LogLevel {
+    None,
+    Fatal,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace
 };
+
+inline std::string to_string(LogLevel log_level) {
+    switch (log_level) {
+        case LogLevel::None:  return "None";
+        case LogLevel::Fatal: return "Fatal";
+        case LogLevel::Error: return "Error";
+        case LogLevel::Warn:  return "Warn";
+        case LogLevel::Info:  return "Info";
+        case LogLevel::Debug: return "Debug";
+        case LogLevel::Trace: return "Trace";
+    }
+    return std::format("LogLevel({})", (int)log_level);
+}
+
+// TODO: json map LogLevel to string
+
+inline tm* get_local_time() {
+    time_t current_time = time(nullptr);
+    static tm result;
+    localtime_s(&result, &current_time);
+    return &result;
+}
 
 class LogFile {
 public:
@@ -49,7 +71,7 @@ private:
 
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        ss << "logs/" << name << std::put_time(localtime(&current_time), FileDateFormat) << ".txt";
+        ss << "logs/" << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
         m_out.open(ss.str(), std::ios::app);
     }
 
@@ -59,52 +81,53 @@ private:
 
 class Logger {
 public:
-    Logger(Log_Level level, std::convertible_to<std::string> auto&&... prefixes)
-        : m_log_level(level), m_prefixes{ std::forward<decltype(prefixes)>(prefixes)... } {
+    Logger(LogLevel log_level, std::convertible_to<std::string> auto&&... prefixes)
+        : m_log_level{log_level}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
     }
 
-    Logger(LogFile* log_file, Log_Level level, std::convertible_to<std::string> auto&&... prefixes)
-        : m_log_file{ log_file }, m_log_level(level), m_prefixes{ std::forward<decltype(prefixes)>(prefixes)... } {
+    Logger(LogFile* log_file, LogLevel log_level, std::convertible_to<std::string> auto&&... prefixes)
+        : m_log_file{log_file}, m_log_level{log_level}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
     }
 
     void fatal(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_fatal) return;
+        if (m_log_level < LogLevel::Fatal) return;
         log(std::cerr, "Fatal", AnsiBoldRed, std::vformat(format, std::make_format_args(args...)));
         exit(-1);
     }
 
     void error(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_error) return;
+        if (m_log_level < LogLevel::Error) return;
         log(std::cerr, "Error", AnsiRed, std::vformat(format, std::make_format_args(args...)));
     }
 
     void warn(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_warn) return;
+        if (m_log_level < LogLevel::Warn) return;
         log(std::cout, "Warn", AnsiYellow, std::vformat(format, std::make_format_args(args...)));
     }
 
     void info(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_info) return;
+        if (m_log_level < LogLevel::Info) return;
         log(std::cout, "Info", AnsiWhite, std::vformat(format, std::make_format_args(args...)));
     }
 
     void debug(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_debug) return;
+        if (m_log_level < LogLevel::Debug) return;
         log(std::cerr, "Debug", AnsiPurple, std::vformat(format, std::make_format_args(args...)));
     }
+
     void trace(std::string_view format, const auto&... args) {
-        if (m_log_level < log_level_trace) return;
+        if (m_log_level < LogLevel::Trace) return;
         log(std::cerr, "Trace", AnsiCyan, std::vformat(format, std::make_format_args(args...)));
     }
-
-    inline void set_log_level(Log_Level level) { m_log_level = level; }
-    inline Log_Level log_level() { return m_log_level; }
 
     Logger operator[](std::string sv) {
         Logger copy = *this;
         copy.m_prefixes.push_back(std::move(sv));
         return copy;
     }
+
+    inline LogLevel log_level() { return m_log_level; }
+    inline void set_log_level(LogLevel log_level) { m_log_level = log_level; }
 
     inline void set_cout_enabled(bool enabled) { m_cout_enabled = enabled; }
 
@@ -123,7 +146,7 @@ private:
     std::string make_prefix(std::string_view log_level) {
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        ss << "[" << std::put_time(localtime(&current_time), LogDateFormat) << "]";
+        ss << "[" << std::put_time(get_local_time(), LogDateFormat) << "]";
         for (const std::string& prefix : m_prefixes) {
             ss << "[" << prefix << "]";
         }
@@ -136,8 +159,8 @@ private:
     bool m_cout_enabled = true;
     std::vector<std::string> m_prefixes;
     LogFile* m_log_file;
-    Log_Level m_log_level = log_level_info;
+    LogLevel m_log_level = LogLevel::Info;
 };
 
-inline LogFile g_main_log{ "P2P" };
-inline Logger g_logger(&g_main_log, log_level_info);;
+inline LogFile g_main_log{"CrownLink"};
+inline Logger g_root_logger{&g_main_log, LogLevel::Info};
