@@ -24,8 +24,8 @@ namespace snp {
 
 	typedef ::SOCKADDR SOCKADDR;
 	//typedef ::SNETADDR SNETADDR;
-	extern void passAdvertisement(const SNETADDR& host, Util::MemoryFrame ad);
-	extern void removeAdvertisement(const SNETADDR& host);
+	extern void passAdvertisement(const SNetAddr& host, Util::MemoryFrame ad);
+	extern void removeAdvertisement(const SNetAddr& host);
 	//extern void passPacket(const SNETADDR& host, Util::MemoryFrame packet);
 	extern void passPacket(GamePacket& parket);
 
@@ -37,10 +37,10 @@ namespace snp {
 		virtual ~Network() {
 		}
 
-		SNETADDR makeBin(const PEERID& src) {
-			SNETADDR retval;
-			memcpy_s(&retval, sizeof(SNETADDR), &src, sizeof(PEERID));
-			memset(((BYTE*) &retval) + sizeof(PEERID), 0, sizeof(SNETADDR) - sizeof(PEERID));
+		SNetAddr makeBin(const PEERID& src) {
+			SNetAddr retval;
+			memcpy_s(&retval, sizeof(SNetAddr), &src, sizeof(PEERID));
+			memset(((BYTE*) &retval) + sizeof(PEERID), 0, sizeof(SNetAddr) - sizeof(PEERID));
 			return retval;
 		}
 
@@ -66,5 +66,5 @@ namespace snp {
 		virtual void stopAdvertising() = 0;
 	};
 
-	typedef Network<SNETADDR> BinNetwork;
+	typedef Network<SNetAddr> BinNetwork;
 }

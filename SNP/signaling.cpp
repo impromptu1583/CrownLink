@@ -69,7 +69,7 @@ bool SignalingSocket::initialize() {
 	freeaddrinfo(res);
 
 	// server address: each byte is 11111111
-	memset(&m_server, 255, sizeof(SNETADDR));
+	memset(&m_server, 255, sizeof(SNetAddr));
 
 	m_initialized = true;
 	set_blocking_mode(true);
@@ -82,7 +82,7 @@ void SignalingSocket::deinitialize() {
 	closesocket(m_sockfd);
 }
 
-void SignalingSocket::send_packet(SNETADDR dest, SignalMessageType msg_type, const std::string& msg) {
+void SignalingSocket::send_packet(SNetAddr dest, SignalMessageType msg_type, const std::string& msg) {
 	send_packet(SignalPacket(dest,msg_type,msg));
 }
 

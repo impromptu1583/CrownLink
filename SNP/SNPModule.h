@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "SNPNetwork.h"
-#include "ThQueue/ThQueue.h"
+#include "ThQueue.h"
 
 namespace snp {
 
@@ -12,14 +12,14 @@ struct NetFunctions {
 	DWORD dwSize;
 
 	// Compares two sockaddrs with each other and returns the number of differences in dwResult
-	BOOL(__stdcall *spiCompareNetAddresses)(SNETADDR* addr1, SNETADDR* addr2, DWORD *dwResult);
+	BOOL(__stdcall *spiCompareNetAddresses)(SNetAddr* addr1, SNetAddr* addr2, DWORD *dwResult);
 
 	// Called when the module is released
 	BOOL(__stdcall *spiDestroy)();
 
 	// Called in order to free blocks of packet memory returned in the spiReceive functions
-	BOOL(__stdcall *spiFree)(SNETADDR* addr, char *data, DWORD databytes);
-	BOOL(__stdcall *spiFreeExternalMessage)(SNETADDR* addr, char *data, DWORD databytes);
+	BOOL(__stdcall *spiFree)(SNetAddr* addr, char *data, DWORD databytes);
+	BOOL(__stdcall *spiFreeExternalMessage)(SNetAddr* addr, char *data, DWORD databytes);
 
 	// Returns info on a specified game
 	void  *spiGetGameInfo;
@@ -36,16 +36,16 @@ struct NetFunctions {
 	void  *spiLockGameList;
 
 	// Return received data from a connectionless socket to storm
-	BOOL(__stdcall *spiReceive)(SNETADDR* *addr, char **data, DWORD *databytes);
+	BOOL(__stdcall *spiReceive)(SNetAddr* *addr, char **data, DWORD *databytes);
 
 	// Return received data from a connected socket to storm
-	BOOL(__stdcall *spiReceiveExternalMessage)(SNETADDR* *addr, char **data, DWORD *databytes);
+	BOOL(__stdcall *spiReceiveExternalMessage)(SNetAddr* *addr, char **data, DWORD *databytes);
 
 	// Called when a game is selected to query information
 	void  *spiSelectGame;
 
 	// Sends data over a connectionless socket
-	BOOL(__stdcall *spiSend)(DWORD addrCount, SNETADDR* *addrList, char *buf, DWORD bufLen);
+	BOOL(__stdcall *spiSend)(DWORD addrCount, SNetAddr* *addrList, char *buf, DWORD bufLen);
 
 	// Sends data over a connected socket
 	void  *spiSendExternalMessage;
@@ -72,6 +72,6 @@ struct NetFunctions {
 };
 
 extern NetFunctions spiFunctions;
-extern Network<SNETADDR>* pluggedNetwork;
+extern Network<SNetAddr>* pluggedNetwork;
 
 };

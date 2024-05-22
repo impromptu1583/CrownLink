@@ -22,14 +22,14 @@ void JuiceP2P::requestAds() {
 	g_signaling_socket.request_advertisers();
 	for (const auto& advertiser : m_known_advertisers) {
 		if (g_juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED || g_juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED) {
-			g_root_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(SNETADDR))));
+			g_root_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(SNetAddr))));
 			g_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 		}
 	}
 }
 
-void JuiceP2P::sendAsyn(const SNETADDR& peer_ID, Util::MemoryFrame packet){
-	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNETADDR)), packet);
+void JuiceP2P::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
+	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNetAddr)), packet);
 }
 
 void JuiceP2P::receive_signaling(){
@@ -107,7 +107,7 @@ void JuiceP2P::update_known_advertisers(const std::string& data) {
 		try {
 			auto peer_str = base64::from_base64(data.substr(i*24, 24));
 			g_root_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
-			m_known_advertisers.push_back(SNETADDR(peer_str));
+			m_known_advertisers.push_back(SNetAddr(peer_str));
 			g_juice_manager.create_if_not_exist(peer_str);
 		}
 		catch (const std::exception &exc) {

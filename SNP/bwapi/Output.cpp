@@ -1,5 +1,5 @@
 #include "Output.h"
-#include "SNPModule.h"
+#include "../SNPModule.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdio.h>

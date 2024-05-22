@@ -256,7 +256,7 @@ typedef struct _game
   DWORD     dwIndex;
   DWORD     dwGameState;
   DWORD     dwUnk_08; // creation time
-  SNETADDR  saHost;
+  SNetAddr  saHost;
   DWORD     dwUnk_1C; // host latency
   DWORD     dwTimer;
   DWORD     dwUnk_24; // game category bits

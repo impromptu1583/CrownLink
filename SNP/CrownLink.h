@@ -26,7 +26,7 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class JuiceP2P final : public snp::Network<SNETADDR> {
+class JuiceP2P final : public snp::Network<SNetAddr> {
 public:
 	JuiceP2P() = default;
 	~JuiceP2P() override = default;
@@ -35,7 +35,7 @@ public:
 	void destroy() override;
 	void requestAds() override;
 	void receive() override {}; // unused in this connection type
-	void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet) override;
+	void sendAsyn(const SNetAddr& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
 
@@ -44,7 +44,7 @@ public:
 
 private:
 	std::jthread m_signaling_thread;
-	std::vector<SNETADDR> m_known_advertisers;
+	std::vector<SNetAddr> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
 	bool m_is_advertising = false;
 	bool m_is_running = true;

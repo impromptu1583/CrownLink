@@ -1,70 +1,47 @@
-﻿#SET(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(MODULE_FILES
-	Storm/storm.h
-	Storm/storm.cpp
-	Util/MemoryFrame.cpp
-	Util/MemoryFrame.h
-	Util/Types.h
-	Util/Exceptions.h
-	Util/Exceptions.cpp
-	Output.cpp
-	Output.h
-	SNPModule.cpp
-	SNPModule.h
-	SNPNetwork.h
-	CriticalSection.h
-	CriticalSection.cpp
-	caps.mpq
-	SNPModule.def
-	CrownLink.cpp
-	CrownLink.h
-	DLLMain.cpp
-	Signaling.h
-	Signaling.cpp
-	JuiceManager.h
-	JuiceManager.cpp
+	"bwapi/Storm/storm.h"
+	"bwapi/Storm/storm.cpp"
+	"bwapi/Util/MemoryFrame.cpp"
+	"bwapi/Util/MemoryFrame.h"
+	"bwapi/Util/Types.h"
+	"bwapi/Util/Exceptions.h"
+	"bwapi/Util/Exceptions.cpp"
+	"bwapi/Output.cpp"
+	"bwapi/Output.h"
+	"bwapi/CriticalSection.h"
+	"bwapi/CriticalSection.cpp"
+	"bwapi/SNPNetwork.h"
 	"include/base64.hpp"
 	"include/json.hpp"
-    SNETADDR.h
+	"SNPModule.cpp"
+	"SNPModule.h"
+	"SNPModule.def"
+	"CrownLink.cpp"
+	"CrownLink.h"
+	"DLLMain.cpp"
+	"Signaling.h"
+	"Signaling.cpp"
+	"JuiceManager.h"
+	"JuiceManager.cpp"
+    "SNetAddr.h"
 	"Config.h"
 	"Common.h"
-	ThQueue.h
-	Logger.h
+	"ThQueue.h"
+	"Logger.h"
+	"caps.mpq"
 )
 
 add_library(SNP SHARED ${MODULE_FILES})
 
-set(TEST_FILES
-	Util/MemoryFrame.cpp
-	Util/MemoryFrame.h
-	Util/Exceptions.h
-	Util/Exceptions.cpp
-	signaling.h
-	signaling.cpp
-	JuiceManager.h
-	JuiceManager.cpp
-	SignallingTest.cpp
-	json.hpp
-    SNETADDR.h
-	"include/base64.hpp"
-	ThQueue/Logger.h
-)
-
-#add_executable (SIGNALTEST ${TEST_FILES})
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
-#  set_property(TARGET SIGNALTEST PROPERTY CXX_STANDARD 20)
 endif()
-
-#target_link_libraries(SIGNALTEST
-#	PUBLIC ws2_32
-#	PRIVATE juice-static
-#)
 
 set(outname "CrownLink")
 
@@ -74,36 +51,29 @@ set_target_properties(SNP
 		SUFFIX ".snp"
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
-include_directories(${CMAKE_SOURCE_DIR}/SNP/Storm)
-include_directories(${CMAKE_SOURCE_DIR}/SNP/Util)
-include_directories(${CMAKE_SOURCE_DIR}/SNP/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi/Storm)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi/Util)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 include(FetchContent)
-#juice
+
+# juice
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
 	GIT_TAG v1.4.1
 )
-
 FetchContent_MakeAvailable(Juice)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
-#target_include_directories(SIGNALTEST PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
-#	PUBLIC wsock32
 	PUBLIC ws2_32
 	PRIVATE juice-static
 )
 
-if (MSVC)
-    #target_compile_options(SNP PRIVATE /Zc:auto-)
-	#target_compile_options(SIGNALTEST PRIVATE /Zc:auto-)
-endif ()
-
 # copy CAPS MPQ into SNP
-
 message(STATUS "Copying ${CMAKE_SOURCE_DIR}/SNP/caps.mpq at the end of SNP")
-set ( mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq" )
+set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
 
 add_custom_command( TARGET SNP
 	POST_BUILD

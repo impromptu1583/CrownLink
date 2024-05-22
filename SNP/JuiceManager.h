@@ -21,7 +21,7 @@ struct SignalPacket;
 class JuiceWrapper {
 public:
 	JuiceWrapper() = default; // This is wrong, but required for std::map's operator[]
-	JuiceWrapper(const SNETADDR& ID, std::string init_message);
+	JuiceWrapper(const SNetAddr& ID, std::string init_message);
 	void signal_handler(const SignalPacket& packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
@@ -39,7 +39,7 @@ private:
 
 	friend class JuiceMAN;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
-	SNETADDR m_ID{};
+	SNetAddr m_ID{};
 	std::string m_ID_b64;
 
 	juice_config_t m_config{};
@@ -56,7 +56,7 @@ public:
 	void send_all(const std::string&);
 	void send_all(const char* begin, const size_t size);
 	void send_all(Util::MemoryFrame frame);
-	juice_state peer_status(SNETADDR peer_ID);
+	juice_state peer_status(SNetAddr peer_ID);
 
 private:
 	std::map<std::string, JuiceWrapper> m_agents;

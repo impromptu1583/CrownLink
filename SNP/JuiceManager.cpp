@@ -4,7 +4,7 @@
 //----------------------------JuiceWrapper----------------------------//
 // Used for individual P2P connections                                //
 //--------------------------------------------------------------------//
-JuiceWrapper::JuiceWrapper(const SNETADDR& ID, std::string init_message = "")
+JuiceWrapper::JuiceWrapper(const SNetAddr& ID, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_ID{ID}, m_ID_b64{ID.b64()}, m_config{
 	.stun_server_host = StunServer,
 	.stun_server_port = StunServerPort,
@@ -47,7 +47,7 @@ void JuiceWrapper::send_message(const std::string& msg) {
 	if (m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED) {
 		g_root_logger.trace("[P2P Agent][{}] sending message {}", m_ID_b64, msg);
 		juice_send(m_agent, msg.c_str(), msg.size());
-	} else if(m_p2p_state == JUICE_STATE_FAILED){
+	} else if (m_p2p_state == JUICE_STATE_FAILED) {
 		g_root_logger.error("[P2P Agent][{}] trying to send message but P2P connection failed");
 	}
 	// TODO: Error handling
@@ -130,7 +130,7 @@ void JuiceMAN::send_p2p(const std::string& ID, Util::MemoryFrame frame) {
 
 
 void JuiceMAN::signal_handler(const SignalPacket packet) {
-	auto peer_string = std::string((char*)packet.peer_id.address, sizeof(SNETADDR));
+	auto peer_string = std::string((char*)packet.peer_id.address, sizeof(SNetAddr));
 	g_root_logger.trace("[P2P Manager] received message for {}: {}",peer_string,packet.data);
 	if (!m_agents.contains(peer_string)) {
 		m_agents.emplace(peer_string, JuiceWrapper{peer_string, packet.data});
@@ -158,9 +158,9 @@ void JuiceMAN::send_all(Util::MemoryFrame frame) {
 	}
 }
 
-juice_state JuiceMAN::peer_status(SNETADDR peer_ID) {
+juice_state JuiceMAN::peer_status(SNetAddr peer_ID) {
 	// NOTE: It's ugly but I'm still working on changing out strings for SNETADDR
-	auto id = std::string((char*)peer_ID.address, sizeof(SNETADDR));
+	auto id = std::string((char*)peer_ID.address, sizeof(SNetAddr));
 	if (m_agents.contains(id)) {
 		return m_agents[id].m_p2p_state;
 	}
