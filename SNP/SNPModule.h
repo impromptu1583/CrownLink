@@ -72,6 +72,6 @@ struct NetFunctions {
 };
 
 extern NetFunctions spiFunctions;
-extern Network<SNetAddr>* pluggedNetwork;
+extern Network<SNetAddr>* g_plugged_network;
 
 };

@@ -12,18 +12,13 @@
 
 namespace clnk {
 
-struct AdFile {
-	game game_info;
-	char extra_bytes[32]{};
-};
-
 inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
 	'CLNK',
 	(char*)"",
 
 	// CAPS:
-	{sizeof(CAPS), 0x20000003, snp::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
+	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
 class JuiceP2P final : public snp::Network<SNetAddr> {

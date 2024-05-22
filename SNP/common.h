@@ -24,11 +24,12 @@ namespace fs = std::filesystem;
 #include <json.hpp>
 using nlohmann::json;
 
-#include "SNETADDR.h"
 #include <Util/Exceptions.h>
 #include <Util/MemoryFrame.h>
-#include <SNPNetwork.h>
 #include <Types.h>
+
+#include "SNetAddr.h"
+#include "SNPNetwork.h"
 
 using u8 = unsigned char;
 using u16 = unsigned short;
@@ -49,6 +50,11 @@ using f64 = double;
 #define EnumStringCase(X) case X: return #X
 
 constexpr const char* CL_VERSION = "0.1.51";
+
+struct AdFile {
+	game game_info;
+	char extra_bytes[32]{};
+};
 
 inline std::string as_string(const auto& value) {
 	using std::to_string;

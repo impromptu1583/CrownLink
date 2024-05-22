@@ -1,15 +1,11 @@
 #include "JuiceManager.h"
 #include "signaling.h"
 
-//----------------------------JuiceWrapper----------------------------//
-// Used for individual P2P connections                                //
-//--------------------------------------------------------------------//
-JuiceWrapper::JuiceWrapper(const SNetAddr& ID, std::string init_message = "")
-: m_p2p_state(JUICE_STATE_DISCONNECTED), m_ID{ID}, m_ID_b64{ID.b64()}, m_config{
+JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
+: m_p2p_state(JUICE_STATE_DISCONNECTED), m_ID{id}, m_ID_b64{id.b64()}, m_config{
 	.stun_server_host = StunServer,
 	.stun_server_port = StunServerPort,
-
-	// Callbacks
+	
 	.cb_state_changed = on_state_changed,
 	.cb_candidate = on_candidate,
 	.cb_gathering_done = on_gathering_done,
@@ -107,27 +103,23 @@ void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, 
 	g_root_logger.trace("[P2P Agent][{}] received: {}", parent->m_ID_b64, std::string{data, size});
 }
 
-//------------------------------JuiceMAN------------------------------//
-// Maps individual P2P connections (JuiceWrapper)                     //
-//--------------------------------------------------------------------//
-void JuiceMAN::create_if_not_exist(const std::string& ID) {
-	if (!m_agents.count(ID)) {
-		m_agents.emplace(ID, ID);
+void JuiceMAN::create_if_not_exist(const std::string& id) {
+	if (!m_agents.contains(id)) {
+		m_agents.emplace(id, JuiceWrapper{id});
 	}
 }
 
 void JuiceMAN::send_p2p(const std::string& ID, const std::string& msg) {
-	// todo error handling
+	// TODO: error handling
 	create_if_not_exist(ID);
 	m_agents[ID].send_message(msg);
 }
 
 void JuiceMAN::send_p2p(const std::string& ID, Util::MemoryFrame frame) {
-	// todo error handling
+	// TODO: error handling
 	create_if_not_exist(ID);
 	m_agents[ID].send_message(frame);
 }
-
 
 void JuiceMAN::signal_handler(const SignalPacket packet) {
 	auto peer_string = std::string((char*)packet.peer_id.address, sizeof(SNetAddr));
@@ -159,7 +151,7 @@ void JuiceMAN::send_all(Util::MemoryFrame frame) {
 }
 
 juice_state JuiceMAN::peer_status(SNetAddr peer_ID) {
-	// NOTE: It's ugly but I'm still working on changing out strings for SNETADDR
+	// NOTE: It's ugly but I'm still working on changing out strings for SNetAddr
 	auto id = std::string((char*)peer_ID.address, sizeof(SNetAddr));
 	if (m_agents.contains(id)) {
 		return m_agents[id].m_p2p_state;
