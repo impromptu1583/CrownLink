@@ -22,16 +22,18 @@ set(MODULE_FILES
 	CrownLink.h
 	DLLMain.cpp
 	signaling.h
-	signaling.cpp
+	Signaling.cpp
 	JuiceManager.h
 	JuiceManager.cpp
 	json.hpp
 	"include/base64.hpp"
+	"include/json.hpp"
     SNETADDR.h
 	config.h
-	common.h)
+	common.h
+)
 
-add_library (SNP SHARED ${MODULE_FILES} "common.h")
+add_library(SNP SHARED ${MODULE_FILES} "common.h")
 
 set(TEST_FILES
 	Util/MemoryFrame.cpp
@@ -63,7 +65,6 @@ endif()
 #	PUBLIC ws2_32
 #	PRIVATE juice-static
 #)
-
 
 set(outname "CrownLink")
 
@@ -107,14 +108,11 @@ set ( mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq" )
 add_custom_command( TARGET SNP
 	POST_BUILD
 	COMMAND cmd /C "copy /Y /B \"$<SHELL_PATH:$<TARGET_FILE:SNP>>\" + \"$<SHELL_PATH:${mpqfile}>\" \"$<SHELL_PATH:$<TARGET_FILE:SNP>>\""
-	
 )
 
 install(TARGETS SNP
 	DESTINATION "C:/Cosmonarchy/Starcraft/"
 )
-
-
 
 # del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\CrownLink.snp
 # del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-release\SNP\CrownLink.snp
