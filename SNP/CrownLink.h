@@ -44,6 +44,7 @@ private:
 	bool m_is_advertising = false;
 	bool m_is_running = true;
     std::stop_source m_stop_source;
+	Logger m_logger{g_root_logger["Juice"]};
 };
 
 };

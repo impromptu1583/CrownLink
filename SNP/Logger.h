@@ -77,6 +77,8 @@ private:
 
 class Logger {
 public:
+    Logger() = default;
+
     Logger(LogLevel log_level, std::convertible_to<std::string> auto&&... prefixes)
         : m_log_level{log_level}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
     }
@@ -116,15 +118,14 @@ public:
         log(std::cerr, "Trace", AnsiCyan, std::vformat(format, std::make_format_args(args...)));
     }
 
-    Logger operator[](std::string sv) {
+    Logger operator[](std::string sv) const {
         Logger copy = *this;
         copy.m_prefixes.push_back(std::move(sv));
         return copy;
     }
 
-    inline LogLevel log_level() { return m_log_level; }
+    inline LogLevel log_level() const { return m_log_level; }
     inline void set_log_level(LogLevel log_level) { m_log_level = log_level; }
-
     inline void set_cout_enabled(bool enabled) { m_cout_enabled = enabled; }
 
 private:
@@ -154,7 +155,7 @@ private:
 private:
     bool m_cout_enabled = true;
     std::vector<std::string> m_prefixes;
-    LogFile* m_log_file;
+    LogFile* m_log_file = nullptr;
     LogLevel m_log_level = LogLevel::Info;
 };
 

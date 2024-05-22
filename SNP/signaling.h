@@ -105,6 +105,7 @@ private:
 	std::string m_host;
 	std::string m_port;
 	bool m_initialized = false;
+	Logger m_logger{g_root_logger["SignalingSocket"]};
 };
 
 inline SignalingSocket g_signaling_socket;

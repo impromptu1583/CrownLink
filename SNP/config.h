@@ -14,21 +14,22 @@ public:
 					m_json = json::parse(f);
 					m_config_found = true;
 				} catch (const json::parse_error& e){
-					g_root_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
+					m_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 				}
 			}
 		}
 		if (m_config_found) {
-			g_root_logger.info("logfile loaded, contents: {}", m_json.dump());
+			m_logger.info("logfile loaded, contents: {}", m_json.dump());
 		} else {
-			g_root_logger.warn("config file not found, defaults will be used");
+			m_logger.warn("config file not found, defaults will be used");
 		}
-		g_root_logger.set_log_level(load_or_default<LogLevel>("log level", LogLevel::Info));
+		m_logger.set_log_level(load_or_default<LogLevel>("log level", LogLevel::Info));
 	}
 
-	// example: server_address = snp_config.config_or_default("server","127.0.0.1")
+	// example: server_address = snp_config.config_or_default("server", "127.0.0.1")
 	std::string load_or_default(std::string key, std::string default_value) {
-		if (!m_config_found) { return default_value; }
+		if (!m_config_found) return default_value;
+
 		const auto iter = m_json.find(key);
 		if (iter != m_json.end()) {
 			if (iter.value().is_number()) {
@@ -36,7 +37,7 @@ public:
 			}
 			return iter->get<std::string>();
 		} else {
-			g_root_logger.warn("config value for {} not found, using default {}",key,default_value);
+			m_logger.warn("config value for {} not found, using default {}", key, default_value);
 			return default_value;
 		}
 	}
@@ -44,11 +45,12 @@ public:
 	template <typename T>
 	T load_or_default(const std::string& key, const T& default_value) {
 		if (!m_config_found) return default_value;
+
 		const auto iter = m_json.find(key);
 		if (iter != m_json.end()) {
 			return iter->get<T>();
 		} else {
-			g_root_logger.warn("config value for {} not found, using default {}", key, as_string(default_value));
+			m_logger.warn("config value for {} not found, using default {}", key, as_string(default_value));
 			return default_value;
 		}
 	}
@@ -56,6 +58,7 @@ public:
 private:
 	json m_json;
 	bool m_config_found = false;
+	Logger m_logger{g_root_logger["Config"]};
 };
 
 inline auto g_snp_config = SNPConfig{"CrownLink_config.json", "..\\Starcraft\\CrownLink_config.json", "C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json"};
