@@ -1,10 +1,5 @@
 #pragma once
 #include "common.h"
-#include "json.hpp"
-#include <initializer_list>
-#include <fstream>
-
-using json = nlohmann::json;
 
 class SNPConfig {
 public:

@@ -24,7 +24,7 @@ void JuiceP2P::requestAds() {
 	for (const auto& advertiser : m_known_advertisers) {
 		if (g_juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED || g_juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED) {
 			g_root_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(SNETADDR))));
-			g_signaling_socket.send_packet(advertiser, SignalMessageType::SIGNAL_SOLICIT_ADS);
+			g_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 		}
 	}
 }
@@ -40,27 +40,27 @@ void JuiceP2P::receive_signaling(){
 		// g_logger.trace("received incoming signaling");
 		for (const auto& packet : incoming_packets) {
 			switch (packet.message_type) {
-				case SignalMessageType::SIGNAL_START_ADVERTISING: {
+				case SignalMessageType::StartAdvertising: {
 					g_root_logger.debug("server confirmed lobby open");
 				} break;
-				case SignalMessageType::SIGNAL_STOP_ADVERTISING: {
+				case SignalMessageType::StopAdvertising: {
 					g_root_logger.debug("server confirmed lobby closed");
 				} break;
-				case SignalMessageType::SIGNAL_REQUEST_ADVERTISERS: {
+				case SignalMessageType::RequestAdvertisers: {
 					// list of advertisers returned
 					// split into individual addresses & create juice peers
 					update_known_advertisers(packet.data);
 				} break;
-				case SignalMessageType::SIGNAL_SOLICIT_ADS: {
+				case SignalMessageType::SolicitAds: {
 					if (m_is_advertising) {
 						g_root_logger.debug("received solicitation from {}, replying with our lobby info", packet.peer_id.b64());
 						std::string send_buffer;
 						send_buffer.append((char*)m_ad_data.begin(), m_ad_data.size());
-						g_signaling_socket.send_packet(packet.peer_id, SignalMessageType::SIGNAL_GAME_AD,
+						g_signaling_socket.send_packet(packet.peer_id, SignalMessageType::GameAd,
 							base64::to_base64(send_buffer));
 					}
 				} break;
-				case SignalMessageType::SIGNAL_GAME_AD: {
+				case SignalMessageType::GameAd: {
 					// -------------- PACKET: GAME STATS -------------------------------
 					// Give the ad to storm
 					g_root_logger.debug("received lobby info from {}", packet.peer_id.b64());
@@ -90,9 +90,9 @@ void JuiceP2P::receive_signaling(){
 						ad.game_info.dwVersion
 					);
 				} break;
-				case SignalMessageType::SIGNAL_JUICE_LOCAL_DESCRIPTION:
-				case SignalMessageType::SIGNAL_JUICE_CANDIDATE:
-				case SignalMessageType::SIGNAL_JUICE_DONE: {
+				case SignalMessageType::JuiceLocalDescription:
+				case SignalMessageType::JuciceCandidate:
+				case SignalMessageType::JuiceDone: {
 					g_juice_manager.signal_handler(packet);
 				} break;
 			}

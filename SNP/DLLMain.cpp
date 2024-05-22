@@ -61,7 +61,7 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
 
 HINSTANCE hInstance;
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
+static void dll_start() {
 	// init winsock
 	WSADATA wsaData;
 	WORD wVersionRequested;
@@ -73,15 +73,20 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 		g_root_logger.fatal("WSAStartup failed with error {}", err);
 	}
 
+}
+
+static void dll_exit() {
+    WSACleanup();
+}
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
 	switch(fdwReason) {
-	    case DLL_PROCESS_ATTACH:
+	    case DLL_PROCESS_ATTACH: {
 		    hInstance = hinstDLL;
-			break;
-		case DLL_PROCESS_DETACH:
-			break;
-		default:
-			break;
+
+            dll_start();
+			std::atexit(dll_exit);
+		} break;
 	}
-	WSACleanup();
 	return TRUE;
 }

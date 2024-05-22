@@ -1,51 +1,56 @@
 #pragma once
-struct SignalPacket;
-class SignalingSocket;
-
 #include "common.h"
+#include "JuiceManager.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include "Util/Exceptions.h"
-#include <vector>
-#include <iostream>
-#include <format>
-#include "json.hpp"
-#include "base64.hpp"
-#include "SNPNetwork.h"
-
-using json = nlohmann::json;
+#define EnumStringCase(X) case X: return #X
 
 enum class SignalMessageType {
-	SIGNAL_START_ADVERTISING = 1,
-	SIGNAL_STOP_ADVERTISING,
-	SIGNAL_REQUEST_ADVERTISERS,
-	SIGNAL_SOLICIT_ADS,
-	SIGNAL_GAME_AD,
-	SIGNAL_JUICE_LOCAL_DESCRIPTION = 101,
-	SIGNAL_JUICE_CANDIDATE,
-	SIGNAL_JUICE_DONE,
+	StartAdvertising = 1,
+	StopAdvertising,
+	RequestAdvertisers,
+	SolicitAds,
+	GameAd,
+
+	JuiceLocalDescription = 101,
+	JuciceCandidate,
+	JuiceDone,
 
 	// debug
-	SERVER_SET_ID = 254,
-	SERVER_ECHO = 255
+	ServerSetID = 254,
+	ServerEcho = 255,
 };
 
-enum SocketState {
-	SOCKET_STATE_UNINITIALIZED,
-	SOCKET_STATE_INITIALIZED,
-	SOCKET_STATE_CONNECTING,
-	SOCKET_STATE_READY
+inline std::string to_string(SignalMessageType signal_message_type) {
+	switch (signal_message_type) {
+		EnumStringCase(SignalMessageType::StartAdvertising);
+		EnumStringCase(SignalMessageType::StopAdvertising);
+		EnumStringCase(SignalMessageType::RequestAdvertisers);
+		EnumStringCase(SignalMessageType::SolicitAds);
+		EnumStringCase(SignalMessageType::GameAd);
+
+		EnumStringCase(SignalMessageType::JuiceLocalDescription);
+		EnumStringCase(SignalMessageType::JuciceCandidate);
+		EnumStringCase(SignalMessageType::JuiceDone);
+
+		EnumStringCase(SignalMessageType::ServerSetID);
+		EnumStringCase(SignalMessageType::ServerEcho);
+	}
+	return std::to_string((s32)signal_message_type);
+}
+
+enum class SocketState {
+	Uninitialized,
+	Initialized,
+	Connecting,
+	Ready
 };
 
 inline std::string to_string(SocketState socket_state) {
 	switch (socket_state) {
-		case SocketState::SOCKET_STATE_UNINITIALIZED: return "Uninitialized";
-		case SocketState::SOCKET_STATE_INITIALIZED: return "Initialized";
-		case SocketState::SOCKET_STATE_CONNECTING: return "Connecting";
-		case SocketState::SOCKET_STATE_READY: return "Ready";
+		EnumStringCase(SocketState::Uninitialized);
+		EnumStringCase(SocketState::Initialized);
+		EnumStringCase(SocketState::Connecting);
+		EnumStringCase(SocketState::Ready);
 	}
 	return std::to_string((s32)socket_state);
 }
@@ -93,7 +98,7 @@ private:
 
 private:
 	SNETADDR m_server{};
-	SocketState m_current_state = SocketState::SOCKET_STATE_UNINITIALIZED;
+	SocketState m_current_state = SocketState::Uninitialized;
 	SOCKET m_sockfd = NULL;
 	int m_last_error;
 	int m_state = 0;

@@ -7,8 +7,8 @@ void to_json(json& out_json, const SignalPacket& packet) {
 			{"message_type",packet.message_type},
 			{"data",packet.data},
 		};
-	} catch (const json::exception* e) {
-		g_root_logger.error("Signal packet to_json error : {}",e->what());
+	} catch (const json::exception& e) {
+		g_root_logger.error("Signal packet to_json error : {}", e.what());
 	}
 };
 
@@ -25,7 +25,7 @@ void from_json(const json& json_, SignalPacket& out_packet) {
 
 bool SignalingSocket::initialize() {
 	g_root_logger.info("connecting to matchmaking server");
-	m_current_state = SOCKET_STATE_CONNECTING;
+	m_current_state = SocketState::Connecting;
 	struct addrinfo hints, * res, * p;
 	int rv;
 	memset(&hints, 0, sizeof hints);
@@ -74,7 +74,7 @@ bool SignalingSocket::initialize() {
 	m_initialized = true;
 	set_blocking_mode(true);
 	g_root_logger.info("successfully connected to matchmaking server");
-	m_current_state = SOCKET_STATE_READY;
+	m_current_state = SocketState::Ready;
 	return true;
 }
 
@@ -87,7 +87,7 @@ void SignalingSocket::send_packet(SNETADDR dest, SignalMessageType msg_type, con
 }
 
 void SignalingSocket::send_packet(const SignalPacket& packet) {
-	if (m_current_state != SocketState::SOCKET_STATE_READY) {
+	if (m_current_state != SocketState::Ready) {
 		g_root_logger.error("signal send_packet attempted but provider is not ready. State: {}", as_string(m_current_state));
 		return;
 	}
@@ -173,13 +173,13 @@ void SignalingSocket::set_blocking_mode(bool block) {
 }
 
 void SignalingSocket::start_advertising(){
-	send_packet(m_server, SignalMessageType::SIGNAL_START_ADVERTISING);
+	send_packet(m_server, SignalMessageType::StartAdvertising);
 }
 
 void SignalingSocket::stop_advertising(){
-	send_packet(m_server, SignalMessageType::SIGNAL_STOP_ADVERTISING);
+	send_packet(m_server, SignalMessageType::StopAdvertising);
 }
 
 void SignalingSocket::request_advertisers(){
-	send_packet(m_server, SignalMessageType::SIGNAL_REQUEST_ADVERTISERS);
+	send_packet(m_server, SignalMessageType::RequestAdvertisers);
 }

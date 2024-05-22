@@ -20,22 +20,22 @@ JuiceWrapper::JuiceWrapper(const SNETADDR& ID, std::string init_message = "")
 	}
 	juice_get_local_description(m_agent, m_sdp, sizeof(m_sdp));
 
-	g_signaling_socket.send_packet(m_ID, SignalMessageType::SIGNAL_JUICE_LOCAL_DESCRIPTION, m_sdp);
+	g_signaling_socket.send_packet(m_ID, SignalMessageType::JuiceLocalDescription, m_sdp);
 	g_root_logger.trace("[P2P Agent][{}] Init - local SDP {}", m_ID_b64, m_sdp);
 	juice_gather_candidates(m_agent);
 }
 
-void JuiceWrapper::signal_handler(const SignalPacket packet) {
+void JuiceWrapper::signal_handler(const SignalPacket& packet) {
 	switch (packet.message_type) {
-		case SignalMessageType::SIGNAL_JUICE_LOCAL_DESCRIPTION: {
+		case SignalMessageType::JuiceLocalDescription: {
 			juice_set_remote_description(m_agent, packet.data.c_str());
 			g_root_logger.trace("[P2P Agent][{}] received remote description:\n{}", m_ID_b64, packet.data);
 		} break;
-		case SignalMessageType::SIGNAL_JUICE_CANDIDATE: {
+		case SignalMessageType::JuciceCandidate: {
 			juice_add_remote_candidate(m_agent, packet.data.c_str());
 			g_root_logger.trace("[P2P Agent][{}] received remote candidate {}", m_ID_b64, packet.data);
 		} break;
-		case SignalMessageType::SIGNAL_JUICE_DONE: {
+		case SignalMessageType::JuiceDone: {
 			juice_set_remote_gathering_done(m_agent);
 			g_root_logger.trace("[P2P Agent][{}] remote gathering done", m_ID_b64);
 		} break;
@@ -90,13 +90,13 @@ void JuiceWrapper::on_state_changed(juice_agent_t* agent, juice_state_t state, v
 
 void JuiceWrapper::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr){
 	auto& parent = *(JuiceWrapper*)user_ptr;
-	g_signaling_socket.send_packet(parent.m_ID, SignalMessageType::SIGNAL_JUICE_CANDIDATE, sdp);
+	g_signaling_socket.send_packet(parent.m_ID, SignalMessageType::JuciceCandidate, sdp);
 
 }
 
 void JuiceWrapper::on_gathering_done(juice_agent_t* agent, void* user_ptr){
 	auto& parent = *(JuiceWrapper*)user_ptr;
-	g_signaling_socket.send_packet(parent.m_ID, SignalMessageType::SIGNAL_JUICE_DONE);
+	g_signaling_socket.send_packet(parent.m_ID, SignalMessageType::JuiceDone);
 }
 
 void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {

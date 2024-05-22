@@ -1,9 +1,5 @@
 #pragma once
-#include <iostream>
-#include <fstream>
-#include <format>
-#include <filesystem>
-namespace fs = std::filesystem;
+#include "common.h"
 
 static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
 static constexpr auto LogDateFormat = "%d-%m-%Y %H:%M:%S";

@@ -1,13 +1,5 @@
 #pragma once
-
 #include "common.h"
-
-#include <juice.h>
-#include <unordered_map>
-#include "Util/MemoryFrame.h"
-#include "iostream"
-#include "ThQueue/ThQueue.h"
-#include "Types.h"
 
 enum class JuiceSignal {
 	LocalDescription,
@@ -15,11 +7,13 @@ enum class JuiceSignal {
 	GatheringDone,
 };
 
+struct SignalPacket;
+
 class JuiceWrapper {
 public:
 	JuiceWrapper() = default; // This is wrong, but required for std::map's operator[]
 	JuiceWrapper(const SNETADDR& ID, std::string init_message);
-	void signal_handler(const SignalPacket packet);
+	void signal_handler(const SignalPacket& packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
 	void send_message(Util::MemoryFrame frame);
