@@ -21,21 +21,40 @@ namespace fs = std::filesystem;
 #include <juice.h>
 #include <base64.hpp>
 
-#include "json.hpp"
+#include <json.hpp>
 using nlohmann::json;
 
-#include "SNETADDR.h"
-#include "Util/Exceptions.h"
-#include "Util/MemoryFrame.h"
-#include "SNPNetwork.h"
-#include "signaling.h"
-#include "Types.h"
+#include <Util/Exceptions.h>
+#include <Util/MemoryFrame.h>
+#include <Types.h>
 
-#include "ThQueue/Logger.h"
-#include "ThQueue/ThQueue.h"
-#include "config.h"
+#include "SNetAddr.h"
+#include "SNPNetwork.h"
+
+using u8 = unsigned char;
+using u16 = unsigned short;
+using u32 = unsigned int;
+using u64 = unsigned long long;
+
+using s8 = signed char;
+using s16 = signed short;
+using s32 = signed int;
+using s64 = signed long long;
+
+using f32 = float;
+using f64 = double;
+
+#include "ThQueue.h"
+#include "Logger.h"
+
+#define EnumStringCase(X) case X: return #X
 
 constexpr const char* CL_VERSION = "0.1.51";
+
+struct AdFile {
+	game game_info;
+	char extra_bytes[32]{};
+};
 
 inline std::string as_string(const auto& value) {
 	using std::to_string;

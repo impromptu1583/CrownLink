@@ -7,12 +7,21 @@ enum class JuiceSignal {
 	GatheringDone,
 };
 
+inline std::string to_string(JuiceSignal value) {
+	switch (value) {
+		EnumStringCase(JuiceSignal::LocalDescription);
+		EnumStringCase(JuiceSignal::Candidate);
+		EnumStringCase(JuiceSignal::GatheringDone);
+	}
+	return std::to_string((s32)value);
+}
+
 struct SignalPacket;
 
 class JuiceWrapper {
 public:
 	JuiceWrapper() = default; // This is wrong, but required for std::map's operator[]
-	JuiceWrapper(const SNETADDR& ID, std::string init_message);
+	JuiceWrapper(const SNetAddr& ID, std::string init_message);
 	void signal_handler(const SignalPacket& packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
@@ -30,27 +39,28 @@ private:
 
 	friend class JuiceMAN;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
-	SNETADDR m_ID;
-	std::string m_ID_b64;
+	SNetAddr m_id{};
 
-	juice_config_t m_config;
-	juice_agent_t* m_agent; // NOTE: agent must be after config for construction order
-	char m_sdp[JUICE_MAX_SDP_STRING_LEN];
+	juice_config_t m_config{};
+	juice_agent_t* m_agent = nullptr; // NOTE: agent must be after config for construction order
+	char m_sdp[JUICE_MAX_SDP_STRING_LEN]{};
+	Logger m_logger;
 };
 
 class JuiceMAN {
 public:
-	void create_if_not_exist(const std::string& ID);
-	void send_p2p(const std::string& ID, const std::string& msg);
-	void send_p2p(const std::string& ID, Util::MemoryFrame frame);
+	void create_if_not_exist(const std::string& id);
+	void send_p2p(const std::string& id, const std::string& msg);
+	void send_p2p(const std::string& id, Util::MemoryFrame frame);
 	void signal_handler(const SignalPacket packet);
 	void send_all(const std::string&);
 	void send_all(const char* begin, const size_t size);
 	void send_all(Util::MemoryFrame frame);
-	juice_state peer_status(SNETADDR peer_ID);
+	juice_state peer_status(const SNetAddr& peer_id);
 
 private:
 	std::map<std::string, JuiceWrapper> m_agents;
+	Logger m_logger{g_root_logger, "P2P Manager"};
 };
 
 inline HANDLE g_receive_event;

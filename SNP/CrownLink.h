@@ -7,25 +7,21 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "ThQueue/ThQueue.h"
 
-namespace CLNK {
+#include "signaling.h"
 
-struct AdFile {
-	game game_info;
-	char extra_bytes[32]{};
-};
+namespace clnk {
 
-inline SNP::NetworkInfo g_network_info{
+inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
 	'CLNK',
 	(char*)"",
 
 	// CAPS:
-	{sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
+	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class JuiceP2P final : public SNP::Network<SNETADDR> {
+class JuiceP2P final : public snp::Network<SNetAddr> {
 public:
 	JuiceP2P() = default;
 	~JuiceP2P() override = default;
@@ -34,7 +30,7 @@ public:
 	void destroy() override;
 	void requestAds() override;
 	void receive() override {}; // unused in this connection type
-	void sendAsyn(const SNETADDR& to, Util::MemoryFrame packet) override;
+	void sendAsyn(const SNetAddr& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
 
@@ -43,11 +39,12 @@ public:
 
 private:
 	std::jthread m_signaling_thread;
-	std::vector<SNETADDR> m_known_advertisers;
+	std::vector<SNetAddr> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
 	bool m_is_advertising = false;
 	bool m_is_running = true;
     std::stop_source m_stop_source;
+	Logger m_logger{g_root_logger, "Juice"};
 };
 
 };

@@ -77,63 +77,59 @@ private:
 
 class Logger {
 public:
-    Logger(LogLevel log_level, std::convertible_to<std::string> auto&&... prefixes)
-        : m_log_level{log_level}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
+    Logger() = default;
+
+    Logger(std::convertible_to<std::string> auto&&... prefixes)
+        : m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
     }
 
-    Logger(LogFile* log_file, LogLevel log_level, std::convertible_to<std::string> auto&&... prefixes)
-        : m_log_file{log_file}, m_log_level{log_level}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
+    Logger(LogFile* log_file, std::convertible_to<std::string> auto&&... prefixes)
+        : m_log_file{log_file}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
+    }
+
+    Logger(Logger& logger, std::convertible_to<std::string> auto&&... prefixes)
+        : m_log_file{logger.m_log_file}, m_prefixes{logger.m_prefixes} {
+        (m_prefixes.emplace_back(prefixes), ...);
     }
 
     void fatal(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Fatal) return;
+        if (s_log_level < LogLevel::Fatal) return;
         log(std::cerr, "Fatal", AnsiBoldRed, std::vformat(format, std::make_format_args(args...)));
         exit(-1);
     }
 
     void error(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Error) return;
+        if (s_log_level < LogLevel::Error) return;
         log(std::cerr, "Error", AnsiRed, std::vformat(format, std::make_format_args(args...)));
     }
 
     void warn(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Warn) return;
+        if (s_log_level < LogLevel::Warn) return;
         log(std::cout, "Warn", AnsiYellow, std::vformat(format, std::make_format_args(args...)));
     }
 
     void info(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Info) return;
+        if (s_log_level < LogLevel::Info) return;
         log(std::cout, "Info", AnsiWhite, std::vformat(format, std::make_format_args(args...)));
     }
 
     void debug(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Debug) return;
+        if (s_log_level < LogLevel::Debug) return;
         log(std::cerr, "Debug", AnsiPurple, std::vformat(format, std::make_format_args(args...)));
     }
 
     void trace(std::string_view format, const auto&... args) {
-        if (m_log_level < LogLevel::Trace) return;
+        if (s_log_level < LogLevel::Trace) return;
         log(std::cerr, "Trace", AnsiCyan, std::vformat(format, std::make_format_args(args...)));
     }
 
-    Logger operator[](std::string sv) {
-        Logger copy = *this;
-        copy.m_prefixes.push_back(std::move(sv));
-        return copy;
-    }
-
-    inline LogLevel log_level() { return m_log_level; }
-    inline void set_log_level(LogLevel log_level) { m_log_level = log_level; }
-
-    inline void set_cout_enabled(bool enabled) { m_cout_enabled = enabled; }
+    static void set_log_level(LogLevel log_level) { s_log_level = log_level; }
 
 private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
         const auto prefix = make_prefix(log_level);
 
-        if (m_cout_enabled) {
-            out << ansi_color << prefix << string << AnsiReset << "\n";
-        }
+		out << ansi_color << prefix << string << AnsiReset << "\n";
         if (m_log_file) {
             *m_log_file << prefix << string << "\n";
         }
@@ -152,11 +148,10 @@ private:
     }
 
 private:
-    bool m_cout_enabled = true;
     std::vector<std::string> m_prefixes;
-    LogFile* m_log_file;
-    LogLevel m_log_level = LogLevel::Info;
+    LogFile* m_log_file = nullptr;
+    inline static LogLevel s_log_level = LogLevel::Info;
 };
 
 inline LogFile g_main_log{"CrownLink"};
-inline Logger g_root_logger{&g_main_log, LogLevel::Info};
+inline Logger g_root_logger{&g_main_log};

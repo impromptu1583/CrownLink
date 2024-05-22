@@ -4,43 +4,39 @@
 #define SNETADDR_H
 #include <string>
 #include "base64.hpp"
+#include "Types.h"
 
+struct SNetAddr {
+    u8 address[16]{};
 
-struct SNETADDR {
-    SNETADDR() = default;
-    SNETADDR(BYTE* addr)
-    {
-        memcpy(&address, addr, sizeof(SNETADDR));
+    SNetAddr() = default;
+    SNetAddr(u8* addr) {
+        memcpy_s(&address, sizeof(address), addr, sizeof(SNetAddr));
     }
-    SNETADDR(std::string ID) {
-        memset(&address, 0, sizeof(SNETADDR));
-        memcpy(&address, ID.c_str(), sizeof(SNETADDR));
+
+    SNetAddr(const std::string& id) {
+        memcpy_s(&address, sizeof(address), id.c_str(), sizeof(SNetAddr));
     };
 
-    BYTE address[16];
-
-    int compare(SNETADDR other) {
-        return strncmp((const char*)address, (const char*)other.address, 16);
+    int compare(const SNetAddr& other) {
+        return memcmp(&address, &other.address, sizeof(SNetAddr));
     }
 
     std::string b64() const volatile {
-        return base64::to_base64(std::string((char*)address, sizeof(SNETADDR)));
+        return base64::to_base64(std::string((char*)address, sizeof(SNetAddr)));
     }
 };
 
+struct GamePacket {
+    SNetAddr sender{};
+    u32 size = 0;
+    u32 timestamp = 0;
+    char data[512]{};
 
-struct GamePacket
-{
     GamePacket() = default;
-    GamePacket(SNETADDR& sender_ID, const char* recv_data, const size_t size) {
-        sender = SNETADDR(sender_ID);
-        timeStamp = GetTickCount();
-        packetSize = size;
-        memcpy(data, recv_data, size);
+    GamePacket(const SNetAddr& sender_id, const char* recv_data, const size_t size)
+        : sender{sender_id}, timestamp{GetTickCount()}, size{size} {
+        memcpy_s(data, sizeof(data), recv_data, size);
     };
-    SNETADDR sender;
-    int packetSize;
-    DWORD timeStamp;
-    char data[512];
 };
 

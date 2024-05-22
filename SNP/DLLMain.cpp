@@ -26,10 +26,10 @@ BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD *dwNetworkCode, char **ppszNetworkName
     //  *ppCaps                 = &DRIP::networkInfo.caps;
     //  return TRUE;
     case CLNK_ID:
-      *dwNetworkCode          =  CLNK::g_network_info.dwIdentifier;
-      *ppszNetworkName        =  CLNK::g_network_info.pszName;
-      *ppszNetworkDescription =  CLNK::g_network_info.pszDescription;
-      *ppCaps                 = &CLNK::g_network_info.caps;
+      *dwNetworkCode          =  clnk::g_network_info.dwIdentifier;
+      *ppszNetworkName        =  clnk::g_network_info.pszName;
+      *ppszNetworkDescription =  clnk::g_network_info.pszDescription;
+      *ppCaps                 = &clnk::g_network_info.caps;
       return TRUE;
     default:
       return FALSE;
@@ -38,7 +38,7 @@ BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD *dwNetworkCode, char **ppszNetworkName
   return FALSE;
 }
 
-BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
+BOOL WINAPI SnpBind(DWORD dwIndex, snp::NetFunctions **ppFxns)
 {
   if ( ppFxns )
   {
@@ -49,8 +49,8 @@ BOOL WINAPI SnpBind(DWORD dwIndex, SNP::NetFunctions **ppFxns)
     //  SNP::pluggedNetwork = (SNP::Network<SNP::SNETADDR>*)(new DRIP::DirectIP());
     //  return TRUE;
     case CLNK_ID:
-      *ppFxns = &SNP::spiFunctions;
-      SNP::pluggedNetwork = (SNP::Network<SNETADDR>*)(new CLNK::JuiceP2P());
+      *ppFxns = &snp::spiFunctions;
+      snp::g_plugged_network = (snp::Network<SNetAddr>*)(new clnk::JuiceP2P());
       return TRUE;
     default:
       return FALSE;
