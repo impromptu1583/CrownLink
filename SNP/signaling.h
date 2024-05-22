@@ -1,90 +1,111 @@
 #pragma once
-struct Signal_packet;
-class SignalingSocket;
-
 #include "common.h"
+#include "JuiceManager.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include "Util/Exceptions.h"
-#include <vector>
-#include <iostream>
-#include <format>
-#include "json.hpp"
-#include "base64.hpp"
-#include "SNPNetwork.h"
+#define EnumStringCase(X) case X: return #X
 
-using json = nlohmann::json;
+enum class SignalMessageType {
+	StartAdvertising = 1,
+	StopAdvertising,
+	RequestAdvertisers,
+	SolicitAds,
+	GameAd,
 
-enum Signal_message_type {
-	SIGNAL_START_ADVERTISING = 1,
-	SIGNAL_STOP_ADVERTISING,
-	SIGNAL_REQUEST_ADVERTISERS,
-	SIGNAL_SOLICIT_ADS,
-	SIGNAL_GAME_AD,
-	SIGNAL_JUICE_LOCAL_DESCRIPTION = 101,
-	SIGNAL_JUICE_CANDIDATE,
-	SIGNAL_JUICE_DONE,
+	JuiceLocalDescription = 101,
+	JuciceCandidate,
+	JuiceDone,
 
 	// debug
-	SERVER_SET_ID = 254,
-	SERVER_ECHO = 255
+	ServerSetID = 254,
+	ServerEcho = 255,
 };
 
-struct Signal_packet {
-	Signal_packet() = default;
-	Signal_packet(SNETADDR ID, Signal_message_type type, std::string d)
-		:peer_ID(ID), message_type(type), data(d)
-	{};
-	Signal_packet(std::string& packet_string)
-	{
-		memcpy((void*)&(peer_ID.address), packet_string.c_str(), sizeof(SNETADDR));
-		message_type = Signal_message_type((int)packet_string.at(16) - 48);
+inline std::string to_string(SignalMessageType signal_message_type) {
+	switch (signal_message_type) {
+		EnumStringCase(SignalMessageType::StartAdvertising);
+		EnumStringCase(SignalMessageType::StopAdvertising);
+		EnumStringCase(SignalMessageType::RequestAdvertisers);
+		EnumStringCase(SignalMessageType::SolicitAds);
+		EnumStringCase(SignalMessageType::GameAd);
+
+		EnumStringCase(SignalMessageType::JuiceLocalDescription);
+		EnumStringCase(SignalMessageType::JuciceCandidate);
+		EnumStringCase(SignalMessageType::JuiceDone);
+
+		EnumStringCase(SignalMessageType::ServerSetID);
+		EnumStringCase(SignalMessageType::ServerEcho);
+	}
+	return std::to_string((s32)signal_message_type);
+}
+
+enum class SocketState {
+	Uninitialized,
+	Initialized,
+	Connecting,
+	Ready
+};
+
+inline std::string to_string(SocketState socket_state) {
+	switch (socket_state) {
+		EnumStringCase(SocketState::Uninitialized);
+		EnumStringCase(SocketState::Initialized);
+		EnumStringCase(SocketState::Connecting);
+		EnumStringCase(SocketState::Ready);
+	}
+	return std::to_string((s32)socket_state);
+}
+
+struct SignalPacket {
+	SNETADDR peer_id;
+	SignalMessageType message_type;
+	std::string data;
+
+	SignalPacket() = default;
+
+	SignalPacket(SNETADDR ID, SignalMessageType type, std::string d)
+		: peer_id{ID}, message_type{type}, data{d} {}
+	
+	SignalPacket(std::string& packet_string) {
+		memcpy_s((void*)&peer_id.address, sizeof(peer_id.address), packet_string.c_str(), sizeof(SNETADDR));
+		message_type = SignalMessageType((int)packet_string.at(16) - 48);
 		std::cout << (int)message_type << "msg type\n";
 		data = packet_string.substr(sizeof(SNETADDR) + 1);
-	};
-	SNETADDR peer_ID;
-	Signal_message_type message_type;
-	std::string data;
+	}
 };
 
-enum Socket_state {
-	SOCKET_STATE_UNINITIALIZED,
-	SOCKET_STATE_INITIALIZED,
-	SOCKET_STATE_CONNECTING,
-	SOCKET_STATE_READY
-};
-
-class SignalingSocket
-{
-
+class SignalingSocket {
 public:
-	SignalingSocket();
-	~SignalingSocket();
-	//void release() noexcept;
+	SignalingSocket() = default;
+	SignalingSocket(SignalingSocket&) = delete;
+	SignalingSocket& operator=(SignalingSocket&) = delete;
+
+	~SignalingSocket() {
+		deinitialize();
+	}
+
 	bool initialize();
-	void de_initialize();
-	void send_packet(const SNETADDR dest, const Signal_message_type msg_type, const std::string msg = "");
-	void send_packet(const Signal_packet&);
-	void receive_packets(std::vector<Signal_packet>& incoming_packets);
+	void deinitialize();
+	void send_packet(SNETADDR dest, SignalMessageType msg_type, const std::string& msg = "");
+	void send_packet(const SignalPacket& packet);
+	void receive_packets(std::vector<SignalPacket>& incoming_packets);
 	void set_blocking_mode(bool block);
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();
-	SNETADDR server;
-	Socket_state current_state;
+	
+private:
+	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);
 
 private:
-	void split_into_packets(const std::string& s, std::vector<Signal_packet>& incoming_packets);
-	SOCKET m_sockfd;
+	SNETADDR m_server{};
+	SocketState m_current_state = SocketState::Uninitialized;
+	SOCKET m_sockfd = NULL;
 	int m_last_error;
-	const std::string m_delimiter;
+	int m_state = 0;
+	const std::string m_delimiter = "-+";
 	std::string m_host;
 	std::string m_port;
-	bool m_initialized;
+	bool m_initialized = false;
 };
 
-
-inline SignalingSocket signaling_socket;
+inline SignalingSocket g_signaling_socket;

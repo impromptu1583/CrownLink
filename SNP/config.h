@@ -1,10 +1,5 @@
 #pragma once
 #include "common.h"
-#include "json.hpp"
-#include <initializer_list>
-#include <fstream>
-
-using json = nlohmann::json;
 
 class SNPConfig {
 public:
@@ -14,23 +9,21 @@ public:
 		for (const auto& file_name : config_file_locations) {
 			std::ifstream f(file_name);
 			if (f.good() && !m_config_found) {
-				try{
+				try {
 					std::ifstream f(file_name);
 					m_json = json::parse(f);
 					m_config_found = true;
-				}
-				catch (const json::parse_error& e){
-					g_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
+				} catch (const json::parse_error& e){
+					g_root_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 				}
 			}
 		}
 		if (m_config_found) {
-			g_logger.info("logfile loaded, contents: {}", m_json.dump());
+			g_root_logger.info("logfile loaded, contents: {}", m_json.dump());
+		} else {
+			g_root_logger.warn("config file not found, defaults will be used");
 		}
-		else {
-			g_logger.warn("config file not found, defaults will be used");
-		}
-		g_logger.set_log_level(Log_Level(load_or_default<int>("log level", log_level_info)));
+		g_root_logger.set_log_level(load_or_default<LogLevel>("log level", LogLevel::Info));
 	}
 
 	// example: server_address = snp_config.config_or_default("server","127.0.0.1")
@@ -42,9 +35,8 @@ public:
 				return to_string(m_json[key]);
 			}
 			return iter->get<std::string>();
-		}
-		else {
-			g_logger.warn("config value for {} not found, using default {}",key,default_value);
+		} else {
+			g_root_logger.warn("config value for {} not found, using default {}",key,default_value);
 			return default_value;
 		}
 	}
@@ -55,9 +47,8 @@ public:
 		const auto iter = m_json.find(key);
 		if (iter != m_json.end()) {
 			return iter->get<T>();
-		}
-		else {
-			g_logger.warn("config value for {} not found, using default {}", key, default_value);
+		} else {
+			g_root_logger.warn("config value for {} not found, using default {}", key, as_string(default_value));
 			return default_value;
 		}
 	}
@@ -67,4 +58,4 @@ private:
 	bool m_config_found = false;
 };
 
-inline auto snpconfig = SNPConfig{ "CrownLink_config.json","..\\Starcraft\\CrownLink_config.json","C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json" };
+inline auto g_snp_config = SNPConfig{"CrownLink_config.json", "..\\Starcraft\\CrownLink_config.json", "C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json"};

@@ -4,169 +4,132 @@
 #define BUFFER_SIZE 4096
 constexpr auto ADDRESS_SIZE = 16;
 
-namespace CLNK
-{
-    
-    char nName[] = "CrownLink";
-    char nDesc[] = "";
-    
-    struct AdFile
-    {
-        game gameInfo;
-        char extraBytes[32] = "";
-    };
+namespace CLNK {
 
-    SNP::NetworkInfo networkInfo = { nName, 'CLNK', nDesc,
-    // CAPS:
-    {sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}};
+void JuiceP2P::initialize() {
+	g_root_logger.info("Initializing, version {}", CL_VERSION);
+	g_signaling_socket.initialize();
+	m_signaling_thread = std::jthread{&JuiceP2P::receive_signaling, this};
+}
 
-   
-    // signaling server provides list of known advertisers
-    std::vector<SNETADDR> m_known_advertisers;
-    auto adData = Util::MemoryFrame();
-    auto isAdvertising = false;
-    std::stop_source stop_source;
+void JuiceP2P::destroy() {   
+	g_root_logger.info("Shutting down");
+	m_is_running = false;
+	// TODO: cleanup properly so we don't get an error on close
+}
 
-    void JuiceP2P::initialize()
-    {
-        g_logger.info("Initializing, version {}", CL_VERSION);
-        signaling_socket.initialize();
-        std::jthread signal_thread(receive_signaling);
-        signal_thread.detach();
-    }
-    void JuiceP2P::destroy()
-    {   
-        g_logger.info("Shutting down");
-        //TODO cleanup properly so we don't get an error on close
-    }
-    void JuiceP2P::requestAds()
-    {
-        g_logger.debug("Requesting lobbies");
-        signaling_socket.request_advertisers();
-        for ( auto& advertiser : m_known_advertisers) {
-            if (juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED
-                || juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED)
-            {
-                g_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address,sizeof(SNETADDR))));
-                signaling_socket.send_packet(advertiser, SIGNAL_SOLICIT_ADS);
-            }
-        }
-    }
-    void JuiceP2P::receive() {};//unused in this connection type
-    void JuiceP2P::sendAsyn(const SNETADDR& peer_ID, Util::MemoryFrame packet){
-        juice_manager.send_p2p(
-            std::string((char*)peer_ID.address,sizeof(SNETADDR)), packet);
-    }
+void JuiceP2P::requestAds() {
+	g_root_logger.debug("Requesting lobbies");
+	g_signaling_socket.request_advertisers();
+	for (const auto& advertiser : m_known_advertisers) {
+		if (g_juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED || g_juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED) {
+			g_root_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(SNETADDR))));
+			g_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
+		}
+	}
+}
 
-    void JuiceP2P::receive_signaling(){
-        std::vector<Signal_packet> incoming_packets;
+void JuiceP2P::sendAsyn(const SNETADDR& peer_ID, Util::MemoryFrame packet){
+	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNETADDR)), packet);
+}
 
-        AdFile ad;
-        std::string decoded_data;
-        auto teststr = std::string("test change game name");
+void JuiceP2P::receive_signaling(){
+	std::vector<SignalPacket> incoming_packets;
+	while (m_is_running) {
+		g_signaling_socket.receive_packets(incoming_packets);
+		// g_logger.trace("received incoming signaling");
+		for (const auto& packet : incoming_packets) {
+			switch (packet.message_type) {
+				case SignalMessageType::StartAdvertising: {
+					g_root_logger.debug("server confirmed lobby open");
+				} break;
+				case SignalMessageType::StopAdvertising: {
+					g_root_logger.debug("server confirmed lobby closed");
+				} break;
+				case SignalMessageType::RequestAdvertisers: {
+					// list of advertisers returned
+					// split into individual addresses & create juice peers
+					update_known_advertisers(packet.data);
+				} break;
+				case SignalMessageType::SolicitAds: {
+					if (m_is_advertising) {
+						g_root_logger.debug("received solicitation from {}, replying with our lobby info", packet.peer_id.b64());
+						std::string send_buffer;
+						send_buffer.append((char*)m_ad_data.begin(), m_ad_data.size());
+						g_signaling_socket.send_packet(packet.peer_id, SignalMessageType::GameAd,
+							base64::to_base64(send_buffer));
+					}
+				} break;
+				case SignalMessageType::GameAd: {
+					// -------------- PACKET: GAME STATS -------------------------------
+					// Give the ad to storm
+					g_root_logger.debug("received lobby info from {}", packet.peer_id.b64());
+					auto decoded_data = base64::from_base64(packet.data);
+					AdFile ad{};
+					memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
+					SNP::passAdvertisement(packet.peer_id, Util::MemoryFrame::from(ad));
 
-        while (true) {
-            signaling_socket.receive_packets(incoming_packets);
-            for (auto packet : incoming_packets)
-            {
-                switch (packet.message_type)
-                {
-                case SIGNAL_START_ADVERTISING:
-                    g_logger.debug("server confirmed lobby open");
-                    break;
-                case SIGNAL_STOP_ADVERTISING:
-                    g_logger.debug("server confirmed lobby closed");
-                    break;
-                case SIGNAL_REQUEST_ADVERTISERS:
-                    // list of advertisers returned
-                    // split into individual addresses & create juice peers
-                    update_known_advertisers(packet.data);
-                    break;
-                case SIGNAL_SOLICIT_ADS:
-                    if (isAdvertising)
-                    {
-                        g_logger.debug("received solicitation from {}, replying with our lobby info",packet.peer_ID.b64());
-                        std::string send_buffer;
-                        send_buffer.append((char*)adData.begin(), adData.size());
-                        signaling_socket.send_packet(packet.peer_ID, SIGNAL_GAME_AD,
-                            base64::to_base64(send_buffer));
-                    }
-                    break;
-                case SIGNAL_GAME_AD:
-                    // -------------- PACKET: GAME STATS -------------------------------
-                    // give the ad to storm
-                    g_logger.debug("received lobby info from {}", packet.peer_ID.b64());
-                    decoded_data = base64::from_base64(packet.data);
-                    memcpy(&ad, decoded_data.c_str(), decoded_data.size());
-                    //auto teststr = std::string("test change game name");
-                    //memcpy(ad.gameInfo.szGameName, teststr.c_str(), teststr.size());
-                    SNP::passAdvertisement(packet.peer_ID, Util::MemoryFrame::from(ad));
+					g_root_logger.debug("Game Info Received:\n"
+						"  dwIndex: {}\n"
+						"  dwGameState: {}\n"
+						"  saHost: {}\n"
+						"  dwTimer: {}\n"
+						"  szGameName[128]: {}\n"
+						"  szGameStatString[128]: {}\n"
+						"  dwExtraBytes: {}\n"
+						"  dwProduct: {}\n"
+						"  dwVersion: {}\n",
+						ad.game_info.dwIndex,
+						ad.game_info.dwGameState,
+						ad.game_info.saHost.b64(),
+						ad.game_info.dwTimer,
+						ad.game_info.szGameName,
+						ad.game_info.szGameStatString,
+						ad.game_info.dwExtraBytes,
+						ad.game_info.dwProduct,
+						ad.game_info.dwVersion
+					);
+				} break;
+				case SignalMessageType::JuiceLocalDescription:
+				case SignalMessageType::JuciceCandidate:
+				case SignalMessageType::JuiceDone: {
+					g_juice_manager.signal_handler(packet);
+				} break;
+			}
+		}
+	}
+}
 
-                    g_logger.debug("Game Info Received:\n"
-                        "  dwIndex: {}\n"
-                        "  dwGameState: {}\n"
-                        "  saHost: {}\n"
-                        "  dwTimer: {}\n"
-                        "  szGameName[128]: {}\n"
-                        "  szGameStatString[128]: {}\n"
-                        "  dwExtraBytes: {}\n"
-                        "  dwProduct: {}\n"
-                        "  dwVersion: {}\n",
-                        ad.gameInfo.dwIndex,
-                        ad.gameInfo.dwGameState,
-                        ad.gameInfo.saHost.b64(),
-                        ad.gameInfo.dwTimer,
-                        ad.gameInfo.szGameName,
-                        ad.gameInfo.szGameStatString,
-                        ad.gameInfo.dwExtraBytes,
-                        ad.gameInfo.dwProduct,
-                        ad.gameInfo.dwVersion
-                    );
-                    
+void JuiceP2P::update_known_advertisers(const std::string& data) {
+	m_known_advertisers.clear();
+	// SNETADDR in base64 encoding is always 24 characters
+	g_root_logger.trace("[update_known_advertisers] data received: {}", data);
+	for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
+		try {
+			auto peer_str = base64::from_base64(data.substr(i*24, 24));
+			g_root_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
+			m_known_advertisers.push_back(SNETADDR(peer_str));
+			g_juice_manager.create_if_not_exist(peer_str);
+		}
+		catch (const std::exception &exc) {
+			g_root_logger.error("[update_known_advertisers] processing: {} error: {}",data.substr(i,24), exc.what());
 
+		}
+	}
+}
 
-                    break;
-                case SIGNAL_JUICE_LOCAL_DESCRIPTION:
-                case SIGNAL_JUICE_CANDIDATE:
-                case SIGNAL_JUICE_DONE:
-                    juice_manager.signal_handler(packet);
-                    break;
-                }
-            }
-        }
-    }
-    void JuiceP2P::update_known_advertisers(const std::string& data)
-    {
-        m_known_advertisers.clear();
-        // SNETADDR in base64 encoding is always 24 characters
-        g_logger.trace("[update_known_advertisers] data received: {}", data);
-        for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
-            try {
-                auto peer_str = base64::from_base64(data.substr(i*24, 24));
-                g_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
-                m_known_advertisers.push_back(SNETADDR(peer_str));
-                juice_manager.create_if_not_exist(peer_str);
-            }
-            catch (const std::exception &exc) {
-                g_logger.error("[update_known_advertisers] processing: {} error: {}",data.substr(i,24), exc.what());
+void JuiceP2P::startAdvertising(Util::MemoryFrame ad) {
+	m_ad_data = ad;
+	m_is_advertising = true;
+	g_signaling_socket.start_advertising();
+	g_root_logger.info("started advertising lobby");
+}
 
-            }
-        }
-
-    }
-    void JuiceP2P::startAdvertising(Util::MemoryFrame ad)
-    {
-        adData = ad;
-        isAdvertising = true;
-        signaling_socket.start_advertising();
-        g_logger.info("started advertising lobby");
-    }
-    void JuiceP2P::stopAdvertising()
-    {
-        isAdvertising = false;
-        signaling_socket.stop_advertising();
-        g_logger.info("stopped advertising lobby");
-    }
-    //------------------------------------------------------------------------------------------------
+void JuiceP2P::stopAdvertising() {
+	m_is_advertising = false;
+	g_signaling_socket.stop_advertising();
+	g_root_logger.info("stopped advertising lobby");
+}
+//------------------------------------------------------------------------------------------------
 
 };
