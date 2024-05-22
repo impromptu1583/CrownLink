@@ -30,8 +30,8 @@ using nlohmann::json;
 #include "SNPNetwork.h"
 #include "Types.h"
 
-#include "ThQueue/Logger.h"
-#include "ThQueue/ThQueue.h"
+#include "ThQueue.h"
+#include "Logger.h"
 
 #define EnumStringCase(X) case X: return #X
 

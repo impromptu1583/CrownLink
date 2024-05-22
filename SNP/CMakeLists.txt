@@ -16,24 +16,24 @@ set(MODULE_FILES
 	CriticalSection.h
 	CriticalSection.cpp
 	caps.mpq
-	resource.h
 	SNPModule.def
 	CrownLink.cpp
 	CrownLink.h
 	DLLMain.cpp
-	signaling.h
+	Signaling.h
 	Signaling.cpp
 	JuiceManager.h
 	JuiceManager.cpp
-	json.hpp
 	"include/base64.hpp"
 	"include/json.hpp"
     SNETADDR.h
-	config.h
-	common.h
+	"Config.h"
+	"Common.h"
+	ThQueue.h
+	Logger.h
 )
 
-add_library(SNP SHARED ${MODULE_FILES} "common.h")
+add_library(SNP SHARED ${MODULE_FILES})
 
 set(TEST_FILES
 	Util/MemoryFrame.cpp
@@ -68,7 +68,7 @@ endif()
 
 set(outname "CrownLink")
 
-set_target_properties (SNP
+set_target_properties(SNP
 	PROPERTIES
 		OUTPUT_NAME ${outname}
 		SUFFIX ".snp"
