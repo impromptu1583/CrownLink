@@ -27,11 +27,11 @@ set(MODULE_FILES
 	"JuiceManager.cpp"
     "SNetAddr.h"
 	"Config.h"
+	
 	"Common.h"
 	"ThQueue.h"
 	"Logger.h"
-	"caps.mpq"
-)
+	"caps.mpq")
 
 add_library(SNP SHARED ${MODULE_FILES})
 

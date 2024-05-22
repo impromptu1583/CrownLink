@@ -79,7 +79,10 @@ public:
 	SignalingSocket& operator=(SignalingSocket&) = delete;
 
 	~SignalingSocket() {
-		deinitialize();
+		if (m_socket) {
+			deinitialize();
+			m_socket = 0;
+		}
 	}
 
 	bool initialize();
@@ -98,14 +101,13 @@ private:
 private:
 	SNetAddr m_server{};
 	SocketState m_current_state = SocketState::Uninitialized;
-	SOCKET m_sockfd = NULL;
+	SOCKET m_socket = 0;
 	int m_last_error;
 	int m_state = 0;
 	const std::string m_delimiter = "-+";
 	std::string m_host;
 	std::string m_port;
-	bool m_initialized = false;
-	Logger m_logger{g_root_logger["SignalingSocket"]};
+	Logger m_logger{g_root_logger, "SignalingSocket"};
 };
 
 inline SignalingSocket g_signaling_socket;

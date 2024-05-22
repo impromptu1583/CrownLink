@@ -1,64 +1,85 @@
 #pragma once
 #include "common.h"
 
-class SNPConfig {
+struct SnpConfig {
+	std::string server = "crownlink.platypus.coffee";
+	u32 port = 9988;
+	LogLevel log_level = LogLevel::Debug;
+};
+
+class SnpConfigLoader {
 public:
-	// can specify multiple potential config file locations in constructor
-	// example: auto snpconfig = SNPConfig{ "snp_config.json" , "../starcraft/snp_config.json" };
-	SNPConfig(std::initializer_list<std::string> config_file_locations) {
-		for (const auto& file_name : config_file_locations) {
-			std::ifstream f(file_name);
-			if (f.good() && !m_config_found) {
-				try {
-					std::ifstream f(file_name);
-					m_json = json::parse(f);
-					m_config_found = true;
-				} catch (const json::parse_error& e){
-					m_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
-				}
+	SnpConfigLoader(std::initializer_list<fs::path> paths) {
+		bool config_found = false;
+		for (const auto& path : paths) {
+			if (m_save_path.empty()) {
+				m_save_path = path;
+			}
+
+			std::ifstream file{path};
+			if (!file.good()) {
+				continue;
+			}
+
+			try {
+				m_json = json::parse(file);
+				m_save_path = path;
+				config_found = true;
+				break;
+			} catch (const json::parse_error& e){
+				m_logger.error("config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 			}
 		}
-		if (m_config_found) {
+		if (!config_found) {
 			m_logger.info("logfile loaded, contents: {}", m_json.dump());
 		} else {
 			m_logger.warn("config file not found, defaults will be used");
 		}
-		m_logger.set_log_level(load_or_default<LogLevel>("log level", LogLevel::Info));
 	}
 
-	// example: server_address = snp_config.config_or_default("server", "127.0.0.1")
-	std::string load_or_default(std::string key, std::string default_value) {
-		if (!m_config_found) return default_value;
+	SnpConfig load() {
+		SnpConfig config;
+		load_field("server", config.server);
+		load_field("port", config.port);
+		load_field("log-level", config.log_level);
 
-		const auto iter = m_json.find(key);
-		if (iter != m_json.end()) {
-			if (iter.value().is_number()) {
-				return to_string(m_json[key]);
-			}
-			return iter->get<std::string>();
-		} else {
-			m_logger.warn("config value for {} not found, using default {}", key, default_value);
-			return default_value;
+		Logger::set_log_level(config.log_level);
+
+		save(config);
+		return config;
+	}
+
+	void save(const SnpConfig& config) {
+		if (m_save_path.empty()) {
+			return;
 		}
+
+		json json_{
+			{"server", config.server},
+			{"port", config.port},
+			{"log-level", config.log_level},
+		};
+
+		std::ofstream file{m_save_path};
+		file << std::setw(4) << json_;
 	}
 
+private:
 	template <typename T>
-	T load_or_default(const std::string& key, const T& default_value) {
-		if (!m_config_found) return default_value;
-
-		const auto iter = m_json.find(key);
-		if (iter != m_json.end()) {
-			return iter->get<T>();
-		} else {
-			m_logger.warn("config value for {} not found, using default {}", key, as_string(default_value));
-			return default_value;
+	void load_field(const std::string& key, T& out_value) {
+		try {
+			m_json.at(key).get_to(out_value);
+		} catch (json::out_of_range& ex) {
+			m_logger.warn("config value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+		} catch (json::type_error& ex) {
+			m_logger.warn("config value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		}
 	}
 
 private:
+	fs::path m_save_path;
 	json m_json;
-	bool m_config_found = false;
-	Logger m_logger{g_root_logger["Config"]};
+	Logger m_logger{g_root_logger, "Config"};
 };
 
-inline auto g_snp_config = SNPConfig{"CrownLink_config.json", "..\\Starcraft\\CrownLink_config.json", "C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json"};
+inline SnpConfig g_snp_config = SnpConfigLoader{"CrownLink_config.json", "..\\Starcraft\\CrownLink_config.json", "C:\\Cosmonarchy\\Starcraft\\CrownLink_config.json"}.load();

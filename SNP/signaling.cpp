@@ -26,33 +26,29 @@ void from_json(const json& json_, SignalPacket& out_packet) {
 bool SignalingSocket::initialize() {
 	m_logger.info("connecting to matchmaking server");
 	m_current_state = SocketState::Connecting;
-	struct addrinfo hints, * res, * p;
-	int rv;
-	memset(&hints, 0, sizeof hints);
+
+	addrinfo hints = {}; 
+	addrinfo* result = nullptr;
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if ((rv = getaddrinfo(
-		g_snp_config.load_or_default("server", "159.223.202.177").c_str(),
-		g_snp_config.load_or_default("port", "9988").c_str(),
-		&hints, &res)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-		m_logger.error("getaddrinfo failed with error: ", rv);
+	if (const auto error = getaddrinfo(g_snp_config.server.c_str(), std::to_string(g_snp_config.port).c_str(), &hints, &result)) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
+		m_logger.error("getaddrinfo failed with error: {}", error);
 		WSACleanup();
 		return false;
 	}
 
-	for (p = res; p != NULL; p = p->ai_next) {
-		if ((m_sockfd = socket(p->ai_family, p->ai_socktype,
-			p->ai_protocol)) == -1) {
+	for (auto info = result; info; info = info->ai_next) {
+		if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
 			m_logger.debug("client: socket failed with error: {}", std::strerror(errno));
 			throw GeneralException("socket failed");
 			continue;
 		}
 
-		if (connect(m_sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-			closesocket(m_sockfd);
+		if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
+			closesocket(m_socket);
 			m_logger.error("client: couldn't connect to server: {}", std::strerror(errno));
 			throw GeneralException("server connection failed");
 			continue;
@@ -60,18 +56,17 @@ bool SignalingSocket::initialize() {
 
 		break;
 	}
-	if (p == NULL) {
+	if (result == NULL) {
 		m_logger.error("signaling client failed to connect");
 		throw GeneralException("server connection failed");
 		return false;
 	}
 
-	freeaddrinfo(res);
+	freeaddrinfo(result);
 
 	// server address: each byte is 11111111
 	memset(&m_server, 255, sizeof(SNetAddr));
 
-	m_initialized = true;
 	set_blocking_mode(true);
 	m_logger.info("successfully connected to matchmaking server");
 	m_current_state = SocketState::Ready;
@@ -79,7 +74,7 @@ bool SignalingSocket::initialize() {
 }
 
 void SignalingSocket::deinitialize() {
-	closesocket(m_sockfd);
+	closesocket(m_socket);
 }
 
 void SignalingSocket::send_packet(SNetAddr dest, SignalMessageType msg_type, const std::string& msg) {
@@ -97,7 +92,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 	send_buffer += m_delimiter;
 	m_logger.debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
-	int bytes = send(m_sockfd, send_buffer.c_str(), send_buffer.size(), 0);
+	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
 	if (bytes == -1) {
 		m_logger.error("signaling send packet error: {}", std::strerror(errno));
 	}
@@ -127,7 +122,7 @@ void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packet
 	std::string receive_buffer;
 	m_logger.trace("receive_packets");
 	// try to receive
-	auto n_bytes = recv(m_sockfd, &buffer[0], buffer.size(), 0);
+	auto n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
 	if (n_bytes == SOCKET_ERROR) {
 		m_last_error = WSAGetLastError();
 		m_logger.debug("receive error: {}", m_last_error);
@@ -167,7 +162,7 @@ void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packet
 
 void SignalingSocket::set_blocking_mode(bool block) {
 	u_long nonblock = !block;
-	if (::ioctlsocket(m_sockfd, FIONBIO, &nonblock) == SOCKET_ERROR) {
+	if (::ioctlsocket(m_socket, FIONBIO, &nonblock) == SOCKET_ERROR) {
 		throw GeneralException("::ioctlsocket failed");
 	}
 }

@@ -60,7 +60,7 @@ public:
 
 private:
 	std::map<std::string, JuiceWrapper> m_agents;
-	Logger m_logger{g_root_logger["P2P Manager"]};
+	Logger m_logger{g_root_logger, "P2P Manager"};
 };
 
 inline HANDLE g_receive_event;

@@ -11,14 +11,14 @@ JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
 	.cb_gathering_done = on_gathering_done,
 	.cb_recv = on_recv,
 	.user_ptr = this,
-}, m_agent{juice_create(&m_config)}, m_logger{g_root_logger["P2P Agent"][id.b64()]} {
+}, m_agent{juice_create(&m_config)}, m_logger{g_root_logger, "P2P Agent", id.b64()} {
 	if (!init_message.empty()) {
 		signal_handler(init_message);
 	}
 	juice_get_local_description(m_agent, m_sdp, sizeof(m_sdp));
 
 	g_signaling_socket.send_packet(m_id, SignalMessageType::JuiceLocalDescription, m_sdp);
-	m_logger.trace("Init - local SDP {}", id.b64(), m_sdp);
+	m_logger.trace("Init - local SDP {}", m_sdp);
 	juice_gather_candidates(m_agent);
 }
 
