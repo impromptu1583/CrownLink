@@ -1,4 +1,5 @@
 #include "JuiceManager.h"
+#include "signaling.h"
 
 //----------------------------JuiceWrapper----------------------------//
 // Used for individual P2P connections                                //

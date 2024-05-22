@@ -12,7 +12,7 @@ constexpr auto MAX_PACKET_SIZE = 500;
 // The Network interface separates the Storm stuff from pure networking
 //
 
-namespace SNP
+namespace snp
 {
   const int PACKET_SIZE = MAX_PACKET_SIZE;
   
@@ -53,15 +53,15 @@ namespace SNP
     // callback functions that take network specific arguments and cast them away
     void passAdvertisement(const PEERID& host, Util::MemoryFrame ad)
     {
-      SNP::passAdvertisement(host, ad);
+      snp::passAdvertisement(host, ad);
     }
     void removeAdvertisement(const PEERID& host)
     {
-      SNP::removeAdvertisement(host);
+      snp::removeAdvertisement(host);
     }
     void passPacket(const PEERID& host, Util::MemoryFrame packet)
     {
-        SNP::passPacket(host, packet);
+        snp::passPacket(host, packet);
       //SNP::passPacket(makeBin(host), packet);
     }
 

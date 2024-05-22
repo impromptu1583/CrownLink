@@ -7,6 +7,15 @@ enum class JuiceSignal {
 	GatheringDone,
 };
 
+inline std::string to_string(JuiceSignal value) {
+	switch (value) {
+		EnumStringCase(JuiceSignal::LocalDescription);
+		EnumStringCase(JuiceSignal::Candidate);
+		EnumStringCase(JuiceSignal::GatheringDone);
+	}
+	return std::to_string((s32)value);
+}
+
 struct SignalPacket;
 
 class JuiceWrapper {
@@ -30,12 +39,12 @@ private:
 
 	friend class JuiceMAN;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
-	SNETADDR m_ID;
+	SNETADDR m_ID{};
 	std::string m_ID_b64;
 
-	juice_config_t m_config;
-	juice_agent_t* m_agent; // NOTE: agent must be after config for construction order
-	char m_sdp[JUICE_MAX_SDP_STRING_LEN];
+	juice_config_t m_config{};
+	juice_agent_t* m_agent = nullptr; // NOTE: agent must be after config for construction order
+	char m_sdp[JUICE_MAX_SDP_STRING_LEN]{};
 };
 
 class JuiceMAN {

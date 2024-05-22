@@ -8,7 +8,7 @@
 #include <queue>
 #include <list>
 
-namespace SNP
+namespace snp
 {
   //------------------------------------------------------------------------------------------------------------------------------------
   Network<SNETADDR> *pluggedNetwork = NULL;
@@ -673,27 +673,27 @@ each second
     return TRUE;
   }
   //------------------------------------------------------------------------------------------------------------------------------------
-  SNP::NetFunctions spiFunctions = {
-        sizeof(SNP::NetFunctions),
-  /*n*/ &SNP::spiCompareNetAddresses,
-        &SNP::spiDestroy,
-        &SNP::spiFree,
-  /*e*/ &SNP::spiFreeExternalMessage,
-        &SNP::spiGetGameInfo,
-  /*n*/ &SNP::spiGetPerformanceData,
-        &SNP::spiInitialize,
-  /*e*/ &SNP::spiInitializeDevice,
-  /*e*/ &SNP::spiLockDeviceList,
-        &SNP::spiLockGameList,
-        &SNP::spiReceive,
-  /*n*/ &SNP::spiReceiveExternalMessage,
-  /*e*/ &SNP::spiSelectGame,
-        &SNP::spiSend,
-  /*e*/ &SNP::spiSendExternalMessage,
-  /*n*/ &SNP::spiStartAdvertisingLadderGame,
-  /*n*/ &SNP::spiStopAdvertisingGame,
-  /*e*/ &SNP::spiUnlockDeviceList,
-        &SNP::spiUnlockGameList,
+  snp::NetFunctions spiFunctions = {
+        sizeof(snp::NetFunctions),
+  /*n*/ &snp::spiCompareNetAddresses,
+        &snp::spiDestroy,
+        &snp::spiFree,
+  /*e*/ &snp::spiFreeExternalMessage,
+        &snp::spiGetGameInfo,
+  /*n*/ &snp::spiGetPerformanceData,
+        &snp::spiInitialize,
+  /*e*/ &snp::spiInitializeDevice,
+  /*e*/ &snp::spiLockDeviceList,
+        &snp::spiLockGameList,
+        &snp::spiReceive,
+  /*n*/ &snp::spiReceiveExternalMessage,
+  /*e*/ &snp::spiSelectGame,
+        &snp::spiSend,
+  /*e*/ &snp::spiSendExternalMessage,
+  /*n*/ &snp::spiStartAdvertisingLadderGame,
+  /*n*/ &snp::spiStopAdvertisingGame,
+  /*e*/ &snp::spiUnlockDeviceList,
+        &snp::spiUnlockGameList,
         NULL,
         NULL,
         NULL,
@@ -701,6 +701,6 @@ each second
         NULL,
         NULL,
         NULL,
-  /*n*/ &SNP::spiLeagueGetName
+  /*n*/ &snp::spiLeagueGetName
   };
 }

@@ -1,8 +1,7 @@
 #pragma once
 #include "common.h"
 #include "JuiceManager.h"
-
-#define EnumStringCase(X) case X: return #X
+#include "config.h"
 
 enum class SignalMessageType {
 	StartAdvertising = 1,
@@ -20,8 +19,8 @@ enum class SignalMessageType {
 	ServerEcho = 255,
 };
 
-inline std::string to_string(SignalMessageType signal_message_type) {
-	switch (signal_message_type) {
+inline std::string to_string(SignalMessageType value) {
+	switch (value) {
 		EnumStringCase(SignalMessageType::StartAdvertising);
 		EnumStringCase(SignalMessageType::StopAdvertising);
 		EnumStringCase(SignalMessageType::RequestAdvertisers);
@@ -35,7 +34,7 @@ inline std::string to_string(SignalMessageType signal_message_type) {
 		EnumStringCase(SignalMessageType::ServerSetID);
 		EnumStringCase(SignalMessageType::ServerEcho);
 	}
-	return std::to_string((s32)signal_message_type);
+	return std::to_string((s32)value);
 }
 
 enum class SocketState {
@@ -45,14 +44,14 @@ enum class SocketState {
 	Ready
 };
 
-inline std::string to_string(SocketState socket_state) {
-	switch (socket_state) {
+inline std::string to_string(SocketState value) {
+	switch (value) {
 		EnumStringCase(SocketState::Uninitialized);
 		EnumStringCase(SocketState::Initialized);
 		EnumStringCase(SocketState::Connecting);
 		EnumStringCase(SocketState::Ready);
 	}
-	return std::to_string((s32)socket_state);
+	return std::to_string((s32)value);
 }
 
 struct SignalPacket {

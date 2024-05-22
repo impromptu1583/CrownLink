@@ -7,25 +7,26 @@
 #include <vector>
 #include <thread>
 #include <chrono>
-#include "ThQueue/ThQueue.h"
 
-namespace CLNK {
+#include "signaling.h"
+
+namespace clnk {
 
 struct AdFile {
 	game game_info;
 	char extra_bytes[32]{};
 };
 
-inline SNP::NetworkInfo g_network_info{
+inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
 	'CLNK',
 	(char*)"",
 
 	// CAPS:
-	{sizeof(CAPS), 0x20000003, SNP::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
+	{sizeof(CAPS), 0x20000003, snp::PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class JuiceP2P final : public SNP::Network<SNETADDR> {
+class JuiceP2P final : public snp::Network<SNETADDR> {
 public:
 	JuiceP2P() = default;
 	~JuiceP2P() override = default;

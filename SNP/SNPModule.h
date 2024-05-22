@@ -5,7 +5,7 @@
 #include "SNPNetwork.h"
 #include "ThQueue/ThQueue.h"
 
-namespace SNP
+namespace snp
 {
   struct NetFunctions
   {

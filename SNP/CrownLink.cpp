@@ -1,10 +1,9 @@
-
 #include "CrownLink.h"
 
 #define BUFFER_SIZE 4096
 constexpr auto ADDRESS_SIZE = 16;
 
-namespace CLNK {
+namespace clnk {
 
 void JuiceP2P::initialize() {
 	g_root_logger.info("Initializing, version {}", CL_VERSION);
@@ -67,7 +66,7 @@ void JuiceP2P::receive_signaling(){
 					auto decoded_data = base64::from_base64(packet.data);
 					AdFile ad{};
 					memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
-					SNP::passAdvertisement(packet.peer_id, Util::MemoryFrame::from(ad));
+					snp::passAdvertisement(packet.peer_id, Util::MemoryFrame::from(ad));
 
 					g_root_logger.debug("Game Info Received:\n"
 						"  dwIndex: {}\n"
