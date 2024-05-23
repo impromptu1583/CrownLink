@@ -10,8 +10,6 @@
 
 namespace snp {
 
-Network<SNetAddr>* g_plugged_network = NULL;
-
 client_info g_game_app_info;
 
 CriticalSection g_crit_sec;
@@ -91,6 +89,7 @@ BOOL __stdcall spiInitialize(client_info* gameClientInfo, user_info* userData, b
 BOOL __stdcall spiDestroy() {
 	try {
 		g_plugged_network->destroy();
+		g_plugged_network.reset();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return FALSE;
@@ -331,7 +330,7 @@ BOOL __stdcall spiLeagueGetName(char* pszDest, DWORD dwSize) {
 	return TRUE;
 }
 
-snp::NetFunctions spiFunctions = {
+snp::NetFunctions g_spi_functions = {
 	  sizeof(snp::NetFunctions),
 	  /*n*/ &snp::spiCompareNetAddresses,
 			&snp::spiDestroy,

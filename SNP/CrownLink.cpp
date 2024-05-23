@@ -5,19 +5,19 @@ constexpr auto ADDRESS_SIZE = 16;
 
 namespace clnk {
 
-void JuiceP2P::initialize() {
+void CrownLink::initialize() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
 	g_signaling_socket.initialize();
-	m_signaling_thread = std::jthread{&JuiceP2P::receive_signaling, this};
+	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
 
-void JuiceP2P::destroy() {   
+void CrownLink::destroy() {   
 	m_logger.info("Shutting down");
 	m_is_running = false;
 	// TODO: cleanup properly so we don't get an error on close
 }
 
-void JuiceP2P::requestAds() {
+void CrownLink::requestAds() {
 	m_logger.debug("Requesting lobbies");
 	g_signaling_socket.request_advertisers();
 	for (const auto& advertiser : m_known_advertisers) {
@@ -28,11 +28,11 @@ void JuiceP2P::requestAds() {
 	}
 }
 
-void JuiceP2P::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
+void CrownLink::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
 	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNetAddr)), packet);
 }
 
-void JuiceP2P::receive_signaling(){
+void CrownLink::receive_signaling(){
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		g_signaling_socket.receive_packets(incoming_packets);
@@ -99,7 +99,7 @@ void JuiceP2P::receive_signaling(){
 	}
 }
 
-void JuiceP2P::update_known_advertisers(const std::string& data) {
+void CrownLink::update_known_advertisers(const std::string& data) {
 	m_known_advertisers.clear();
 	// SNETADDR in base64 encoding is always 24 characters
 	Logger logger{m_logger, "update_known_advertisers"};
@@ -117,14 +117,14 @@ void JuiceP2P::update_known_advertisers(const std::string& data) {
 	}
 }
 
-void JuiceP2P::startAdvertising(Util::MemoryFrame ad) {
+void CrownLink::startAdvertising(Util::MemoryFrame ad) {
 	m_ad_data = ad;
 	m_is_advertising = true;
 	g_signaling_socket.start_advertising();
 	m_logger.info("started advertising lobby");
 }
 
-void JuiceP2P::stopAdvertising() {
+void CrownLink::stopAdvertising() {
 	m_is_advertising = false;
 	g_signaling_socket.stop_advertising();
 	m_logger.info("stopped advertising lobby");
