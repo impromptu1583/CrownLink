@@ -13,23 +13,7 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#include <juice.h>
-#include <base64.hpp>
-
-#include <json.hpp>
-using nlohmann::json;
-
-#include <Util/Exceptions.h>
-#include <Util/MemoryFrame.h>
-#include <Types.h>
-
-#include "SNetAddr.h"
-#include "SNPNetwork.h"
+#define EnumStringCase(X) case X: return #X
 
 using u8 = unsigned char;
 using u16 = unsigned short;
@@ -44,10 +28,26 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#include <juice.h>
+#include <base64.hpp>
+
+#include <json.hpp>
+using Json = nlohmann::json;
+
+#include <Util/Exceptions.h>
+#include <Util/MemoryFrame.h>
+#include <Types.h>
+
+#include "SNetAddr.h"
+#include "SNPNetwork.h"
+
 #include "ThQueue.h"
 #include "Logger.h"
-
-#define EnumStringCase(X) case X: return #X
 
 constexpr const char* CL_VERSION = "0.1.51";
 

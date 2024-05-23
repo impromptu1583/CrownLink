@@ -1,24 +1,24 @@
 #include "signaling.h"
 
-void to_json(json& out_json, const SignalPacket& packet) {
+void to_json(Json& out_json, const SignalPacket& packet) {
 	try {
-		out_json = json{
-			{"peer_ID",packet.peer_id.b64()},
-			{"message_type",packet.message_type},
-			{"data",packet.data},
+		out_json = Json{
+			{"peer_id", packet.peer_id.b64()},
+			{"message_type", packet.message_type},
+			{"data", packet.data},
 		};
-	} catch (const json::exception& e) {
+	} catch (const Json::exception& e) {
 		g_root_logger.error("Signal packet to_json error : {}", e.what());
 	}
 };
 
-void from_json(const json& json_, SignalPacket& out_packet) {
+void from_json(const Json& json_, SignalPacket& out_packet) {
 	try {
 		auto tempstr = json_.at("peer_ID").get<std::string>();
 		out_packet.peer_id = base64::from_base64(tempstr);
 		json_.at("message_type").get_to(out_packet.message_type);
 		json_.at("data").get_to(out_packet.data);
-	} catch (const json::exception& ex) {
+	} catch (const Json::exception& ex) {
 		g_root_logger.error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json_.dump());
 	}
 };
@@ -87,8 +87,8 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 		return;
 	}
 
-	json json_ = packet;
-	auto send_buffer = json_.dump();
+	Json json = packet;
+	auto send_buffer = json.dump();
 	send_buffer += m_delimiter;
 	m_logger.debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
@@ -102,18 +102,15 @@ void SignalingSocket::split_into_packets(const std::string& s,std::vector<Signal
 	size_t pos_start = 0;
 	size_t pos_end = 0;
 	size_t delim_len = m_delimiter.length();
-	std::string segment;
 
 	incoming_packets.clear();
 	while ((pos_end = s.find(m_delimiter, pos_start)) != std::string::npos) {
-		segment = s.substr(pos_start, pos_end - pos_start);
+		const auto segment = s.substr(pos_start, pos_end - pos_start);
 		pos_start = pos_end + delim_len;
 			
-		json json_ = json::parse(segment);
-		incoming_packets.push_back(json_.template get<SignalPacket>());
+		Json json = Json::parse(segment);
+		incoming_packets.push_back(json.template get<SignalPacket>());
 	}
-
-	return;
 }
 
 void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets){
@@ -121,19 +118,19 @@ void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packet
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string receive_buffer;
 	m_logger.trace("receive_packets");
-	// try to receive
+	// Try to receive
 	auto n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
 	if (n_bytes == SOCKET_ERROR) {
 		m_last_error = WSAGetLastError();
 		m_logger.debug("receive error: {}", m_last_error);
 		if (m_last_error == WSAEWOULDBLOCK) {
-			// we're waiting for data or connection is reset
+			// We're waiting for data or connection is reset
 			// this is legacy of the old non-blocking code
 			// we now block in a thread instead
 			return;
 		}
 		if (m_last_error == WSAECONNRESET) {
-			// connection reset by server
+			// Connection reset by server
 			// not sure if this should be a fatal or something
 			m_logger.error("signaling socket receive error: connection reset by server, attempting reconnect");
 			deinitialize();

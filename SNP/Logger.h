@@ -24,16 +24,26 @@ enum class LogLevel {
 
 inline std::string to_string(LogLevel log_level) {
     switch (log_level) {
-        case LogLevel::None:  return "None";
-        case LogLevel::Fatal: return "Fatal";
-        case LogLevel::Error: return "Error";
-        case LogLevel::Warn:  return "Warn";
-        case LogLevel::Info:  return "Info";
-        case LogLevel::Debug: return "Debug";
-        case LogLevel::Trace: return "Trace";
+        EnumStringCase(LogLevel::None);
+        EnumStringCase(LogLevel::Fatal);
+        EnumStringCase(LogLevel::Error);
+        EnumStringCase(LogLevel::Warn);
+        EnumStringCase(LogLevel::Info);
+        EnumStringCase(LogLevel::Debug);
+        EnumStringCase(LogLevel::Trace);
     }
-    return std::format("LogLevel({})", (int)log_level);
+    return std::to_string((s32)log_level);
 }
+
+NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
+    {LogLevel::None, nullptr},
+    {LogLevel::Fatal, "fatal"},
+    {LogLevel::Error, "error"},
+    {LogLevel::Warn, "warn"},
+    {LogLevel::Info, "info"},
+    {LogLevel::Debug, "debug"},
+    {LogLevel::Trace, "trace"},
+});
 
 // TODO: json map LogLevel to string
 
@@ -94,7 +104,10 @@ public:
 
     void fatal(std::string_view format, const auto&... args) {
         if (s_log_level < LogLevel::Fatal) return;
-        log(std::cerr, "Fatal", AnsiBoldRed, std::vformat(format, std::make_format_args(args...)));
+        const auto message = std::vformat(format, std::make_format_args(args...));
+        log(std::cerr, "Fatal", AnsiBoldRed, message);
+
+        MessageBoxA(0, message.c_str(), "CrownLink Fatal Error", MB_ICONERROR | MB_OK);
         exit(-1);
     }
 
