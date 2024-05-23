@@ -37,7 +37,7 @@ private:
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	SNetAddr m_id{};
 
-	juice_agent_t* m_agent = nullptr; // NOTE: agent must be after config for construction order
+	juice_agent_t* m_agent = nullptr;
 	char m_sdp[JUICE_MAX_SDP_STRING_LEN]{};
 	Logger m_logger;
 };
