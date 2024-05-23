@@ -120,18 +120,16 @@ void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packet
 	constexpr unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string receive_buffer;
-	m_logger.trace("receive_packets");
-	// Try to receive
 	auto n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
 	if (n_bytes == SOCKET_ERROR) {
 		m_last_error = WSAGetLastError();
 		m_logger.debug("receive error: {}", m_last_error);
-		if (m_last_error == WSAEWOULDBLOCK) {
-			// We're waiting for data or connection is reset
-			// this is legacy of the old non-blocking code
-			// we now block in a thread instead
-			return;
-		}
+		//if (m_last_error == WSAEWOULDBLOCK) {
+		//	// We're waiting for data or connection is reset
+		//	// this is legacy of the old non-blocking code
+		//	// we now block in a thread instead
+		//	return;
+		//}
 		if (m_last_error == WSAECONNRESET) {
 			// Connection reset by server
 			// not sure if this should be a fatal or something
@@ -141,7 +139,10 @@ void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packet
 			initialize();
 
 		}
-		else throw GeneralException("::recv failed");
+		if (m_last_error == WSAECONNABORTED) {
+			m_logger.error("connection aborted");
+		}
+		// else throw GeneralException("::recv failed");
 	}
 	if (n_bytes <1) {
 		// 0 = connection closed by remote end

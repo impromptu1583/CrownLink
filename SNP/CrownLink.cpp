@@ -14,6 +14,7 @@ void CrownLink::initialize() {
 void CrownLink::destroy() {   
 	m_logger.info("Shutting down");
 	m_is_running = false;
+	g_signaling_socket.deinitialize();
 	// TODO: cleanup properly so we don't get an error on close
 }
 

@@ -91,6 +91,7 @@ BOOL __stdcall spiDestroy() {
 		g_plugged_network->destroy();
 		g_plugged_network.reset();
 	} catch (GeneralException& e) {
+		g_root_logger.error("unhandled exception in spiDestroy {}",e.getMessage());
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return FALSE;
 	}
