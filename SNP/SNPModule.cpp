@@ -10,8 +10,6 @@
 
 namespace snp {
 
-Network<SNetAddr>* g_plugged_network = NULL;
-
 client_info g_game_app_info;
 
 CriticalSection g_crit_sec;
@@ -91,6 +89,7 @@ BOOL __stdcall spiInitialize(client_info* gameClientInfo, user_info* userData, b
 BOOL __stdcall spiDestroy() {
 	try {
 		g_plugged_network->destroy();
+		g_plugged_network.reset();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return FALSE;
@@ -116,14 +115,7 @@ BOOL __stdcall spiLockGameList(int a1, int a2, game** ppGameList) {
 	if (lastAd)
 		lastAd->game_info.pNext = nullptr;
 
-	auto currAd = g_game_list.begin();
-	while (currAd != g_game_list.end()) {
-		if (GetTickCount() > currAd->game_info.dwTimer + 2000) {
-			currAd = g_game_list.erase(currAd);
-		} else {
-			++currAd;
-		}
-	}
+	std::erase_if(g_game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
 	try {
 		// return game list
@@ -338,7 +330,7 @@ BOOL __stdcall spiLeagueGetName(char* pszDest, DWORD dwSize) {
 	return TRUE;
 }
 
-snp::NetFunctions spiFunctions = {
+snp::NetFunctions g_spi_functions = {
 	  sizeof(snp::NetFunctions),
 	  /*n*/ &snp::spiCompareNetAddresses,
 			&snp::spiDestroy,
