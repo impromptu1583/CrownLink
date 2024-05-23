@@ -33,7 +33,7 @@ bool SignalingSocket::initialize() {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if (const auto error = getaddrinfo(g_config.server.c_str(), std::to_string(g_config.port).c_str(), &hints, &result)) {
+	if (const auto error = getaddrinfo(g_snp_config.server.c_str(), std::to_string(g_snp_config.port).c_str(), &hints, &result)) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(error));
 		m_logger.error("getaddrinfo failed with error: {}", error);
 		WSACleanup();

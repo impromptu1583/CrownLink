@@ -2,19 +2,16 @@
 #include "signaling.h"
 
 JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
-: m_p2p_state(JUICE_STATE_DISCONNECTED), m_id{id}, m_logger{ g_root_logger, "P2P Agent", id.b64() } {
-	juice_config_t config{
-		.stun_server_host = g_config.stun_server.c_str(),
-		.stun_server_port = g_config.stun_port,
-
-		.cb_state_changed = on_state_changed,
-		.cb_candidate = on_candidate,
-		.cb_gathering_done = on_gathering_done,
-		.cb_recv = on_recv,
-		.user_ptr = this,
-	};
-	m_agent = juice_create(&config);
-
+: m_p2p_state(JUICE_STATE_DISCONNECTED), m_id{id}, m_config{
+	.stun_server_host = StunServer,
+	.stun_server_port = StunServerPort,
+	
+	.cb_state_changed = on_state_changed,
+	.cb_candidate = on_candidate,
+	.cb_gathering_done = on_gathering_done,
+	.cb_recv = on_recv,
+	.user_ptr = this,
+}, m_agent{juice_create(&m_config)}, m_logger{g_root_logger, "P2P Agent", id.b64()} {
 	if (!init_message.empty()) {
 		signal_handler(init_message);
 	}
