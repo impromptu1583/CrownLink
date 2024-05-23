@@ -1,4 +1,4 @@
-import asyncio, json, uuid, time, logging, sys, base64
+import asyncio, json, uuid, time, logging, sys, base64, binascii
 from enum import IntEnum
 from copy import copy
 
@@ -48,11 +48,14 @@ class Signal_packet():
 
     @peer_ID_base64.setter
     def peer_ID_base64(self, value):
-        bytesvalue = base64.b64decode(value)
-        if len(bytesvalue) == 16:
-            self._peer_ID = bytesvalue
-        else:
-            raise ValueError("computed bytes object should be exactly 16 bytes for ID")
+        try:
+            bytesvalue = base64.b64decode(value)
+            if len(bytesvalue) == 16:
+                self._peer_ID = bytesvalue
+            else:
+                raise ValueError("computed bytes object should be exactly 16 bytes for ID")
+        except binascii.Error as e:
+            logger.error(f"cannot set packet peer_ID_base64 to {value}, error: {e}")
         
     @property
     def as_json(self):
@@ -99,11 +102,14 @@ class ServerProtocol(asyncio.Protocol):
 
     @peer_ID_base64.setter
     def peer_ID_base64(self, value):
-        bytesvalue = base64.b64decode(value)
-        if len(bytesvalue) == 16:
-            self._peer_ID = bytesvalue
-        else:
-            raise ValueError("computed bytes object should be exactly 16 bytes for ID")
+        try:
+            bytesvalue = base64.b64decode(value)
+            if len(bytesvalue) == 16:
+                self._peer_ID = bytesvalue
+            else:
+                raise ValueError("computed bytes object should be exactly 16 bytes for ID")
+        except binascii.Error as e:
+            logger.error(f"cannot set peer_ID_base64 to {value}, error: {e}")
         
     def connection_made(self, transport):
         self.transport = transport
@@ -112,6 +118,12 @@ class ServerProtocol(asyncio.Protocol):
         global CONNECTIONS
         CONNECTIONS[self.peer_ID] = self
         logger.info(f"new conn: {self.addr} assigned: {self.peer_ID_base64}")
+        
+        send_buffer = Signal_packet()
+        send_buffer.peer_ID = SERVER_ID
+        send_buffer.message_type = Signal_message_type.SERVER_SET_ID
+        send_buffer.data = self.peer_ID_base64
+        self.send_packet(send_buffer)
 
     def connection_lost(self,exc):
         logger.info(f"connection lost to {self.peer_ID_base64}")
@@ -128,29 +140,35 @@ class ServerProtocol(asyncio.Protocol):
     def data_received(self,data):
         logger.debug(f"Data received from {self.addr}: {data}")
         
-        if (self.remainder): #if a remaining partial packet exists, add it
+        if (self.remainder):
             data = self.remainder+data
             self.remainder = None
         raw_packets = data.split(DELIMINATER)
         if raw_packets[-1][-len(DELIMINATER):] != DELIMINATER:
-            self.remainder = raw_packets.pop() # remove partial packet
+            self.remainder = raw_packets.pop()
 
-        #print(f"{len(raw_packets)} packets received")
+
         for raw_packet in raw_packets:
             if not len(raw_packet):
-                continue # empty packet
+                continue
             packet = Signal_packet(raw_packet)
-            #print(raw_packet)
-            ### if doesn't end in delim then wait save remainder to temp then add to next message
-            ### add error handling
-            #print(f"type:{packet.message_type}")
             match(Signal_message_type(packet.message_type)):
+                case Signal_message_type.SERVER_SET_ID:
+                    old_peer_ID = self.peer_ID
+                    old_peer_ID_b64 = self.peer_ID_base64
+                    logger.info(f"peer {old_peer_ID_b64} requested ID change to {packet.data}")
+                    self.peer_ID_base64 = packet.data
+                    CONNECTIONS[self.peer_ID] = self
+                    del CONNECTIONS[old_peer_ID]
+                    
                 case Signal_message_type.SIGNAL_START_ADVERTISING:
                     self.advertising = True;
                     logger.info(f"{self.peer_ID_base64} started advertising")
+                    
                 case Signal_message_type.SIGNAL_STOP_ADVERTISING:
                     self.advertising = False;
                     logger.info(f"{self.peer_ID_base64} stopped advertising")
+                    
                 case Signal_message_type.SIGNAL_REQUEST_ADVERTISERS:
                     advertisers = list({i for i in CONNECTIONS if CONNECTIONS[i].advertising})
                     if self.peer_ID in advertisers: advertisers.remove(self.peer_ID)

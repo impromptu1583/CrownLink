@@ -90,7 +90,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 	json json_ = packet;
 	auto send_buffer = json_.dump();
 	send_buffer += m_delimiter;
-	m_logger.debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
+	m_logger.debug("signal send dest: {}, type: {}, data: {}",packet.peer_id.b64(), as_string(packet.message_type), packet.data);
 
 	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
 	if (bytes == -1) {
@@ -111,6 +111,8 @@ void SignalingSocket::split_into_packets(const std::string& s,std::vector<Signal
 			
 		json json_ = json::parse(segment);
 		incoming_packets.push_back(json_.template get<SignalPacket>());
+		auto last = incoming_packets.back();
+		m_logger.debug("signal recv from: {}, type: {}, data: {}",last.peer_id.b64(),as_string(last.message_type),last.data);
 	}
 
 	return;

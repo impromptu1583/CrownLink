@@ -71,7 +71,7 @@ struct NetFunctions {
 	BOOL(__stdcall *spiLeagueGetName)(char *pszDest, DWORD dwSize);
 };
 
-extern NetFunctions g_spi_functions;
-inline std::unique_ptr<Network<SNetAddr>> g_plugged_network;
+extern NetFunctions spiFunctions;
+extern Network<SNetAddr>* g_plugged_network;
 
 };

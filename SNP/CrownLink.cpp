@@ -5,19 +5,19 @@ constexpr auto ADDRESS_SIZE = 16;
 
 namespace clnk {
 
-void CrownLink::initialize() {
+void JuiceP2P::initialize() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
 	g_signaling_socket.initialize();
-	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
+	m_signaling_thread = std::jthread{&JuiceP2P::receive_signaling, this};
 }
 
-void CrownLink::destroy() {   
+void JuiceP2P::destroy() {   
 	m_logger.info("Shutting down");
 	m_is_running = false;
 	// TODO: cleanup properly so we don't get an error on close
 }
 
-void CrownLink::requestAds() {
+void JuiceP2P::requestAds() {
 	m_logger.debug("Requesting lobbies");
 	g_signaling_socket.request_advertisers();
 	for (const auto& advertiser : m_known_advertisers) {
@@ -28,15 +28,15 @@ void CrownLink::requestAds() {
 	}
 }
 
-void CrownLink::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
+void JuiceP2P::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
 	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNetAddr)), packet);
 }
 
-void CrownLink::receive_signaling(){
+void JuiceP2P::receive_signaling(){
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		g_signaling_socket.receive_packets(incoming_packets);
-		// m_logger.trace("received incoming signaling");
+		// g_logger.trace("received incoming signaling");
 		for (const auto& packet : incoming_packets) {
 			switch (packet.message_type) {
 				case SignalMessageType::StartAdvertising: {
@@ -99,35 +99,36 @@ void CrownLink::receive_signaling(){
 	}
 }
 
-void CrownLink::update_known_advertisers(const std::string& data) {
+void JuiceP2P::update_known_advertisers(const std::string& data) {
 	m_known_advertisers.clear();
 	// SNETADDR in base64 encoding is always 24 characters
-	Logger logger{m_logger, "update_known_advertisers"};
-	logger.trace("data received: {}", data);
+	m_logger.trace("[update_known_advertisers] data received: {}", data);
 	for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
 		try {
 			auto peer_str = base64::from_base64(data.substr(i*24, 24));
-			logger.debug("potential lobby owner received: {}", data.substr(i*24, 24));
+			m_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
 			m_known_advertisers.push_back(SNetAddr(peer_str));
 			g_juice_manager.create_if_not_exist(peer_str);
-		} catch (const std::exception &exc) {
-			logger.error("processing: {} error: {}",data.substr(i,24), exc.what());
+		}
+		catch (const std::exception &exc) {
+			m_logger.error("[update_known_advertisers] processing: {} error: {}",data.substr(i,24), exc.what());
 
 		}
 	}
 }
 
-void CrownLink::startAdvertising(Util::MemoryFrame ad) {
+void JuiceP2P::startAdvertising(Util::MemoryFrame ad) {
 	m_ad_data = ad;
 	m_is_advertising = true;
 	g_signaling_socket.start_advertising();
 	m_logger.info("started advertising lobby");
 }
 
-void CrownLink::stopAdvertising() {
+void JuiceP2P::stopAdvertising() {
 	m_is_advertising = false;
 	g_signaling_socket.stop_advertising();
 	m_logger.info("stopped advertising lobby");
 }
+//------------------------------------------------------------------------------------------------
 
 };

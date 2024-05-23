@@ -14,6 +14,7 @@ struct SnpConfig {
 
 class SnpConfigLoader {
 public:
+
 	SnpConfigLoader(const std::string& filename) {
 		char buffer[MAX_PATH];
 		GetModuleFileNameA(0, buffer, MAX_PATH);
@@ -67,6 +68,7 @@ public:
 			{"log-level", config.log_level},
 		};
 
+
 		if (m_config_existed) {
 			m_logger.info("Creating new config at {}", m_path.string());
 		} else {
@@ -74,6 +76,7 @@ public:
 		}
 
 		std::ofstream file{m_path};
+
 		file << std::setw(4) << json_;
 	}
 
@@ -81,6 +84,7 @@ private:
 	template <typename T>
 	void load_field(json& json_, const std::string& key, T& out_value) {
 		try {
+
 			json_.at(key).get_to(out_value);
 		} catch (const json::out_of_range& ex) {
 			m_logger.warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
