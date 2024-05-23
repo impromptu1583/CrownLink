@@ -21,7 +21,8 @@ void CrownLink::requestAds() {
 	m_logger.debug("Requesting lobbies");
 	g_signaling_socket.request_advertisers();
 	for (const auto& advertiser : m_known_advertisers) {
-		if (g_juice_manager.peer_status(advertiser) == JUICE_STATE_CONNECTED || g_juice_manager.peer_status(advertiser) == JUICE_STATE_COMPLETED) {
+		auto status = g_juice_manager.peer_status(advertiser);
+		if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
 			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(SNetAddr))));
 			g_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 		}
