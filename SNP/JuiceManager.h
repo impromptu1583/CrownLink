@@ -34,14 +34,10 @@ private:
 	static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
 private:
-	static constexpr const char* StunServer = "stun.l.google.com";
-	static constexpr u16 StunServerPort = 19302;
-
 	friend class JuiceMAN;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	SNetAddr m_id{};
 
-	juice_config_t m_config{};
 	juice_agent_t* m_agent = nullptr; // NOTE: agent must be after config for construction order
 	char m_sdp[JUICE_MAX_SDP_STRING_LEN]{};
 	Logger m_logger;

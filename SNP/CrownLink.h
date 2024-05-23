@@ -23,8 +23,11 @@ inline snp::NetworkInfo g_network_info{
 
 class JuiceP2P final : public snp::Network<SNetAddr> {
 public:
-	JuiceP2P() = default;
-	~JuiceP2P() override = default;
+
+	CrownLink() = default;
+	~CrownLink() override {
+		m_is_running = false;
+	}
 
 	void initialize() override;
 	void destroy() override;
