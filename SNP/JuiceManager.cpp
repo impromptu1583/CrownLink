@@ -104,7 +104,7 @@ JuiceAgent* JuiceManager::maybe_get_agent(const std::string& id) {
 
 JuiceAgent& JuiceManager::ensure_agent(const std::string& id) {
 	if (!m_agents.contains(id)) {
-		const auto [it, _] = m_agents.emplace(id, JuiceAgent{id});
+		const auto [it, _] = m_agents.emplace(id, id);
 		return it->second;
 	}
 	return m_agents.at(id);
