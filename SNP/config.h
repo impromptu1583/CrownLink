@@ -40,9 +40,10 @@ public:
 		load_field(json, "server", config.server);
 		load_field(json, "port", config.port);
 		
-		auto& stun = json["stun"];
-		load_field(stun, "server", config.stun_server);
-		load_field(stun, "port", config.stun_port);
+		if (auto stun = section(json, "stun")) {
+			load_field(*stun, "server", config.stun_server);
+			load_field(*stun, "port", config.stun_port);
+		}
 
 		load_field(json, "log-level", config.log_level);
 		Logger::set_log_level(config.log_level);
@@ -77,6 +78,10 @@ public:
 	}
 
 private:
+	Json* section(Json& json, const std::string& key) {
+		return json.is_object() && json.contains(key) ? &json[key] : nullptr;
+	}
+
 	template <typename T>
 	void load_field(Json& json, const std::string& key, T& out_value) {
 		try {

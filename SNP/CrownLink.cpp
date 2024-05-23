@@ -112,7 +112,7 @@ void CrownLink::update_known_advertisers(const std::string& data) {
 			m_known_advertisers.push_back(SNetAddr{peer_str});
 			g_juice_manager.ensure_agent(peer_str);
 		} catch (const std::exception &exc) {
-			logger.error("processing: {} error: {}",data.substr(i,24), exc.what());
+			logger.error("processing: {} error: {}", data.substr(i,24), exc.what());
 
 		}
 	}
