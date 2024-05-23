@@ -3,8 +3,8 @@
 
 JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_id{id}, m_config{
-	.stun_server_host = StunServer,
-	.stun_server_port = StunServerPort,
+	.stun_server_host = g_config.stun_server.c_str(),
+	.stun_server_port = g_config.stun_port,
 	
 	.cb_state_changed = on_state_changed,
 	.cb_candidate = on_candidate,
