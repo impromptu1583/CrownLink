@@ -116,14 +116,7 @@ BOOL __stdcall spiLockGameList(int a1, int a2, game** ppGameList) {
 	if (lastAd)
 		lastAd->game_info.pNext = nullptr;
 
-	auto currAd = g_game_list.begin();
-	while (currAd != g_game_list.end()) {
-		if (GetTickCount() > currAd->game_info.dwTimer + 2000) {
-			currAd = g_game_list.erase(currAd);
-		} else {
-			++currAd;
-		}
-	}
+	std::erase_if(g_game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
 	try {
 		// return game list
