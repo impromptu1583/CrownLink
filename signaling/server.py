@@ -59,6 +59,7 @@ class Signal_packet():
         return json.dumps(
             {
                 "peer_ID":self.peer_ID_base64.decode(),
+                "peer_id":self.peer_ID_base64.decode(),
                 "message_type":self.message_type,
                 "data":self.data
             });
@@ -69,7 +70,12 @@ class Signal_packet():
             json_string = json_string.decode()
         try:
             j = json.loads(json_string)
-            self.peer_ID_base64 = j["peer_ID"]
+            if "peer_ID" in j.keys():
+                self.peer_ID_base64 = j["peer_ID"]
+            elif "peer_id" in j.keys():
+                self.peer_ID_base64 = j["peer_id"]
+            else:
+                raise ValueError("neither peer_id nor peer_ID was found")
             self.message_type = j["message_type"]
             self.data = j["data"]
         except Exception as e:
@@ -135,11 +141,12 @@ class ServerProtocol(asyncio.Protocol):
         if raw_packets[-1][-len(DELIMINATER):] != DELIMINATER:
             self.remainder = raw_packets.pop() # remove partial packet
 
-        #print(f"{len(raw_packets)} packets received")
         for raw_packet in raw_packets:
+            logger.debug(f"processing packet {raw_packet}")
             if not len(raw_packet):
                 continue # empty packet
             packet = Signal_packet(raw_packet)
+
             #print(raw_packet)
             ### if doesn't end in delim then wait save remainder to temp then add to next message
             ### add error handling
