@@ -1,7 +1,7 @@
 #include "JuiceManager.h"
 #include "signaling.h"
 
-JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
+JuiceAgent::JuiceAgent(const SNetAddr& id, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_id{id}, m_logger{ g_root_logger, "P2P Agent", id.b64() } {
 	juice_config_t config{
 		.stun_server_host = g_config.stun_server.c_str(),
@@ -25,7 +25,7 @@ JuiceWrapper::JuiceWrapper(const SNetAddr& id, std::string init_message = "")
 	juice_gather_candidates(m_agent);
 }
 
-void JuiceWrapper::signal_handler(const SignalPacket& packet) {
+void JuiceAgent::signal_handler(const SignalPacket& packet) {
 	switch (packet.message_type) {
 		case SignalMessageType::JuiceLocalDescription: {
 			juice_set_remote_description(m_agent, packet.data.c_str());
@@ -42,7 +42,7 @@ void JuiceWrapper::signal_handler(const SignalPacket& packet) {
 	}
 }
 
-void JuiceWrapper::send_message(const std::string& msg) {
+void JuiceAgent::send_message(const std::string& msg) {
 	if (m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED) {
 		m_logger.trace("sending message {}", msg);
 		juice_send(m_agent, msg.c_str(), msg.size());
@@ -52,7 +52,7 @@ void JuiceWrapper::send_message(const std::string& msg) {
 	// TODO: Error handling
 }
 
-void JuiceWrapper::send_message(const char* begin, const size_t size) {
+void JuiceAgent::send_message(const char* begin, const size_t size) {
 	if (m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED) {
 		m_logger.trace("sending message {}", std::string{begin, size});
 		juice_send(m_agent, begin, size);
@@ -61,12 +61,12 @@ void JuiceWrapper::send_message(const char* begin, const size_t size) {
 	}
 }
 
-void JuiceWrapper::send_message(Util::MemoryFrame frame) {
+void JuiceAgent::send_message(Util::MemoryFrame frame) {
 	send_message((char*)frame.begin(), frame.size());
 }
 
-void JuiceWrapper::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-	JuiceWrapper& parent = *(JuiceWrapper*)user_ptr;
+void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
+	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	parent.m_p2p_state = state;
 	if (state == JUICE_STATE_CONNECTED) {
 		parent.m_logger.info("Initially connected");
@@ -88,76 +88,85 @@ void JuiceWrapper::on_state_changed(juice_agent_t* agent, juice_state_t state, v
 	}
 }
 
-void JuiceWrapper::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr){
-	auto& parent = *(JuiceWrapper*)user_ptr;
+void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr){
+	auto& parent = *(JuiceAgent*)user_ptr;
 	g_signaling_socket.send_packet(parent.m_id, SignalMessageType::JuciceCandidate, sdp);
 
 }
 
-void JuiceWrapper::on_gathering_done(juice_agent_t* agent, void* user_ptr){
-	auto& parent = *(JuiceWrapper*)user_ptr;
+void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr){
+	auto& parent = *(JuiceAgent*)user_ptr;
 	g_signaling_socket.send_packet(parent.m_id, SignalMessageType::JuiceDone);
 }
 
-void JuiceWrapper::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
-	JuiceWrapper& parent = *(JuiceWrapper*)user_ptr;
+void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
+	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	receive_queue.emplace(GamePacket{parent.m_id, data, size});
 	SetEvent(g_receive_event);
 	parent.m_logger.trace("received: {}", std::string{data, size});
 }
 
-void JuiceMAN::create_if_not_exist(const std::string& id) {
+JuiceAgent* JuiceManager::maybe_get_agent(const std::string& id) {
+	auto it = m_agents.find(id);
+	if (it != m_agents.end()) {
+		return &it->second;
+	}
+	return nullptr;
+}
+
+JuiceAgent& JuiceManager::ensure_agent(const std::string& id) {
 	if (!m_agents.contains(id)) {
-		m_agents.emplace(id, JuiceWrapper{id});
+		const auto [it, _] = m_agents.emplace(id, JuiceAgent{id});
+		return it->second;
 	}
+	return m_agents.at(id);
 }
 
-void JuiceMAN::send_p2p(const std::string& id, const std::string& msg) {
+void JuiceManager::send_p2p(const std::string& id, const std::string& msg) {
 	// TODO: error handling
-	create_if_not_exist(id);
-	m_agents[id].send_message(msg);
+	auto& agent = ensure_agent(id);
+	agent.send_message(msg);
 }
 
-void JuiceMAN::send_p2p(const std::string& id, Util::MemoryFrame frame) {
+void JuiceManager::send_p2p(const std::string& id, Util::MemoryFrame frame) {
 	// TODO: error handling
-	create_if_not_exist(id);
-	m_agents[id].send_message(frame);
+	auto& agent = ensure_agent(id);
+	agent.send_message(frame);
 }
 
-void JuiceMAN::signal_handler(const SignalPacket packet) {
+void JuiceManager::signal_handler(const SignalPacket packet) {
 	auto peer_string = std::string((char*)packet.peer_id.address, sizeof(SNetAddr));
-	m_logger.trace("[P2P Manager] received message for {}: {}",peer_string,packet.data);
-	if (!m_agents.contains(peer_string)) {
-		m_agents.emplace(peer_string, JuiceWrapper{peer_string, packet.data});
-	}
-	m_agents[peer_string].signal_handler(packet);
+	m_logger.trace("[P2P Manager] received message for {}: {}", peer_string, packet.data);
+
+	auto& peer_agent = ensure_agent(peer_string);
+	peer_agent.signal_handler(packet);
 }
 
-void JuiceMAN::send_all(const std::string& msg) {
+void JuiceManager::send_all(const std::string& msg) {
 	for (auto& [name, agent] : m_agents) {
 		std::cout << "sending message peer " << (char*)agent.m_id.address << " with status:" << agent.m_p2p_state << "\n";
 		agent.send_message(msg);
 	}
 }
 
-void JuiceMAN::send_all(const char* begin, const size_t size) {
+void JuiceManager::send_all(const char* begin, const size_t size) {
 	for (auto& [name, agent] : m_agents) {
 		std::cout << "sending message peer " << (char*)agent.m_id.address << " with status:" << agent.m_p2p_state << "\n";
 		agent.send_message(begin,size);
 	}
 }
-void JuiceMAN::send_all(Util::MemoryFrame frame) {
+void JuiceManager::send_all(Util::MemoryFrame frame) {
 	for (auto& [name, agent] : m_agents) {
 		std::cout << "sending message peer " << (char*)agent.m_id.address << " with status:" << agent.m_p2p_state << "\n";
 		agent.send_message(frame);
 	}
 }
 
-juice_state JuiceMAN::peer_status(const SNetAddr& peer_id) {
+juice_state JuiceManager::peer_status(const SNetAddr& peer_id) {
 	// NOTE: It's ugly but I'm still working on changing out strings for SNetAddr
-	auto id = std::string((char*)peer_id.address, sizeof(SNetAddr));
-	if (m_agents.contains(id)) {
-		return m_agents[id].m_p2p_state;
+	auto id = std::string{(char*)peer_id.address, sizeof(SNetAddr)};
+	if (auto agent = maybe_get_agent(id)) {
+		return agent->m_p2p_state;
 	}
 	return juice_state(JUICE_STATE_DISCONNECTED);
 }

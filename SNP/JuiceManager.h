@@ -18,10 +18,9 @@ inline std::string to_string(JuiceSignal value) {
 
 struct SignalPacket;
 
-class JuiceWrapper {
+class JuiceAgent {
 public:
-	JuiceWrapper() = default; // This is wrong, but required for std::map's operator[]
-	JuiceWrapper(const SNetAddr& ID, std::string init_message);
+	JuiceAgent(const SNetAddr& ID, std::string init_message);
 	void signal_handler(const SignalPacket& packet);
 	void send_message(const std::string& msg);
 	void send_message(const char* begin, const size_t size);
@@ -34,7 +33,7 @@ private:
 	static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
 private:
-	friend class JuiceMAN;
+	friend class JuiceManager;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	SNetAddr m_id{};
 
@@ -43,9 +42,10 @@ private:
 	Logger m_logger;
 };
 
-class JuiceMAN {
+class JuiceManager {
 public:
-	void create_if_not_exist(const std::string& id);
+	JuiceAgent* maybe_get_agent(const std::string& id);
+	JuiceAgent& ensure_agent(const std::string& id);
 	void send_p2p(const std::string& id, const std::string& msg);
 	void send_p2p(const std::string& id, Util::MemoryFrame frame);
 	void signal_handler(const SignalPacket packet);
@@ -55,9 +55,9 @@ public:
 	juice_state peer_status(const SNetAddr& peer_id);
 
 private:
-	std::map<std::string, JuiceWrapper> m_agents;
+	std::map<std::string, JuiceAgent> m_agents;
 	Logger m_logger{g_root_logger, "P2P Manager"};
 };
 
 inline HANDLE g_receive_event;
-inline JuiceMAN g_juice_manager;
+inline JuiceManager g_juice_manager;
