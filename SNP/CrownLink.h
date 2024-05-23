@@ -24,7 +24,9 @@ inline snp::NetworkInfo g_network_info{
 class CrownLink final : public snp::Network<SNetAddr> {
 public:
 	CrownLink() = default;
-	~CrownLink() override = default;
+	~CrownLink() override {
+		m_is_running = false;
+	}
 
 	void initialize() override;
 	void destroy() override;
