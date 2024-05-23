@@ -21,10 +21,10 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class CrownLink final : public snp::Network<SNetAddr> {
+class JuiceP2P final : public snp::Network<SNetAddr> {
 public:
-	CrownLink() = default;
-	~CrownLink() override = default;
+	JuiceP2P() = default;
+	~JuiceP2P() override = default;
 
 	void initialize() override;
 	void destroy() override;
