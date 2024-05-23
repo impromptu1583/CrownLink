@@ -36,7 +36,7 @@ void JuiceP2P::receive_signaling(){
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		g_signaling_socket.receive_packets(incoming_packets);
-		// g_logger.trace("received incoming signaling");
+		// m_logger.trace("received incoming signaling");
 		for (const auto& packet : incoming_packets) {
 			switch (packet.message_type) {
 				case SignalMessageType::StartAdvertising: {
@@ -102,16 +102,16 @@ void JuiceP2P::receive_signaling(){
 void JuiceP2P::update_known_advertisers(const std::string& data) {
 	m_known_advertisers.clear();
 	// SNETADDR in base64 encoding is always 24 characters
-	m_logger.trace("[update_known_advertisers] data received: {}", data);
+	Logger logger{m_logger, "update_known_advertisers"};
+	logger.trace("data received: {}", data);
 	for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
 		try {
 			auto peer_str = base64::from_base64(data.substr(i*24, 24));
-			m_logger.debug("[update_known_advertisers] potential lobby owner received: {}", data.substr(i*24, 24));
+			logger.debug("potential lobby owner received: {}", data.substr(i*24, 24));
 			m_known_advertisers.push_back(SNetAddr(peer_str));
 			g_juice_manager.create_if_not_exist(peer_str);
-		}
-		catch (const std::exception &exc) {
-			m_logger.error("[update_known_advertisers] processing: {} error: {}",data.substr(i,24), exc.what());
+		} catch (const std::exception &exc) {
+			logger.error("processing: {} error: {}",data.substr(i,24), exc.what());
 
 		}
 	}
@@ -129,6 +129,5 @@ void JuiceP2P::stopAdvertising() {
 	g_signaling_socket.stop_advertising();
 	m_logger.info("stopped advertising lobby");
 }
-//------------------------------------------------------------------------------------------------
 
 };

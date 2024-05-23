@@ -69,9 +69,9 @@ private:
 	void load_field(const std::string& key, T& out_value) {
 		try {
 			m_json.at(key).get_to(out_value);
-		} catch (json::out_of_range& ex) {
+		} catch (const json::out_of_range& ex) {
 			m_logger.warn("config value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
-		} catch (json::type_error& ex) {
+		} catch (const json::type_error& ex) {
 			m_logger.warn("config value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		}
 	}
