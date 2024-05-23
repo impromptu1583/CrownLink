@@ -74,11 +74,14 @@ bool SignalingSocket::initialize() {
 }
 
 void SignalingSocket::deinitialize() {
-	closesocket(m_socket);
+	if (m_socket) {
+		closesocket(m_socket);
+		m_socket = 0;
+	}
 }
 
 void SignalingSocket::send_packet(SNetAddr dest, SignalMessageType msg_type, const std::string& msg) {
-	send_packet(SignalPacket(dest,msg_type,msg));
+	send_packet(SignalPacket{dest, msg_type, msg});
 }
 
 void SignalingSocket::send_packet(const SignalPacket& packet) {

@@ -79,10 +79,7 @@ public:
 	SignalingSocket& operator=(SignalingSocket&) = delete;
 
 	~SignalingSocket() {
-		if (m_socket) {
-			deinitialize();
-			m_socket = 0;
-		}
+		deinitialize();
 	}
 
 	bool initialize();

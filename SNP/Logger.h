@@ -45,8 +45,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
     {LogLevel::Trace, "trace"},
 });
 
-// TODO: json map LogLevel to string
-
 inline tm* get_local_time() {
     time_t current_time = time(nullptr);
     static tm result;

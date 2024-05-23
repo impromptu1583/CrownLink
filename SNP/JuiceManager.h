@@ -16,15 +16,25 @@ inline std::string to_string(JuiceSignal value) {
 	return std::to_string((s32)value);
 }
 
+inline std::string to_string(juice_state value) {
+	switch (value) {
+		EnumStringCase(JUICE_STATE_DISCONNECTED);
+		EnumStringCase(JUICE_STATE_GATHERING);
+		EnumStringCase(JUICE_STATE_CONNECTING);
+		EnumStringCase(JUICE_STATE_CONNECTED);
+		EnumStringCase(JUICE_STATE_COMPLETED);
+		EnumStringCase(JUICE_STATE_FAILED);
+	}
+	return std::to_string((s32)value);
+}
+
 struct SignalPacket;
 
 class JuiceAgent {
 public:
 	JuiceAgent(const SNetAddr& ID, std::string init_message);
-	void signal_handler(const SignalPacket& packet);
-	void send_message(const std::string& msg);
-	void send_message(const char* begin, const size_t size);
-	void send_message(Util::MemoryFrame frame);
+	void handle_signal_packet(const SignalPacket& packet);
+	void send_message(void* data, const size_t size);
 
 private:
 	static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
@@ -46,12 +56,9 @@ class JuiceManager {
 public:
 	JuiceAgent* maybe_get_agent(const std::string& id);
 	JuiceAgent& ensure_agent(const std::string& id);
-	void send_p2p(const std::string& id, const std::string& msg);
-	void send_p2p(const std::string& id, Util::MemoryFrame frame);
-	void signal_handler(const SignalPacket packet);
-	void send_all(const std::string&);
-	void send_all(const char* begin, const size_t size);
-	void send_all(Util::MemoryFrame frame);
+	void handle_signal_packet(const SignalPacket& packet);
+	void send_p2p(const std::string& id, void* data, size_t size);
+	void send_all(void* data, size_t size);
 	juice_state peer_status(const SNetAddr& peer_id);
 
 private:

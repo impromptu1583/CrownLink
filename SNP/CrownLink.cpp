@@ -29,7 +29,7 @@ void CrownLink::requestAds() {
 }
 
 void CrownLink::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
-	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNetAddr)), packet);
+	g_juice_manager.send_p2p(std::string((char*)peer_ID.address, sizeof(SNetAddr)), packet.begin(), packet.size());
 }
 
 void CrownLink::receive_signaling(){
@@ -92,7 +92,7 @@ void CrownLink::receive_signaling(){
 				case SignalMessageType::JuiceLocalDescription:
 				case SignalMessageType::JuciceCandidate:
 				case SignalMessageType::JuiceDone: {
-					g_juice_manager.signal_handler(packet);
+					g_juice_manager.handle_signal_packet(packet);
 				} break;
 			}
 		}
