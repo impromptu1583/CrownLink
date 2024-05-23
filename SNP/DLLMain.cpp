@@ -7,48 +7,41 @@
 #include "CrownLink.h"
 #define CLNK_ID 0
 
-BOOL WINAPI SnpQuery(DWORD dwIndex, DWORD* dwNetworkCode, char** ppszNetworkName, char** ppszNetworkDescription, CAPS** ppCaps) {
-	if (dwNetworkCode && ppszNetworkName && ppszNetworkDescription && ppCaps) {
-		switch (dwIndex) {
-			case CLNK_ID:
-				*dwNetworkCode = clnk::g_network_info.dwIdentifier;
-				*ppszNetworkName = clnk::g_network_info.pszName;
-				*ppszNetworkDescription = clnk::g_network_info.pszDescription;
-				*ppCaps = &clnk::g_network_info.caps;
-				return TRUE;
-			default:
-				return FALSE;
+BOOL WINAPI SnpQuery(DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, CAPS** out_caps) {
+	if (out_network_code && out_network_name && out_network_description && out_caps) {
+		switch (index) {
+			case CLNK_ID: {
+				*out_network_code = clnk::g_network_info.dwIdentifier;
+				*out_network_name = clnk::g_network_info.pszName;
+				*out_network_description = clnk::g_network_info.pszDescription;
+				*out_caps = &clnk::g_network_info.caps;
+				return true;
+			} break;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
-BOOL WINAPI SnpBind(DWORD dwIndex, snp::NetFunctions** ppFxns) {
-	if (ppFxns) {
-		switch (dwIndex) {
-			case CLNK_ID:
-				*ppFxns = &snp::g_spi_functions;
+BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
+	if (out_funcs) {
+		switch (index) {
+			case CLNK_ID: {
+				*out_funcs = &snp::g_spi_functions;
 				snp::g_plugged_network = std::make_unique<clnk::CrownLink>();
-				return TRUE;
-			default:
-				return FALSE;
+				return true;
+			} break;
 		}
 	}
-	return FALSE;
+	return false;
 }
 
-HINSTANCE hInstance;
+HINSTANCE g_instance;
 
 static void dll_start() {
-	// init winsock
-	WSADATA wsaData;
-	WORD wVersionRequested;
-	int err;
-
-	wVersionRequested = MAKEWORD(2, 2);
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0) {
-		g_root_logger.fatal("WSAStartup failed with error {}", err);
+	WSADATA wsaData{};
+	WORD wVersionRequested = MAKEWORD(2, 2);
+	if (auto error_code = WSAStartup(wVersionRequested, &wsaData); error_code != S_OK) {
+		g_root_logger.fatal("WSAStartup failed with error {}", error_code);
 	}
 }
 
@@ -56,15 +49,14 @@ static void dll_exit() {
 	WSACleanup();
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved) {
-	switch (fdwReason) {
-		case DLL_PROCESS_ATTACH:
-		{
-			hInstance = hinstDLL;
+BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
+	switch (reason) {
+		case DLL_PROCESS_ATTACH: {
+			g_instance = instance;
 
 			dll_start();
 			std::atexit(dll_exit);
 		} break;
 	}
-	return TRUE;
+	return true;
 }
