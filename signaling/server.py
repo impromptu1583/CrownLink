@@ -154,9 +154,12 @@ class ServerProtocol(asyncio.Protocol):
             packet = Signal_packet(raw_packet)
             match(Signal_message_type(packet.message_type)):
                 case Signal_message_type.SERVER_SET_ID:
-                    old_peer_ID = self.peer_ID_base64
-                    logger.info(f"peer {old_peer_ID} requested ID change to {packet.data}")
+                    old_peer_ID = self.peer_ID
+                    old_peer_ID_b64 = self.peer_ID_base64
+                    logger.info(f"peer {old_peer_ID_b64} requested ID change to {packet.data}")
                     self.peer_ID_base64 = packet.data
+                    CONNECTIONS[self.peer_ID] = self
+                    del CONNECTIONS[old_peer_ID]
                     
                 case Signal_message_type.SIGNAL_START_ADVERTISING:
                     self.advertising = True;
