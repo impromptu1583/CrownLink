@@ -85,8 +85,7 @@ public:
 	void deinitialize();
 	void send_packet(SNetAddr dest, SignalMessageType msg_type, const std::string& msg = "");
 	void send_packet(const SignalPacket& packet);
-	void receive_packets(std::vector<SignalPacket>& incoming_packets, int& n_bytes, int& ws_error);
-	void set_blocking_mode(bool block);
+	int  receive_packets(std::vector<SignalPacket>& incoming_packets);
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();

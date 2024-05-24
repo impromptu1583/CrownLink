@@ -15,6 +15,8 @@ void CrownLink::destroy() {
 	m_logger.info("Shutting down");
 	m_is_running = false;
 	g_signaling_socket.echo(""); // wakes up m_signaling_thread so it can close
+	m_logger.debug("Waiting for receive thread to finish");
+	m_signaling_thread.join();
 }
 
 void CrownLink::requestAds() {
@@ -35,15 +37,13 @@ void CrownLink::sendAsyn(const SNetAddr& peer_ID, Util::MemoryFrame packet){
 
 void CrownLink::receive_signaling() {
 	std::vector<SignalPacket> incoming_packets;
-	auto n_bytes = 0;
-	auto ws_error = 0;
-	while (m_is_running) {
-		g_signaling_socket.receive_packets(incoming_packets, n_bytes, ws_error);
+	while (true) {
+		auto n_bytes = g_signaling_socket.receive_packets(incoming_packets);
 		if (!m_is_running) return;
 		if (n_bytes > 0) {
 			signal_handler(incoming_packets);
 		} else {
-			error_handler(n_bytes,ws_error);
+			error_handler(n_bytes);
 		}
 	}
 }
@@ -55,6 +55,9 @@ void CrownLink::signal_handler(std::vector<SignalPacket>& incoming_packets) {
 			{
 				if (m_client_id_set) {
 					g_signaling_socket.set_client_id(m_client_id.b64());
+					if (m_is_advertising) {
+						g_signaling_socket.start_advertising();
+					}
 				} else {
 					m_client_id = base64::from_base64(packet.data);
 					m_logger.info("received client ID from server: {}", m_client_id.b64());
@@ -115,17 +118,20 @@ void CrownLink::signal_handler(std::vector<SignalPacket>& incoming_packets) {
 		}
 	}
 }
-void CrownLink::error_handler(int n_bytes, int ws_error) {
+void CrownLink::error_handler(int n_bytes) {
 	// winsock error codes: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 
 	if (n_bytes == 0) {
 		m_logger.error("connection to server closed, attempting reconnect");
 	} else {
+		auto ws_error = WSAGetLastError();
 		m_logger.error("winsock error {} received, attempting reconnect", ws_error);
 	}
-	g_signaling_socket.deinitialize();
-	std::this_thread::sleep_for(std::chrono::seconds(1));
-	g_signaling_socket.initialize();
+	do {
+		g_signaling_socket.deinitialize();
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	} while (!g_signaling_socket.initialize());
+	
 }
 
 

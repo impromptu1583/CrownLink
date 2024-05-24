@@ -43,14 +43,12 @@ bool SignalingSocket::initialize() {
 	for (auto info = result; info; info = info->ai_next) {
 		if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
 			m_logger.debug("client: socket failed with error: {}", std::strerror(errno));
-			throw GeneralException("socket failed");
 			continue;
 		}
 
 		if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
 			closesocket(m_socket);
 			m_logger.error("client: couldn't connect to server: {}", std::strerror(errno));
-			throw GeneralException("server connection failed");
 			continue;
 		}
 
@@ -58,7 +56,6 @@ bool SignalingSocket::initialize() {
 	}
 	if (result == NULL) {
 		m_logger.error("signaling client failed to connect");
-		throw GeneralException("server connection failed");
 		return false;
 	}
 
@@ -67,7 +64,7 @@ bool SignalingSocket::initialize() {
 	// server address: each byte is 11111111
 	memset(&m_server, 255, sizeof(SNetAddr));
 
-	set_blocking_mode(true);
+	//set_blocking_mode(true);
 	m_logger.info("successfully connected to matchmaking server");
 	m_current_state = SocketState::Ready;
 	return true;
@@ -116,24 +113,18 @@ void SignalingSocket::split_into_packets(const std::string& s,std::vector<Signal
 	}
 }
 
-void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets, int& n_bytes, int& ws_error) {
+int SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets) {
 	constexpr unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string receive_buffer;
-	n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
-	if(n_bytes) {
+	auto n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
+	if(n_bytes > 0) {
 		buffer.resize(n_bytes);
 		receive_buffer.append(buffer.begin(), buffer.end());
 		split_into_packets(receive_buffer, incoming_packets);
 		m_logger.trace("received {}", n_bytes);
 	}
-}
-
-void SignalingSocket::set_blocking_mode(bool block) {
-	u_long nonblock = !block;
-	if (::ioctlsocket(m_socket, FIONBIO, &nonblock) == SOCKET_ERROR) {
-		throw GeneralException("::ioctlsocket failed");
-	}
+	return n_bytes;
 }
 
 void SignalingSocket::start_advertising(){
