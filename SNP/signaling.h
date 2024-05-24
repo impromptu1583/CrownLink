@@ -102,5 +102,5 @@ private:
 	const std::string m_delimiter = "-+";
 	std::string m_host;
 	std::string m_port;
-	Logger m_logger{g_root_logger, "SignalingSocket"};
+	Logger m_logger{Logger::root(), "SignalingSocket"};
 };

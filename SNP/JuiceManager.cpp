@@ -3,10 +3,11 @@
 #include "CrownLink.h"
 
 JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
-: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ g_root_logger, "P2P Agent", address.b64() } {
+: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
+	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
-		.stun_server_host = g_config.stun_server.c_str(),
-		.stun_server_port = g_config.stun_port,
+		.stun_server_host = snp_config.stun_server.c_str(),
+		.stun_server_port = snp_config.stun_port,
 
 		.cb_state_changed = on_state_changed,
 		.cb_candidate = on_candidate,
@@ -28,10 +29,8 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 }
 
 JuiceAgent::~JuiceAgent() {
-	// This seems very unstable
-	// TODO: reorganize globals, so the construction order doesn't matter
-	// m_logger.debug("Agent {} closed", m_address.b64());
-	// juice_destroy(m_agent);
+	m_logger.debug("Agent {} closed", m_address.b64());
+    juice_destroy(m_agent);
 }
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
@@ -106,7 +105,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr){
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
-	g_receive_queue.emplace(GamePacket{parent.m_address, data, size});
+	g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
 	SetEvent(g_receive_event);
 	parent.m_logger.trace("received: {}", std::string{data, size});
 }

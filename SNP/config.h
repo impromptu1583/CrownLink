@@ -9,6 +9,8 @@ struct SnpConfig {
 	u16 stun_port = 19302;
 
 	LogLevel log_level = LogLevel::Debug;
+
+	static SnpConfig& instance();
 };
 
 class SnpConfigLoader {
@@ -36,7 +38,7 @@ public:
 			m_logger.warn("Config file not found, defaults will be used");
 		}
 
-		SnpConfig config;
+		SnpConfig config{};
 		load_field(json, "server", config.server);
 		load_field(json, "port", config.port);
 		
@@ -96,7 +98,10 @@ private:
 private:
 	bool m_config_existed = false;
 	fs::path m_path;
-	Logger m_logger{g_root_logger, "Config"};
+	Logger m_logger{Logger::root(), "Config"};
 };
 
-inline SnpConfig g_config = SnpConfigLoader{"CrownLink.json"}.load();
+inline SnpConfig& SnpConfig::instance() {
+	static SnpConfig config = SnpConfigLoader{"CrownLink.json"}.load();
+	return config;
+}

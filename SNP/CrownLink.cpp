@@ -3,10 +3,9 @@
 #define BUFFER_SIZE 4096
 constexpr auto ADDRESS_SIZE = 16;
 
-namespace clnk {
-
 void CrownLink::initialize() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
+	m_is_running = true;
 	m_signaling_socket.initialize();
 	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
@@ -165,5 +164,3 @@ void CrownLink::stopAdvertising() {
 	m_signaling_socket.stop_advertising();
 	m_logger.info("stopped advertising lobby");
 }
-
-};

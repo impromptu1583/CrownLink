@@ -47,7 +47,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 
 	std::string prefix;
 	if (g_game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		g_root_logger.info("Version byte mismatch. ours: {} theirs: {}",
+		Logger::root().info("Version byte mismatch. ours: {} theirs: {}",
 				g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
@@ -100,7 +100,7 @@ BOOL __stdcall spiDestroy() {
 		g_crown_link->destroy();
 		g_crown_link.reset();
 	} catch (GeneralException& e) {
-		g_root_logger.error("unhandled exception in spiDestroy {}",e.getMessage());
+		Logger::root().error("unhandled exception in spiDestroy {}",e.getMessage());
 		return false;
 	}
 
@@ -203,7 +203,7 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 		NetAddress him = *(out_address_list[0]);
 		std::string tmp;
 		tmp.append(data, size);
-		g_root_logger.trace("spiSend: {}", tmp);
+		Logger::root().trace("spiSend: {}", tmp);
 
 		g_crown_link->sendAsyn(him, Util::MemoryFrame(data, size));
 	} catch (GeneralException& e) {
@@ -223,12 +223,12 @@ BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
 	try {
 		while (true) {
 			GamePacket* loan = new GamePacket();
-			if (!g_receive_queue.try_pop_dont_wait(*loan)) {
+			if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
 				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 				return false;
 			}
 			std::string debug_string(loan->data, loan->size);
-			g_root_logger.trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
+			Logger::root().trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 
 			if (GetTickCount() > loan->timestamp + 10000) {
 				DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timestamp);

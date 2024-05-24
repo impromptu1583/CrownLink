@@ -95,7 +95,7 @@ public:
         : m_log_file{log_file}, m_prefixes{std::forward<decltype(prefixes)>(prefixes)...} {
     }
 
-    Logger(Logger& logger, std::convertible_to<std::string> auto&&... prefixes)
+    Logger(const Logger& logger, std::convertible_to<std::string> auto&&... prefixes)
         : m_log_file{logger.m_log_file}, m_prefixes{logger.m_prefixes} {
         (m_prefixes.emplace_back(prefixes), ...);
     }
@@ -136,6 +136,12 @@ public:
 
     static void set_log_level(LogLevel log_level) { s_log_level = log_level; }
 
+    static auto& root() {
+		static LogFile file{"CrownLink"};
+		static Logger logger{&file};
+        return logger;
+    }
+
 private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
         const auto prefix = make_prefix(log_level);
@@ -162,6 +168,3 @@ private:
     LogFile* m_log_file = nullptr;
     inline static LogLevel s_log_level = LogLevel::Info;
 };
-
-inline LogFile g_main_log{"CrownLink"};
-inline Logger g_root_logger{&g_main_log};

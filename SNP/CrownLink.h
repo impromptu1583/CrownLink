@@ -10,8 +10,6 @@
 
 #include "signaling.h"
 
-namespace clnk {
-
 inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
 	'CLNK',
@@ -36,6 +34,7 @@ public:
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
 
+	auto& receive_queue() { return m_receive_queue; }
 	auto& juice_manager() { return m_juice_manager; }
 	auto& signaling_socket() { return m_signaling_socket; }
 
@@ -46,6 +45,7 @@ private:
 	void update_known_advertisers(const std::string& message);
 
 private:
+	ThQueue<GamePacket> m_receive_queue;
 	JuiceManager m_juice_manager;
 	SignalingSocket m_signaling_socket;
 
@@ -59,11 +59,8 @@ private:
 	bool m_client_id_set = false;
 	NetAddress m_client_id;
 
-	Logger m_logger{g_root_logger, "Juice"};
-};
-
+	Logger m_logger{Logger::root(), "Juice"};
 };
 
 inline HANDLE g_receive_event;
-inline ThQueue<GamePacket> g_receive_queue;
-inline std::unique_ptr<clnk::CrownLink> g_crown_link;
+inline std::unique_ptr<CrownLink> g_crown_link;

@@ -8,7 +8,7 @@ void to_json(Json& out_json, const SignalPacket& packet) {
 			{"data", packet.data},
 		};
 	} catch (const Json::exception& e) {
-		g_root_logger.error("Signal packet to_json error : {}", e.what());
+		Logger::root().error("Signal packet to_json error : {}", e.what());
 	}
 };
 
@@ -19,7 +19,7 @@ void from_json(const Json& json, SignalPacket& out_packet) {
 		json.at("message_type").get_to(out_packet.message_type);
 		json.at("data").get_to(out_packet.data);
 	} catch (const Json::exception& ex) {
-		g_root_logger.error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json.dump());
+		Logger::root().error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json.dump());
 	}
 };
 
@@ -33,7 +33,8 @@ bool SignalingSocket::initialize() {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if (const auto error = getaddrinfo(g_config.server.c_str(), std::to_string(g_config.port).c_str(), &hints, &result)) {
+	const auto& snp_config = SnpConfig::instance();
+	if (const auto error = getaddrinfo(snp_config.server.c_str(), std::to_string(snp_config.port).c_str(), &hints, &result)) {
 		m_logger.error("getaddrinfo failed with error {}: {}", error, gai_strerror(error));
 		return false;
 	}

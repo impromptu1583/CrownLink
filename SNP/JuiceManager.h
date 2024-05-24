@@ -69,5 +69,5 @@ public:
 
 private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
-	Logger m_logger{g_root_logger, "P2P Manager"};
+	Logger m_logger{Logger::root(), "P2P Manager"};
 };

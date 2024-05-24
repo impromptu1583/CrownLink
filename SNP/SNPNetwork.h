@@ -54,6 +54,4 @@ public:
 	virtual void stopAdvertising() = 0;
 };
 
-using BinNetwork = Network<NetAddress>;
-
 }
