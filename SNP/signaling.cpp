@@ -179,3 +179,7 @@ void SignalingSocket::stop_advertising(){
 void SignalingSocket::request_advertisers(){
 	send_packet(m_server, SignalMessageType::RequestAdvertisers);
 }
+
+void SignalingSocket::echo(std::string data) {
+	send_packet(m_server, SignalMessageType::ServerEcho, data);
+}

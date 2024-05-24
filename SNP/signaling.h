@@ -91,6 +91,7 @@ public:
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();
+	void echo(std::string data);
 	
 private:
 	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);
