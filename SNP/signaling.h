@@ -14,7 +14,6 @@ enum class SignalMessageType {
 	JuciceCandidate,
 	JuiceDone,
 
-	// debug
 	ServerSetID = 254,
 	ServerEcho = 255,
 };
@@ -101,7 +100,6 @@ private:
 	SNetAddr m_server{};
 	SocketState m_current_state = SocketState::Uninitialized;
 	SOCKET m_socket = 0;
-	int m_last_error;
 	int m_state = 0;
 	const std::string m_delimiter = "-+";
 	std::string m_host;
