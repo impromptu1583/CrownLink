@@ -33,18 +33,18 @@ JuiceAgent::~JuiceAgent() {
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	switch (packet.message_type) {
-		case SignalMessageType::JuiceLocalDescription: {
-			m_logger.trace("Received remote description:\n{}", packet.data);
-			juice_set_remote_description(m_agent, packet.data.c_str());
-		} break;
-		case SignalMessageType::JuciceCandidate: {
-			m_logger.trace("Received remote candidate {}", packet.data);
-			juice_add_remote_candidate(m_agent, packet.data.c_str());
-		} break;
-		case SignalMessageType::JuiceDone: {
-			m_logger.trace("Remote gathering done");
-			juice_set_remote_gathering_done(m_agent);
-		} break;
+	case SignalMessageType::JuiceLocalDescription: {
+		m_logger.trace("Received remote description:\n{}", packet.data);
+		juice_set_remote_description(m_agent, packet.data.c_str());
+	} break;
+	case SignalMessageType::JuciceCandidate: {
+		m_logger.trace("Received remote candidate {}", packet.data);
+		juice_add_remote_candidate(m_agent, packet.data.c_str());
+	} break;
+	case SignalMessageType::JuiceDone: {
+		m_logger.trace("Remote gathering done");
+		juice_set_remote_gathering_done(m_agent);
+	} break;
 	}
 }
 
@@ -104,7 +104,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr){
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
-	receive_queue.emplace(GamePacket{parent.m_address, data, size});
+	g_receive_queue.emplace(GamePacket{parent.m_address, data, size});
 	SetEvent(g_receive_event);
 	parent.m_logger.trace("received: {}", std::string{data, size});
 }
