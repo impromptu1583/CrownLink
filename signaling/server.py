@@ -187,7 +187,9 @@ class ServerProtocol(asyncio.Protocol):
                     self.send_advertisers()
                 
                 case Signal_message_type.SERVER_SET_ID:
-                    self.peer_ID_base64 = packet.data;
+                    original_peer_id = self.peer_ID
+                    self.peer_ID_base64 = packet.data
+                    CONNECTIONS[self.peer_ID] = CONNECTIONS.pop(original_peer_id)
                 
                 case Signal_message_type.SERVER_ECHO:
                     self.send_packet(packet);

@@ -35,8 +35,10 @@ public:
 	void sendAsyn(const SNetAddr& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
-
+private:
 	void receive_signaling();
+	void signal_handler(std::vector<SignalPacket>& incoming_packets);
+	void error_handler(int n_bytes, int ws_error);
 	void update_known_advertisers(const std::string& message);
 
 private:
