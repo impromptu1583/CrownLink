@@ -37,18 +37,22 @@ void CrownLink::receive_signaling(){
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		g_signaling_socket.receive_packets(incoming_packets);
-		// m_logger.trace("received incoming signaling");
 		for (const auto& packet : incoming_packets) {
 			switch (packet.message_type) {
+				case SignalMessageType::ServerSetID:
+				{
+					if (m_client_id_set) {
+						g_signaling_socket.set_client_id(m_client_id.b64());
+					} else {
+						m_client_id = base64::from_base64(packet.data);
+						m_client_id_set = true;
+					}
+				} break;
 				case SignalMessageType::StartAdvertising: {
-					m_logger.debug("server confirmed lobby open");
 				} break;
 				case SignalMessageType::StopAdvertising: {
-					m_logger.debug("server confirmed lobby closed");
 				} break;
 				case SignalMessageType::RequestAdvertisers: {
-					// list of advertisers returned
-					// split into individual addresses & create juice peers
 					update_known_advertisers(packet.data);
 				} break;
 				case SignalMessageType::SolicitAds: {

@@ -5,6 +5,7 @@ from copy import copy
 logger = logging.getLogger(__name__)
 
 # GLOBALS
+SERVER_PORT = 9988
 SERVER_ID = b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
 CONNECTIONS = {}
 DELIMINATER = b"-+"
@@ -27,9 +28,6 @@ class Signal_message_type(IntEnum):
 	SIGNAL_JUICE_DONE = 103
 	SERVER_SET_ID = 254
 	SERVER_ECHO = 255
-
-
-
 
 class Signal_packet():
     _peer_ID = b''
@@ -65,13 +63,13 @@ class Signal_packet():
         
     @property
     def as_json(self):
-        return json.dumps(
-            {
-                "peer_ID":self.peer_ID_base64.decode(),
-                "peer_id":self.peer_ID_base64.decode(),
-                "message_type":self.message_type,
-                "data":self.data
-            });
+            return json.dumps(
+                {
+                    "peer_ID":self.peer_ID_base64.decode(),
+                    "peer_id":self.peer_ID_base64.decode(),
+                    "message_type":self.message_type,
+                    "data":self.data
+                });
     
     @as_json.setter
     def as_json(self,json_string):
@@ -128,6 +126,11 @@ class ServerProtocol(asyncio.Protocol):
         global CONNECTIONS
         CONNECTIONS[self.peer_ID] = self
         logger.info(f"{self.addr} : {self.peer_ID_base64}")
+        send_buffer = Signal_packet();
+        send_buffer.peer_ID = SERVER_ID
+        send_buffer.message_type = Signal_message_type.SERVER_SET_ID
+        send_buffer.data = self.peer_ID_base64.decode()
+        self.send_packet(send_buffer)
 
     def connection_lost(self,exc):
         logger.info(f"{self.addr} : {self.peer_ID_base64}")
@@ -209,7 +212,7 @@ async def main():
 
     server = await loop.create_server(
         lambda: ServerProtocol(),
-        None,9988
+        None,SERVER_PORT
     )
     
     async with server:

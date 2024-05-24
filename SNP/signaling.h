@@ -92,6 +92,7 @@ public:
 	void stop_advertising();
 	void request_advertisers();
 	void echo(std::string data);
+	void set_client_id(std::string id);
 	
 private:
 	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);

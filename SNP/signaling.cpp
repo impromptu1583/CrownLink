@@ -183,3 +183,7 @@ void SignalingSocket::request_advertisers(){
 void SignalingSocket::echo(std::string data) {
 	send_packet(m_server, SignalMessageType::ServerEcho, data);
 }
+
+void SignalingSocket::set_client_id(std::string id) {
+	send_packet(m_server, SignalMessageType::ServerSetID, id);
+}

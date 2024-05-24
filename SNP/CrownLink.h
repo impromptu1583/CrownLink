@@ -47,6 +47,8 @@ private:
 	bool m_is_running = true;
     std::stop_source m_stop_source;
 	Logger m_logger{g_root_logger, "Juice"};
+	SNetAddr m_client_id;
+	bool m_client_id_set = false;
 };
 
 };
