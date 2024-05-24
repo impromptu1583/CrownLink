@@ -45,15 +45,31 @@ void passAdvertisement(const SNetAddr& host, Util::MemoryFrame ad) {
 	Util::MemoryFrame::from(adFile->game_info).writeAs(ad.readAs<game>()); // this overwrites the index lol
 	Util::MemoryFrame::from(adFile->extra_bytes).write(ad);
 
-	// check game version
+	auto game_name_prefixes = std::string();
+
 	if (g_game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		g_root_logger.info("version byte mismatch");
-		auto newName = std::string("[!ver]");
-		newName.append(adFile->game_info.szGameName);
-		if (newName.size() > 128) {
-			newName = newName.substr(0, 128);
+		g_root_logger.info("version byte mismatch. ours: {} theirs: {}",
+				g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+		game_name_prefixes.append("[!ver]");
+	}
+
+	switch (g_juice_manager.peer_status(host)) {
+		case JUICE_STATE_CONNECTING:{
+			game_name_prefixes.append("[P2P Connecting]");
+		}break;
+		case JUICE_STATE_FAILED:
+		{
+			game_name_prefixes.append("[P2P Failed]");
 		}
-		memcpy(adFile->game_info.szGameName, newName.c_str(), newName.size());
+	}
+
+	if (game_name_prefixes.size()) {
+		game_name_prefixes.append(adFile->game_info.szGameName);
+		if (game_name_prefixes.size() > 128) {
+			game_name_prefixes = game_name_prefixes.substr(0, 128);
+		}
+		memcpy_s(adFile->game_info.szGameName, sizeof(adFile->game_info.szGameName),
+				game_name_prefixes.c_str(),game_name_prefixes.size());
 	}
 
 
@@ -92,7 +108,6 @@ BOOL __stdcall spiDestroy() {
 		g_plugged_network.reset();
 	} catch (GeneralException& e) {
 		g_root_logger.error("unhandled exception in spiDestroy {}",e.getMessage());
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return FALSE;
 	}
 

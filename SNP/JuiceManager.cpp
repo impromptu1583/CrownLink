@@ -24,6 +24,10 @@ JuiceAgent::JuiceAgent(const SNetAddr& id, std::string init_message = "")
 	m_logger.trace("Init - local SDP {}", m_sdp);
 	juice_gather_candidates(m_agent);
 }
+JuiceAgent::~JuiceAgent() {
+	juice_destroy(m_agent);
+	m_logger.debug("Agent {} closed", m_id.b64());
+}
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	switch (packet.message_type) {
@@ -70,7 +74,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
 			parent.m_logger.warn("remote connection is relayed, performance may be affected");
 		}
-		parent.m_logger.trace("Final candidates were local: {} remote: {}", local, remote);
+		parent.m_logger.debug("Final candidates were local: {} remote: {}", local, remote);
 	} else if (state == JUICE_STATE_FAILED) {
 		parent.m_logger.error("Could not connect, gave up");
 	}
@@ -109,6 +113,11 @@ JuiceAgent& JuiceManager::ensure_agent(const std::string& id) {
 	}
 	return m_agents.at(id);
 }
+
+JuiceManager::~JuiceManager() {
+	m_logger.debug("Closing P2P Agents");
+	m_agents.clear();
+};
 
 void JuiceManager::send_p2p(const std::string& id, void* data, size_t size) {
 	auto& agent = ensure_agent(id);
