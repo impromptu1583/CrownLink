@@ -28,7 +28,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 
 JuiceAgent::~JuiceAgent() {
 	m_logger.debug("Agent {} closed", m_address.b64());
-	juice_destroy(m_agent);
+	// juice_destroy(m_agent);
 }
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {

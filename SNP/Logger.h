@@ -151,9 +151,9 @@ private:
         const auto current_time = time(nullptr);
         ss << "[" << std::put_time(get_local_time(), LogDateFormat) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
-            ss << "[" << prefix << "]";
+            ss << " " << prefix;
         }
-        ss << " ";
+        ss << ": ";
         return ss.str();
     }
 
