@@ -64,7 +64,7 @@ struct SignalPacket {
 		: peer_address{address}, message_type{type}, data{data} {}
 	
 	SignalPacket(std::string& packet_string) {
-		memcpy_s((void*)&peer_address.address, sizeof(peer_address.address), packet_string.c_str(), sizeof(NetAddress));
+		memcpy_s((void*)&peer_address.bytes, sizeof(peer_address.bytes), packet_string.c_str(), sizeof(NetAddress));
 		message_type = SignalMessageType((int)packet_string.at(16) - 48);
 		data = packet_string.substr(sizeof(NetAddress) + 1);
 	}

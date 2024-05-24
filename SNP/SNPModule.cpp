@@ -52,7 +52,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 		prefix += "[!Ver]";
 	}
 
-	switch (g_crown_link->juice_manager().peer_status(host)) {
+	switch (g_crown_link->juice_manager().agent_state(host)) {
 	case JUICE_STATE_CONNECTING:{
 		prefix += "[P2P Connecting]";
 	} break;

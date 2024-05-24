@@ -138,7 +138,7 @@ public:
 
     static void set_log_level(LogLevel log_level) { s_log_level = log_level; }
 
-    static auto& root() {
+    static Logger& root() {
 		static LogFile file{"CrownLink"};
 		static Logger logger{&file};
         return logger;

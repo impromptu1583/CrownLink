@@ -2,23 +2,19 @@
 #include "Common.h"
 
 struct NetAddress {
-    u8 address[16]{};
+    u8 bytes[16]{};
 
     NetAddress() = default;
     NetAddress(u8* addr) {
-        memcpy_s(&address, sizeof(address), addr, sizeof(NetAddress));
+        memcpy_s(&bytes, sizeof(bytes), addr, sizeof(NetAddress));
     }
 
     NetAddress(const std::string& id) {
-        memcpy_s(&address, sizeof(address), id.c_str(), sizeof(NetAddress));
+        memcpy_s(&bytes, sizeof(bytes), id.c_str(), sizeof(NetAddress));
     };
 
-    int compare(const NetAddress& other) {
-        return memcmp(&address, &other.address, sizeof(NetAddress));
-    }
-
-    std::string b64() const volatile {
-        return base64::to_base64(std::string((char*)address, sizeof(NetAddress)));
+    std::string b64() const {
+        return base64::to_base64(std::string((char*)bytes, sizeof(NetAddress)));
     }
     
     bool operator==(const NetAddress&) const = default;
@@ -28,7 +24,7 @@ template <>
 struct std::hash<NetAddress> {
     size_t operator()(const NetAddress& address) const {
         size_t hash = 0;
-        for (char c : address.address) {
+        for (char c : address.bytes) {
             hash <<= 1;
             hash ^= std::hash<char>{}(c);
         }

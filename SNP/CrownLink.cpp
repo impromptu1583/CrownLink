@@ -23,21 +23,22 @@ void CrownLink::request_advertisements() {
 	m_logger.debug("Requesting lobbies");
 	m_signaling_socket.request_advertisers();
 	for (const auto& advertiser : m_known_advertisers) {
-		auto status = m_juice_manager.peer_status(advertiser);
+		auto status = m_juice_manager.agent_state(advertiser);
 		if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
-			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.address, sizeof(NetAddress))));
+			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.bytes, sizeof(NetAddress))));
 			m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 		}
 	}
 }
 
 void CrownLink::send(const NetAddress& peer, void* data, size_t size) {
-	m_juice_manager.send_p2p(std::string((char*)peer.address, sizeof(NetAddress)), data, size);
+	m_juice_manager.send_p2p(std::string((char*)peer.bytes, sizeof(NetAddress)), data, size);
 }
 
 void CrownLink::receive_signaling() {
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
+		m_juice_manager.clear_inactive_agents();
 		auto bytes = m_signaling_socket.receive_packets(incoming_packets);
 		if (!m_is_running) return;
 		if (bytes > 0) {
