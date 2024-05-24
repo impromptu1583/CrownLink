@@ -31,7 +31,7 @@ public:
 			}
 		}
 		if (m_config_existed) {
-			m_logger.info("Logfile loaded, contents: {}", json.dump());
+			m_logger.info("Config file loaded, contents: {}", json.dump());
 		} else {
 			m_logger.warn("Config file not found, defaults will be used");
 		}

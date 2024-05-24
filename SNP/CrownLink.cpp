@@ -15,8 +15,9 @@ void CrownLink::destroy() {
 	m_logger.info("Shutting down");
 	m_is_running = false;
 	g_signaling_socket.echo(""); // wakes up m_signaling_thread so it can close
-	m_logger.debug("Waiting for receive thread to finish");
 	m_signaling_thread.join();
+	m_logger.debug("Receive thread closed");
+
 }
 
 void CrownLink::requestAds() {

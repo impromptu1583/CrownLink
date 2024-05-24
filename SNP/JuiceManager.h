@@ -33,6 +33,7 @@ struct SignalPacket;
 class JuiceAgent {
 public:
 	JuiceAgent(const SNetAddr& ID, std::string init_message);
+	~JuiceAgent();
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_message(void* data, const size_t size);
 
@@ -54,6 +55,8 @@ private:
 
 class JuiceManager {
 public:
+	JuiceManager() {};
+	~JuiceManager();
 	JuiceAgent* maybe_get_agent(const std::string& id);
 	JuiceAgent& ensure_agent(const std::string& id);
 	void handle_signal_packet(const SignalPacket& packet);
