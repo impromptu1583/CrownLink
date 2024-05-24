@@ -25,7 +25,7 @@ set(MODULE_FILES
 	"Signaling.cpp"
 	"JuiceManager.h"
 	"JuiceManager.cpp"
-    "SNetAddr.h"
+    "NetAddress.h"
 	"Config.h"
 	
 	"Common.h"

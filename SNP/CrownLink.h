@@ -21,7 +21,7 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class CrownLink final : public snp::Network<SNetAddr> {
+class CrownLink final : public snp::Network<NetAddress> {
 public:
 	CrownLink() = default;
 	~CrownLink() override {
@@ -32,7 +32,7 @@ public:
 	void destroy() override;
 	void requestAds() override;
 	void receive() override {}; // unused in this connection type
-	void sendAsyn(const SNetAddr& to, Util::MemoryFrame packet) override;
+	void sendAsyn(const NetAddress& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
 private:
@@ -43,14 +43,16 @@ private:
 
 private:
 	std::jthread m_signaling_thread;
-	std::vector<SNetAddr> m_known_advertisers;
+	std::vector<NetAddress> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
+    std::stop_source m_stop_source;
+
 	bool m_is_advertising = false;
 	bool m_is_running = true;
-    std::stop_source m_stop_source;
-	Logger m_logger{g_root_logger, "Juice"};
-	SNetAddr m_client_id;
 	bool m_client_id_set = false;
+	NetAddress m_client_id;
+
+	Logger m_logger{g_root_logger, "Juice"};
 };
 
 };

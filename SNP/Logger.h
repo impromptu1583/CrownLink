@@ -2,7 +2,7 @@
 #include "common.h"
 
 static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
-static constexpr auto LogDateFormat = "%d-%m-%Y %H:%M:%S";
+static constexpr auto LogDateFormat = "%H:%M:%S";
 
 #define AnsiWhite   "\033[37m"
 #define AnsiYellow  "\033[33m"
@@ -149,11 +149,10 @@ private:
     std::string make_prefix(std::string_view log_level) {
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        ss << "[" << std::put_time(get_local_time(), LogDateFormat) << "]";
+        ss << "[" << std::put_time(get_local_time(), LogDateFormat) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
             ss << "[" << prefix << "]";
         }
-        ss << "[" << log_level << "]";
         ss << " ";
         return ss.str();
     }
