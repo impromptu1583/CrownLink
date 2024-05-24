@@ -112,17 +112,17 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
 JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address) {
 	auto it = m_agents.find(address);
 	if (it != m_agents.end()) {
-		return &it->second;
+		return it->second.get();
 	}
 	return nullptr;
 }
 
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address) {
 	if (!m_agents.contains(address)) {
-		const auto [it, _] = m_agents.emplace(address, address);
-		return it->second;
+		const auto [it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address));
+		return *it->second;
 	}
-	return m_agents.at(address);
+	return *m_agents.at(address);
 }
 
 void JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
@@ -140,8 +140,8 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 
 void JuiceManager::send_all(void* data, const size_t size) {
 	for (auto& [name, agent] : m_agents) {
-		m_logger.debug("Sending message peer {} with status: {}\n", (const char*)agent.m_address.address, as_string(agent.m_p2p_state));
-		agent.send_message(data, size);
+		m_logger.debug("Sending message peer {} with status: {}\n", (const char*)agent->m_address.address, as_string(agent->m_p2p_state));
+		agent->send_message(data, size);
 	}
 }
 

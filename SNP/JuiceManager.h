@@ -68,7 +68,7 @@ public:
 	juice_state peer_status(const NetAddress& peer_id);
 
 private:
-	std::map<NetAddress, JuiceAgent> m_agents;
+	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
 	Logger m_logger{g_root_logger, "P2P Manager"};
 };
 

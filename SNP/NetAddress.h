@@ -21,7 +21,19 @@ struct NetAddress {
         return base64::to_base64(std::string((char*)address, sizeof(NetAddress)));
     }
     
-    auto operator<=>(const NetAddress&) const = default;
+    bool operator==(const NetAddress&) const = default;
+};
+
+template <>
+struct std::hash<NetAddress> {
+    size_t operator()(const NetAddress& address) const {
+        size_t hash = 0;
+        for (char c : address.address) {
+            hash <<= 1;
+            hash ^= std::hash<char>{}(c);
+        }
+        return hash;
+    }
 };
 
 struct GamePacket {
