@@ -10,8 +10,6 @@
 
 #include "signaling.h"
 
-namespace clnk {
-
 inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
 	'CLNK',
@@ -21,7 +19,7 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class CrownLink final : public snp::Network<SNetAddr> {
+class CrownLink final : public snp::Network<NetAddress> {
 public:
 	CrownLink() = default;
 	~CrownLink() override {
@@ -32,9 +30,14 @@ public:
 	void destroy() override;
 	void requestAds() override;
 	void receive() override {}; // unused in this connection type
-	void sendAsyn(const SNetAddr& to, Util::MemoryFrame packet) override;
+	void sendAsyn(const NetAddress& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
+
+	auto& receive_queue() { return m_receive_queue; }
+	auto& juice_manager() { return m_juice_manager; }
+	auto& signaling_socket() { return m_signaling_socket; }
+
 private:
 	void receive_signaling();
 	void signal_handler(std::vector<SignalPacket>& incoming_packets);
@@ -42,15 +45,22 @@ private:
 	void update_known_advertisers(const std::string& message);
 
 private:
+	ThQueue<GamePacket> m_receive_queue;
+	JuiceManager m_juice_manager;
+	SignalingSocket m_signaling_socket;
+
 	std::jthread m_signaling_thread;
-	std::vector<SNetAddr> m_known_advertisers;
+	std::vector<NetAddress> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
+    std::stop_source m_stop_source;
+
 	bool m_is_advertising = false;
 	bool m_is_running = true;
-    std::stop_source m_stop_source;
-	Logger m_logger{g_root_logger, "Juice"};
-	SNetAddr m_client_id;
 	bool m_client_id_set = false;
+	NetAddress m_client_id;
+
+	Logger m_logger{Logger::root(), "Juice"};
 };
 
-};
+inline HANDLE g_receive_event;
+inline std::unique_ptr<CrownLink> g_crown_link;

@@ -32,8 +32,12 @@ struct SignalPacket;
 
 class JuiceAgent {
 public:
-	JuiceAgent(const SNetAddr& ID, std::string init_message);
+	JuiceAgent(const NetAddress& address, std::string init_message);
 	~JuiceAgent();
+
+	JuiceAgent(const JuiceAgent&) = delete;
+	JuiceAgent& operator=(const JuiceAgent&) = delete;
+
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_message(void* data, const size_t size);
 
@@ -46,28 +50,24 @@ private:
 private:
 	friend class JuiceManager;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
-	SNetAddr m_id{};
+	NetAddress m_address;
 
-	juice_agent_t* m_agent = nullptr;
-	char m_sdp[JUICE_MAX_SDP_STRING_LEN]{};
+	juice_agent_t* m_agent;
 	Logger m_logger;
 };
 
 class JuiceManager {
 public:
-	JuiceManager() {};
-	~JuiceManager();
-	JuiceAgent* maybe_get_agent(const std::string& id);
-	JuiceAgent& ensure_agent(const std::string& id);
+	JuiceManager() = default;
+	JuiceAgent* maybe_get_agent(const NetAddress& address);
+	JuiceAgent& ensure_agent(const NetAddress& address);
+	// TODO: void clear_inactive_agents();
 	void handle_signal_packet(const SignalPacket& packet);
-	void send_p2p(const std::string& id, void* data, size_t size);
+	void send_p2p(const NetAddress& address, void* data, size_t size);
 	void send_all(void* data, size_t size);
-	juice_state peer_status(const SNetAddr& peer_id);
+	juice_state peer_status(const NetAddress& peer_id);
 
 private:
-	std::map<std::string, JuiceAgent> m_agents;
-	Logger m_logger{g_root_logger, "P2P Manager"};
+	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
+	Logger m_logger{Logger::root(), "P2P Manager"};
 };
-
-inline HANDLE g_receive_event;
-inline JuiceManager g_juice_manager;

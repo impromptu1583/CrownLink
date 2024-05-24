@@ -17,8 +17,8 @@ struct NetworkInfo {
 
 using SOCKADDR = ::SOCKADDR;
 
-void passAdvertisement(const SNetAddr& host, Util::MemoryFrame ad);
-void removeAdvertisement(const SNetAddr& host);
+void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad);
+void removeAdvertisement(const NetAddress& host);
 void passPacket(GamePacket& parket);
 
 template<typename PeerId>
@@ -26,10 +26,10 @@ class Network {
 public:
 	virtual ~Network() = default;
 
-	SNetAddr makeBin(const PeerId& src) {
-		SNetAddr retval;
-		memcpy_s(&retval, sizeof(SNetAddr), &src, sizeof(PeerId));
-		memset(((BYTE*) &retval) + sizeof(PeerId), 0, sizeof(SNetAddr) - sizeof(PeerId));
+	NetAddress makeBin(const PeerId& src) {
+		NetAddress retval;
+		memcpy_s(&retval, sizeof(NetAddress), &src, sizeof(PeerId));
+		memset(((BYTE*) &retval) + sizeof(PeerId), 0, sizeof(NetAddress) - sizeof(PeerId));
 		return retval;
 	}
 
@@ -53,7 +53,5 @@ public:
 	virtual void startAdvertising(Util::MemoryFrame ad) = 0;
 	virtual void stopAdvertising() = 0;
 };
-
-using BinNetwork = Network<SNetAddr>;
 
 }

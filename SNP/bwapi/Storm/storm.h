@@ -6,10 +6,7 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <winuser.h>
-#include "../SNETADDR.h"
 #include <ddraw.h>
-
-// Note to self: Linker error => forgot a return value in cpp
 
 // Storm API definition
 #ifndef STORMAPI
@@ -256,7 +253,7 @@ typedef struct _game
   DWORD     dwIndex;
   DWORD     dwGameState;
   DWORD     dwUnk_08; // creation time
-  SNetAddr  saHost;
+  SNETADDR  saHost;
   DWORD     dwUnk_1C; // host latency
   DWORD     dwTimer;
   DWORD     dwUnk_24; // game category bits

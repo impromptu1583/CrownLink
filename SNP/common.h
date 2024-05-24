@@ -43,7 +43,7 @@ using Json = nlohmann::json;
 #include <Util/MemoryFrame.h>
 #include <Types.h>
 
-#include "SNetAddr.h"
+#include "NetAddress.h"
 #include "SNPNetwork.h"
 
 #include "ThQueue.h"

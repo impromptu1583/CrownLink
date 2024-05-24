@@ -113,5 +113,3 @@ private:
 
 template <typename Prio, typename T>
 using ThPriorityQueue = ThQueue<std::pair<Prio, T>, PriorityQueueWrapper<std::pair<Prio, T>>>;
-
-inline ThQueue<GamePacket> receive_queue;

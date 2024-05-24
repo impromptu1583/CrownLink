@@ -4,7 +4,7 @@
 #include "bwapi/Output.h"
 #include "bwapi/Util/MemoryFrame.h"
 #include "bwapi/Storm/storm.h"
-#include "signaling.h"
+#include "CrownLink.h"
 #include <queue>
 #include <list>
 
@@ -13,7 +13,7 @@ namespace snp {
 client_info g_game_app_info;
 
 CriticalSection g_crit_sec;
-CriticalSection::Lock* g_crit_sec_ex_lock = NULL;
+CriticalSection::Lock* g_crit_sec_ex_lock = nullptr;
 #define INTERLOCKED CriticalSection::Lock crit_sec_lock{g_crit_sec};
 
 std::queue<GamePacket> g_incoming_game_packets;
@@ -23,21 +23,21 @@ int g_next_game_ad_id = 1;
 
 AdFile g_hosted_game;
 
-void passAdvertisement(const SNetAddr& host, Util::MemoryFrame ad) {
+DWORD gdwLastTickCount;
+
+void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	INTERLOCKED;
 
 	AdFile* adFile = nullptr;
-	for (auto& g : g_game_list) {
-		if (!memcmp(&g.game_info.saHost, &host, sizeof(SNetAddr))) {
-			adFile = &g;
+	for (auto& game : g_game_list) {
+		if (!memcmp(&game.game_info.saHost, &host, sizeof(NetAddress))) {
+			adFile = &game;
 			break;
 		}
 	}
 
 	if (!adFile) {
-		AdFile g;
-		g_game_list.push_back(g);
-		adFile = &g_game_list.back();
+		adFile = &g_game_list.emplace_back();
 		adFile->game_info.dwIndex = ++g_next_game_ad_id;
 	}
 
@@ -45,41 +45,34 @@ void passAdvertisement(const SNetAddr& host, Util::MemoryFrame ad) {
 	Util::MemoryFrame::from(adFile->game_info).writeAs(ad.readAs<game>()); // this overwrites the index lol
 	Util::MemoryFrame::from(adFile->extra_bytes).write(ad);
 
-	auto game_name_prefixes = std::string();
-
+	std::string prefix;
 	if (g_game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		g_root_logger.info("version byte mismatch. ours: {} theirs: {}",
+		Logger::root().info("Version byte mismatch. ours: {} theirs: {}",
 				g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
-		game_name_prefixes.append("[!ver]");
+		prefix += "[!Ver]";
 	}
 
-	switch (g_juice_manager.peer_status(host)) {
-		case JUICE_STATE_CONNECTING:{
-			game_name_prefixes.append("[P2P Connecting]");
-		}break;
-		case JUICE_STATE_FAILED:
-		{
-			game_name_prefixes.append("[P2P Failed]");
-		}
+	switch (g_crown_link->juice_manager().peer_status(host)) {
+	case JUICE_STATE_CONNECTING:{
+		prefix += "[P2P Connecting]";
+	} break;
+	case JUICE_STATE_FAILED: {
+		prefix += "[P2P Failed]";
+	} break;
 	}
 
-	if (game_name_prefixes.size()) {
-		game_name_prefixes.append(adFile->game_info.szGameName);
-		if (game_name_prefixes.size() > 128) {
-			game_name_prefixes = game_name_prefixes.substr(0, 128);
-		}
-		memcpy_s(adFile->game_info.szGameName, sizeof(adFile->game_info.szGameName),
-				game_name_prefixes.c_str(),game_name_prefixes.size());
+	if (prefix.size()) {
+		prefix += adFile->game_info.szGameName;
+		strncpy(adFile->game_info.szGameName, prefix.c_str(), sizeof(adFile->game_info.szGameName));
 	}
-
 
 	adFile->game_info.dwTimer = GetTickCount();
-	adFile->game_info.saHost = host;
+	adFile->game_info.saHost = *(SNETADDR*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
 	adFile->game_info.dwIndex = indx;
 }
 
-void removeAdvertisement(const SNetAddr& host) {}
+void removeAdvertisement(const NetAddress& host) {}
 
 void passPacket(GamePacket& packet) {
 	INTERLOCKED;
@@ -87,294 +80,284 @@ void passPacket(GamePacket& packet) {
 	SetEvent(g_receive_event);
 }
 
-BOOL __stdcall spiInitialize(client_info* gameClientInfo, user_info* userData, battle_info* bnCallbacks, module_info* moduleData, HANDLE hEvent) {
-	g_game_app_info = *gameClientInfo;
-	g_receive_event = hEvent;
+BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
+	g_game_app_info = *client_info;
+	g_receive_event = event;
 	g_crit_sec.init();
 
 	try {
-		g_plugged_network->initialize();
+		g_crown_link->initialize();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
 BOOL __stdcall spiDestroy() {
 	try {
-		g_plugged_network->destroy();
-		g_plugged_network.reset();
+		g_crown_link->destroy();
+		g_crown_link.reset();
 	} catch (GeneralException& e) {
-		g_root_logger.error("unhandled exception in spiDestroy {}",e.getMessage());
-		return FALSE;
+		Logger::root().error("unhandled exception in spiDestroy {}",e.getMessage());
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
-BOOL __stdcall spiLockGameList(int a1, int a2, game** ppGameList) {
+BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 	g_crit_sec_ex_lock = new CriticalSection::Lock(g_crit_sec);
 
 	AdFile* lastAd = nullptr;
+	for (auto& game : g_game_list) {
+		game.game_info.pExtra = game.extra_bytes;
+		if (lastAd) {
+			lastAd->game_info.pNext = &game.game_info;
+		}
 
-	auto a = g_game_list.size();
-	for (auto& it : g_game_list) {
-		it.game_info.pExtra = it.extra_bytes;
-		if (lastAd)
-			lastAd->game_info.pNext = &it.game_info;
-
-		lastAd = &it;
+		lastAd = &game;
 	}
-
-	if (lastAd)
+	if (lastAd) {
 		lastAd->game_info.pNext = nullptr;
-
+	}
 	std::erase_if(g_game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
 	try {
-		// return game list
-		*ppGameList = nullptr;
-		if (!g_game_list.empty())
-			*ppGameList = &g_game_list.begin()->game_info;
+		*out_game_list = nullptr;
+		if (!g_game_list.empty()) {
+			*out_game_list = &g_game_list.begin()->game_info;
+		}
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-DWORD gdwLastTickCount;
-
-BOOL __stdcall spiUnlockGameList(game* pGameList, DWORD* a2) {
+BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 	delete g_crit_sec_ex_lock;
-	g_crit_sec_ex_lock = NULL;
+	g_crit_sec_ex_lock = nullptr;
 
 	try {
-		g_plugged_network->requestAds();
+		g_crown_link->requestAds();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
-		return FALSE;
+		return false;
 	}
 
-	return TRUE;
+	return true;
 }
 
-BOOL __stdcall spiStartAdvertisingLadderGame(char* pszGameName, char* pszGamePassword, char* pszGameStatString, DWORD dwGameState, DWORD dwElapsedTime, DWORD dwGameType, int a7, int a8, void* pExtraBytes, DWORD dwExtraBytesCount) {
+BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	INTERLOCKED;
 
 	memset(&g_hosted_game, 0, sizeof(g_hosted_game));
-	strcpy_s(g_hosted_game.game_info.szGameName, sizeof(g_hosted_game.game_info.szGameName), pszGameName);
-	strcpy_s(g_hosted_game.game_info.szGameStatString, sizeof(g_hosted_game.game_info.szGameStatString), pszGameStatString);
-	g_hosted_game.game_info.dwGameState = dwGameState;
+	strcpy_s(g_hosted_game.game_info.szGameName, sizeof(g_hosted_game.game_info.szGameName), game_name);
+	strcpy_s(g_hosted_game.game_info.szGameStatString, sizeof(g_hosted_game.game_info.szGameStatString), game_stat_string);
+	g_hosted_game.game_info.dwGameState = game_state;
 	g_hosted_game.game_info.dwProduct = g_game_app_info.dwProduct;
 	g_hosted_game.game_info.dwVersion = g_game_app_info.dwVerbyte;
 	g_hosted_game.game_info.dwUnk_1C = 0x0050;
 	g_hosted_game.game_info.dwUnk_24 = 0x00a7;
 
-	memcpy(g_hosted_game.extra_bytes, pExtraBytes, dwExtraBytesCount);
-	g_hosted_game.game_info.dwExtraBytes = dwExtraBytesCount;
+	memcpy(g_hosted_game.extra_bytes, user_data, user_data_size);
+	g_hosted_game.game_info.dwExtraBytes = user_data_size;
 	g_hosted_game.game_info.pExtra = g_hosted_game.extra_bytes;
 
-	g_plugged_network->startAdvertising(Util::MemoryFrame::from(g_hosted_game));
-	return TRUE;
+	g_crown_link->startAdvertising(Util::MemoryFrame::from(g_hosted_game));
+	return true;
 }
 
 BOOL __stdcall spiStopAdvertisingGame() {
 	INTERLOCKED;
-	g_plugged_network->stopAdvertising();
-	return TRUE;
+	g_crown_link->stopAdvertising();
+	return true;
 }
 
-BOOL __stdcall spiGetGameInfo(DWORD dwFindIndex, char* pszFindGameName, int a3, game* pGameResult) {
+BOOL __stdcall spiGetGameInfo(DWORD index, char* game_name, int, game* out_game) {
 	INTERLOCKED;
 
 	for (auto& it : g_game_list) {
-		if (it.game_info.dwIndex == dwFindIndex) {
-			*pGameResult = it.game_info;
-			return TRUE;
+		if (it.game_info.dwIndex == index) {
+			*out_game = it.game_info;
+			return true;
 		}
 	}
 
 	SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiSend(DWORD addrCount, SNetAddr** addrList, char* buf, DWORD bufLen) {
-	if (!addrCount) {
-		return TRUE;
+BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
+	if (!address_count) {
+		return true;
 	}
 
-	if (addrCount > 1) {
+	if (address_count > 1) {
 		DropMessage(1, "spiSend, multicast not supported");
 	}
 
 	try {
-		SNetAddr him = *(addrList[0]);
+		NetAddress him = *(out_address_list[0]);
 		std::string tmp;
-		tmp.append(buf, bufLen);
-		g_root_logger.trace("spiSend: {}", tmp);
+		tmp.append(data, size);
+		Logger::root().trace("spiSend: {}", tmp);
 
-		g_plugged_network->sendAsyn(him, Util::MemoryFrame(buf, bufLen));
+		g_crown_link->sendAsyn(him, Util::MemoryFrame(data, size));
 	} catch (GeneralException& e) {
 		DropLastError("spiSend failed: %s", e.getMessage());
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-BOOL __stdcall spiReceive(SNetAddr** senderPeer, char** data, DWORD* databytes) {
+BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
 	INTERLOCKED;
 
-	*senderPeer = nullptr;
-	*data = nullptr;
-	*databytes = 0;
+	*peer = nullptr;
+	*out_data = nullptr;
+	*out_size = 0;
 
 	try {
-
 		while (true) {
 			GamePacket* loan = new GamePacket();
-			if (!receive_queue.try_pop_dont_wait(*loan)) {
+			if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
 				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
-				return FALSE;
+				return false;
 			}
-			std::string debugstr(loan->data, loan->size);
-			g_root_logger.trace("spiReceive: {} :: {}", loan->timestamp, debugstr);
+			std::string debug_string(loan->data, loan->size);
+			Logger::root().trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 
 			if (GetTickCount() > loan->timestamp + 10000) {
 				DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timestamp);
+				delete loan;
 				continue;
 			}
 
-			*senderPeer = &loan->sender;
-			*data = loan->data;
-			*databytes = loan->size;
+			*peer = &loan->sender;
+			*out_data = loan->data;
+			*out_size = loan->size;
 
 			break;
 		}
 	} catch (GeneralException& e) {
 		DropLastError("spiLockGameList failed: %s", e.getMessage());
-		return FALSE;
+		return false;
 	}
-	return TRUE;
+	return true;
 }
 
-BOOL __stdcall spiFree(SNetAddr* addr, char* data, DWORD databytes) {
+BOOL __stdcall spiFree(NetAddress* loan, char* data, DWORD size) {
 	INTERLOCKED;
 
-	BYTE* loan = (BYTE*) addr;
 	if (loan) {
 		delete loan;
 	}
-	return TRUE;
+	return true;
 }
 
-BOOL __stdcall spiCompareNetAddresses(SNetAddr* addr1, SNetAddr* addr2, DWORD* dwResult) {
+BOOL __stdcall spiCompareNetAddresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
 	INTERLOCKED;
 
 	DropMessage(0, "spiCompareNetAddresses");
-	if (dwResult) {
-		*dwResult = 0;
+	if (out_result) {
+		*out_result = 0;
 	}
-	if (!addr1 || !addr2 || !dwResult) {
+	if (!address1 || !address2 || !out_result) {
 		SErrSetLastError(ERROR_INVALID_PARAMETER);
-		return FALSE;
+		return false;
 	}
 
-	*dwResult = (0 == memcmp(addr1, addr2, sizeof(SNetAddr)));
-	return TRUE;
+	*out_result = (memcmp(address1, address2, sizeof(NetAddress)) == 0);
+	return true;
 }
 
-BOOL __stdcall spiLockDeviceList(DWORD* a1) {
-	*a1 = 0;
-	return TRUE;
+BOOL __stdcall spiLockDeviceList(DWORD* out_device_list) {
+	*out_device_list = 0;
+	return true;
 }
 
-BOOL __stdcall spiUnlockDeviceList(void* unknownStruct) {
-	return TRUE;
+BOOL __stdcall spiUnlockDeviceList(void*) {
+	return true;
 }
 
-BOOL __stdcall spiFreeExternalMessage(SNetAddr* addr, char* data, DWORD databytes) {
+BOOL __stdcall spiFreeExternalMessage(NetAddress* address, char* data, DWORD size) {
 	DropMessage(0, "spiFreeExternalMessage");
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiGetPerformanceData(DWORD dwType, DWORD* dwResult, int a3, int a4) {
+BOOL __stdcall spiGetPerformanceData(DWORD type, DWORD* out_result, int, int) {
 	DropMessage(0, "spiGetPerformanceData");
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiInitializeDevice(int a1, void* a2, void* a3, DWORD* a4, void* a5) {
+BOOL __stdcall spiInitializeDevice(int, void*, void*, DWORD*, void*) {
 	DropMessage(0, "spiInitializeDevice");
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiReceiveExternalMessage(SNetAddr** addr, char** data, DWORD* databytes) {
-	if (addr) {
-		*addr = NULL;
+BOOL __stdcall spiReceiveExternalMessage(NetAddress** out_address, char** out_data, DWORD* out_size) {
+	if (out_address) {
+		*out_address = nullptr;
 	}
-	if (data) {
-		*data = NULL;
+	if (out_data) {
+		*out_data = nullptr;
 	}
-	if (databytes) {
-		*databytes = 0;
+	if (out_size) {
+		*out_size = 0;
 	}
 	SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiSelectGame(int a1,
-	client_info* gameClientInfo,
-	user_info* userData,
-	battle_info* bnCallbacks,
-	module_info* moduleData,
-	int a6) {
+BOOL __stdcall spiSelectGame(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
 	DropMessage(0, "spiSelectGame");
 	// Looks like an old function and doesn't seem like it's used anymore
 	// UDPN's function Creates an IPX game select dialog window
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiSendExternalMessage(int a1, int a2, int a3, int a4, int a5) {
+BOOL __stdcall spiSendExternalMessage(int, int, int, int, int) {
 	DropMessage(0, "spiSendExternalMessage");
-	return FALSE;
+	return false;
 }
 
-BOOL __stdcall spiLeagueGetName(char* pszDest, DWORD dwSize) {
+BOOL __stdcall spiLeagueGetName(char* data, DWORD size) {
 	DropMessage(0, "spiLeagueGetName");
-	return TRUE;
+	return true;
 }
 
 snp::NetFunctions g_spi_functions = {
 	  sizeof(snp::NetFunctions),
-	  /*n*/ &snp::spiCompareNetAddresses,
-			&snp::spiDestroy,
-			&snp::spiFree,
-			/*e*/ &snp::spiFreeExternalMessage,
-				  &snp::spiGetGameInfo,
-				  /*n*/ &snp::spiGetPerformanceData,
-						&snp::spiInitialize,
-						/*e*/ &snp::spiInitializeDevice,
-						/*e*/ &snp::spiLockDeviceList,
-							  &snp::spiLockGameList,
-							  &snp::spiReceive,
-							  /*n*/ &snp::spiReceiveExternalMessage,
-							  /*e*/ &snp::spiSelectGame,
-									&snp::spiSend,
-									/*e*/ &snp::spiSendExternalMessage,
-									/*n*/ &snp::spiStartAdvertisingLadderGame,
-									/*n*/ &snp::spiStopAdvertisingGame,
-									/*e*/ &snp::spiUnlockDeviceList,
-										  &snp::spiUnlockGameList,
-										  NULL,
-										  NULL,
-										  NULL,
-										  NULL,
-										  NULL,
-										  NULL,
-										  NULL,
-										  /*n*/ &snp::spiLeagueGetName
+/*n*/ &snp::spiCompareNetAddresses,
+	  &snp::spiDestroy,
+	  &snp::spiFree,
+/*e*/ &snp::spiFreeExternalMessage,
+      &snp::spiGetGameInfo,
+/*n*/ &snp::spiGetPerformanceData,
+      &snp::spiInitialize,
+/*e*/ &snp::spiInitializeDevice,
+/*e*/ &snp::spiLockDeviceList,
+      &snp::spiLockGameList,
+      &snp::spiReceive,
+/*n*/ &snp::spiReceiveExternalMessage,
+/*e*/ &snp::spiSelectGame,
+      &snp::spiSend,
+/*e*/ &snp::spiSendExternalMessage,
+/*n*/ &snp::spiStartAdvertisingLadderGame,
+/*n*/ &snp::spiStopAdvertisingGame,
+/*e*/ &snp::spiUnlockDeviceList,
+      &snp::spiUnlockGameList,
+	  nullptr,
+	  nullptr,
+	  nullptr,
+	  nullptr,
+	  nullptr,
+	  nullptr,
+	  nullptr,
+/*n*/ &snp::spiLeagueGetName
 };
 
 }
