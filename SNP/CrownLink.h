@@ -38,7 +38,7 @@ public:
 private:
 	void receive_signaling();
 	void signal_handler(std::vector<SignalPacket>& incoming_packets);
-	void error_handler(int n_bytes, int ws_error);
+	void error_handler(int n_bytes);
 	void update_known_advertisers(const std::string& message);
 
 private:
