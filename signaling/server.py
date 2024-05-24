@@ -181,19 +181,7 @@ class ServerProtocol(asyncio.Protocol):
                     self.update_advertising(False);
                     
                 case Signal_message_type.SIGNAL_REQUEST_ADVERTISERS:
-                    advertisers = list({i for i in CONNECTIONS if CONNECTIONS[i].advertising})
-                    if self.peer_ID in advertisers: advertisers.remove(self.peer_ID)
-                    ads_b64 = []
-                    for peer in advertisers:
-                        ads_b64.append(CONNECTIONS[peer].peer_ID_base64.decode())
-
-                    if len(ads_b64):
-                        send_buffer = Signal_packet()
-                        send_buffer.peer_ID = SERVER_ID
-                        send_buffer.message_type = Signal_message_type.SIGNAL_REQUEST_ADVERTISERS
-                        send_buffer.data = "".join(ads_b64)
-                        logger.debug(f"Send buffer: {send_buffer.data}")
-                        self.send_packet(send_buffer)
+                    self.send_advertisers()
                 
                 case Signal_message_type.SERVER_SET_ID:
                     self.peer_ID_base64 = packet.data;
