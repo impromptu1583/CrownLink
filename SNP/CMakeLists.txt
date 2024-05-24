@@ -14,7 +14,7 @@ set(MODULE_FILES
 	"bwapi/CriticalSection.cpp"
 	"include/base64.hpp"
 	"include/json.hpp"
-	"SNPNetwork.h"
+	
 	"SNPModule.cpp"
 	"SNPModule.h"
 	"SNPModule.def"

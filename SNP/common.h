@@ -39,12 +39,13 @@ using f64 = double;
 #include <json.hpp>
 using Json = nlohmann::json;
 
+#include <Storm/storm.h>
 #include <Util/Exceptions.h>
 #include <Util/MemoryFrame.h>
 #include <Types.h>
 
 #include "NetAddress.h"
-#include "SNPNetwork.h"
+#include "SNPModule.h"
 
 #include "ThQueue.h"
 #include "Logger.h"

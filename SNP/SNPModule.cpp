@@ -13,8 +13,8 @@ namespace snp {
 client_info g_game_app_info;
 
 CriticalSection g_crit_sec;
-CriticalSection::Lock* g_crit_sec_ex_lock = nullptr;
-#define INTERLOCKED CriticalSection::Lock crit_sec_lock{g_crit_sec};
+std::unique_ptr<CriticalSection::Lock> g_crit_sec_ex_lock;
+#define LOCK() CriticalSection::Lock crit_sec_lock{g_crit_sec};
 
 std::queue<GamePacket> g_incoming_game_packets;
 
@@ -26,7 +26,7 @@ AdFile g_hosted_game;
 DWORD gdwLastTickCount;
 
 void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
-	INTERLOCKED;
+	LOCK();
 
 	AdFile* adFile = nullptr;
 	for (auto& game : g_game_list) {
@@ -75,7 +75,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 void removeAdvertisement(const NetAddress& host) {}
 
 void passPacket(GamePacket& packet) {
-	INTERLOCKED;
+	LOCK();
 	g_incoming_game_packets.push(packet);
 	SetEvent(g_receive_event);
 }
@@ -86,7 +86,7 @@ BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, bat
 	g_crit_sec.init();
 
 	try {
-		g_crown_link->initialize();
+		g_crown_link = std::make_unique<CrownLink>();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return false;
@@ -97,7 +97,6 @@ BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, bat
 
 BOOL __stdcall spiDestroy() {
 	try {
-		g_crown_link->destroy();
 		g_crown_link.reset();
 	} catch (GeneralException& e) {
 		Logger::root().error("unhandled exception in spiDestroy {}",e.getMessage());
@@ -108,7 +107,7 @@ BOOL __stdcall spiDestroy() {
 }
 
 BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
-	g_crit_sec_ex_lock = new CriticalSection::Lock(g_crit_sec);
+	g_crit_sec_ex_lock = std::make_unique<CriticalSection::Lock>(g_crit_sec);
 
 	AdFile* lastAd = nullptr;
 	for (auto& game : g_game_list) {
@@ -137,11 +136,10 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 }
 
 BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
-	delete g_crit_sec_ex_lock;
-	g_crit_sec_ex_lock = nullptr;
+	g_crit_sec_ex_lock.reset();
 
 	try {
-		g_crown_link->requestAds();
+		g_crown_link->request_advertisements();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return false;
@@ -151,7 +149,7 @@ BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 }
 
 BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
-	INTERLOCKED;
+	LOCK();
 
 	memset(&g_hosted_game, 0, sizeof(g_hosted_game));
 	strcpy_s(g_hosted_game.game_info.szGameName, sizeof(g_hosted_game.game_info.szGameName), game_name);
@@ -166,18 +164,18 @@ BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_passwor
 	g_hosted_game.game_info.dwExtraBytes = user_data_size;
 	g_hosted_game.game_info.pExtra = g_hosted_game.extra_bytes;
 
-	g_crown_link->startAdvertising(Util::MemoryFrame::from(g_hosted_game));
+	g_crown_link->start_advertising(Util::MemoryFrame::from(g_hosted_game));
 	return true;
 }
 
 BOOL __stdcall spiStopAdvertisingGame() {
-	INTERLOCKED;
-	g_crown_link->stopAdvertising();
+	LOCK();
+	g_crown_link->stop_advertising();
 	return true;
 }
 
 BOOL __stdcall spiGetGameInfo(DWORD index, char* game_name, int, game* out_game) {
-	INTERLOCKED;
+	LOCK();
 
 	for (auto& it : g_game_list) {
 		if (it.game_info.dwIndex == index) {
@@ -200,12 +198,10 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 	}
 
 	try {
-		NetAddress him = *(out_address_list[0]);
-		std::string tmp;
-		tmp.append(data, size);
-		Logger::root().trace("spiSend: {}", tmp);
+		NetAddress peer = *(out_address_list[0]);
+		Logger::root().trace("spiSend: {}", std::string{data, size});
 
-		g_crown_link->sendAsyn(him, Util::MemoryFrame(data, size));
+		g_crown_link->send(peer, data, size);
 	} catch (GeneralException& e) {
 		DropLastError("spiSend failed: %s", e.getMessage());
 		return false;
@@ -214,7 +210,7 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 }
 
 BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
-	INTERLOCKED;
+	LOCK();
 
 	*peer = nullptr;
 	*out_data = nullptr;
@@ -250,7 +246,7 @@ BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
 }
 
 BOOL __stdcall spiFree(NetAddress* loan, char* data, DWORD size) {
-	INTERLOCKED;
+	LOCK();
 
 	if (loan) {
 		delete loan;
@@ -259,7 +255,7 @@ BOOL __stdcall spiFree(NetAddress* loan, char* data, DWORD size) {
 }
 
 BOOL __stdcall spiCompareNetAddresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
-	INTERLOCKED;
+	LOCK();
 
 	DropMessage(0, "spiCompareNetAddresses");
 	if (out_result) {

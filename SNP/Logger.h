@@ -1,6 +1,8 @@
 #pragma once
 #include "common.h"
 
+inline bool g_fatal = false;
+
 static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
 static constexpr auto LogDateFormat = "%H:%M:%S";
 
@@ -106,7 +108,7 @@ public:
         log(std::cerr, "Fatal", AnsiBoldRed, message);
 
         MessageBoxA(0, message.c_str(), "CrownLink Fatal Error", MB_ICONERROR | MB_OK);
-        exit(-1);
+        g_fatal = true;
     }
 
     void error(std::string_view format, const auto&... args) {
