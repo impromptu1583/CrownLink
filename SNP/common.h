@@ -44,6 +44,12 @@ using Json = nlohmann::json;
 #include <Util/MemoryFrame.h>
 #include <Types.h>
 
+inline const fs::path g_starcraft_dir = []{
+	char buffer[MAX_PATH];
+	GetModuleFileNameA(0, buffer, MAX_PATH);
+	return fs::path{buffer}.parent_path();
+}();
+
 #include "NetAddress.h"
 #include "SNPModule.h"
 
@@ -53,7 +59,7 @@ using Json = nlohmann::json;
 constexpr const char* CL_VERSION = "0.1.51";
 
 struct AdFile {
-	game game_info;
+	game game_info{};
 	char extra_bytes[32]{};
 };
 

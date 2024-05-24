@@ -72,13 +72,13 @@ private:
             return;
         }
 
+        fs::path dir_path = g_starcraft_dir / "crownlink_logs";
         std::error_code ec;
-        fs::create_directory("logs", ec);
+        fs::create_directory(dir_path, ec);
 
         std::stringstream ss;
-        const auto current_time = time(nullptr);
-        ss << "logs/" << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
-        m_out.open(ss.str(), std::ios::app);
+        ss << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
+        m_out.open(dir_path / ss.str(), std::ios::app);
     }
 
 private:
