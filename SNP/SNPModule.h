@@ -72,6 +72,5 @@ struct NetFunctions {
 };
 
 extern NetFunctions g_spi_functions;
-inline std::unique_ptr<Network<NetAddress>> g_plugged_network;
 
 };

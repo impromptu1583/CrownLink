@@ -71,7 +71,3 @@ private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
 	Logger m_logger{g_root_logger, "P2P Manager"};
 };
-
-inline HANDLE g_receive_event;
-inline ThQueue<GamePacket> g_receive_queue;
-inline JuiceManager g_juice_manager;

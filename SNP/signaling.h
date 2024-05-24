@@ -104,5 +104,3 @@ private:
 	std::string m_port;
 	Logger m_logger{g_root_logger, "SignalingSocket"};
 };
-
-inline SignalingSocket g_signaling_socket;

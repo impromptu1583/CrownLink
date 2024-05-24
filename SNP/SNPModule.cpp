@@ -4,7 +4,7 @@
 #include "bwapi/Output.h"
 #include "bwapi/Util/MemoryFrame.h"
 #include "bwapi/Storm/storm.h"
-#include "signaling.h"
+#include "CrownLink.h"
 #include <queue>
 #include <list>
 
@@ -52,7 +52,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 		prefix += "[!Ver]";
 	}
 
-	switch (g_juice_manager.peer_status(host)) {
+	switch (g_crown_link->juice_manager().peer_status(host)) {
 	case JUICE_STATE_CONNECTING:{
 		prefix += "[P2P Connecting]";
 	} break;
@@ -86,7 +86,7 @@ BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, bat
 	g_crit_sec.init();
 
 	try {
-		g_plugged_network->initialize();
+		g_crown_link->initialize();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return false;
@@ -97,8 +97,8 @@ BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, bat
 
 BOOL __stdcall spiDestroy() {
 	try {
-		g_plugged_network->destroy();
-		g_plugged_network.reset();
+		g_crown_link->destroy();
+		g_crown_link.reset();
 	} catch (GeneralException& e) {
 		g_root_logger.error("unhandled exception in spiDestroy {}",e.getMessage());
 		return false;
@@ -141,7 +141,7 @@ BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 	g_crit_sec_ex_lock = nullptr;
 
 	try {
-		g_plugged_network->requestAds();
+		g_crown_link->requestAds();
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
 		return false;
@@ -166,13 +166,13 @@ BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_passwor
 	g_hosted_game.game_info.dwExtraBytes = user_data_size;
 	g_hosted_game.game_info.pExtra = g_hosted_game.extra_bytes;
 
-	g_plugged_network->startAdvertising(Util::MemoryFrame::from(g_hosted_game));
+	g_crown_link->startAdvertising(Util::MemoryFrame::from(g_hosted_game));
 	return true;
 }
 
 BOOL __stdcall spiStopAdvertisingGame() {
 	INTERLOCKED;
-	g_plugged_network->stopAdvertising();
+	g_crown_link->stopAdvertising();
 	return true;
 }
 
@@ -205,7 +205,7 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 		tmp.append(data, size);
 		g_root_logger.trace("spiSend: {}", tmp);
 
-		g_plugged_network->sendAsyn(him, Util::MemoryFrame(data, size));
+		g_crown_link->sendAsyn(him, Util::MemoryFrame(data, size));
 	} catch (GeneralException& e) {
 		DropLastError("spiSend failed: %s", e.getMessage());
 		return false;

@@ -1,5 +1,6 @@
 #include "JuiceManager.h"
-#include "signaling.h"
+#include "Signaling.h"
+#include "CrownLink.h"
 
 JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ g_root_logger, "P2P Agent", address.b64() } {
@@ -21,13 +22,15 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 	char sdp[JUICE_MAX_SDP_STRING_LEN]{};
 	juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
-	g_signaling_socket.send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
+	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
 	m_logger.trace("Init - local SDP {}", sdp);
 	juice_gather_candidates(m_agent);
 }
 
 JuiceAgent::~JuiceAgent() {
-	m_logger.debug("Agent {} closed", m_address.b64());
+	// This seems very unstable
+	// TODO: reorganize globals, so the construction order doesn't matter
+	// m_logger.debug("Agent {} closed", m_address.b64());
 	// juice_destroy(m_agent);
 }
 
@@ -93,13 +96,12 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr){
 	auto& parent = *(JuiceAgent*)user_ptr;
-	g_signaling_socket.send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
-
+	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
 }
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr){
 	auto& parent = *(JuiceAgent*)user_ptr;
-	g_signaling_socket.send_packet(parent.m_address, SignalMessageType::JuiceDone);
+	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuiceDone);
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {

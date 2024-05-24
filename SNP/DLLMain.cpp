@@ -27,7 +27,7 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
 		switch (index) {
 			case CLNK_ID: {
 				*out_funcs = &snp::g_spi_functions;
-				snp::g_plugged_network = std::make_unique<clnk::CrownLink>();
+				g_crown_link = std::make_unique<clnk::CrownLink>();
 				return true;
 			} break;
 		}

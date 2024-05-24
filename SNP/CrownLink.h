@@ -35,6 +35,10 @@ public:
 	void sendAsyn(const NetAddress& to, Util::MemoryFrame packet) override;
 	void startAdvertising(Util::MemoryFrame ad) override;
 	void stopAdvertising() override;
+
+	auto& juice_manager() { return m_juice_manager; }
+	auto& signaling_socket() { return m_signaling_socket; }
+
 private:
 	void receive_signaling();
 	void signal_handler(std::vector<SignalPacket>& incoming_packets);
@@ -42,6 +46,9 @@ private:
 	void update_known_advertisers(const std::string& message);
 
 private:
+	JuiceManager m_juice_manager;
+	SignalingSocket m_signaling_socket;
+
 	std::jthread m_signaling_thread;
 	std::vector<NetAddress> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
@@ -56,3 +63,7 @@ private:
 };
 
 };
+
+inline HANDLE g_receive_event;
+inline ThQueue<GamePacket> g_receive_queue;
+inline std::unique_ptr<clnk::CrownLink> g_crown_link;
