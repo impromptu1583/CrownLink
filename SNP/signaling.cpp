@@ -116,48 +116,16 @@ void SignalingSocket::split_into_packets(const std::string& s,std::vector<Signal
 	}
 }
 
-void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets){
+void SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets, int& n_bytes, int& ws_error) {
 	constexpr unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string receive_buffer;
-	auto n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
-	if (n_bytes == SOCKET_ERROR) {
-		m_last_error = WSAGetLastError();
-		m_logger.debug("receive error: {}", m_last_error);
-		//if (m_last_error == WSAEWOULDBLOCK) {
-		//	// We're waiting for data or connection is reset
-		//	// this is legacy of the old non-blocking code
-		//	// we now block in a thread instead
-		//	return;
-		//}
-		if (m_last_error == WSAECONNRESET) {
-			// Connection reset by server
-			// not sure if this should be a fatal or something
-			m_logger.error("signaling socket receive error: connection reset by server, attempting reconnect");
-			deinitialize();
-			std::this_thread::sleep_for(std::chrono::seconds(1));
-			initialize();
-
-		}
-		if (m_last_error == WSAECONNABORTED) {
-			m_logger.error("connection aborted");
-		}
-		// else throw GeneralException("::recv failed");
-	}
-	if (n_bytes <1) {
-		// 0 = connection closed by remote end
-		// -1 = winsock error
-		// anything more = we actually got data
-		m_logger.error("server connection closed, attempting reconnect");
-		deinitialize();
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		initialize();
-	} else {
+	n_bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
+	if(n_bytes) {
 		buffer.resize(n_bytes);
 		receive_buffer.append(buffer.begin(), buffer.end());
 		split_into_packets(receive_buffer, incoming_packets);
 		m_logger.trace("received {}", n_bytes);
-		return;
 	}
 }
 
@@ -182,4 +150,8 @@ void SignalingSocket::request_advertisers(){
 
 void SignalingSocket::echo(std::string data) {
 	send_packet(m_server, SignalMessageType::ServerEcho, data);
+}
+
+void SignalingSocket::set_client_id(std::string id) {
+	send_packet(m_server, SignalMessageType::ServerSetID, id);
 }

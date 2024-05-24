@@ -86,12 +86,13 @@ public:
 	void deinitialize();
 	void send_packet(SNetAddr dest, SignalMessageType msg_type, const std::string& msg = "");
 	void send_packet(const SignalPacket& packet);
-	void receive_packets(std::vector<SignalPacket>& incoming_packets);
+	void receive_packets(std::vector<SignalPacket>& incoming_packets, int& n_bytes, int& ws_error);
 	void set_blocking_mode(bool block);
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();
 	void echo(std::string data);
+	void set_client_id(std::string id);
 	
 private:
 	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);
