@@ -57,21 +57,6 @@ inline tm* get_local_time() {
 class LogFile {
 public:
     LogFile(std::string_view name = "log") {
-        open(name);
-    }
-
-    friend LogFile& operator<<(LogFile& out, const auto& value) {
-        out.m_out << value << std::flush;
-
-        return out;
-    }
-
-private:
-    void open(std::string_view name) {
-        if (m_out.is_open()) {
-            return;
-        }
-
         fs::path dir_path = g_starcraft_dir / "crownlink_logs";
         std::error_code ec;
         fs::create_directory(dir_path, ec);
@@ -79,6 +64,18 @@ private:
         std::stringstream ss;
         ss << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
         m_out.open(dir_path / ss.str(), std::ios::app);
+    }
+
+    friend LogFile& operator<<(LogFile& out, const auto& value) {
+        out.m_out << value;
+        return out;
+    }
+
+    typedef std::ostream& StdStreamCallback(std::ostream&);
+
+    friend LogFile& operator<<(LogFile& out, StdStreamCallback* callback) {
+        callback(out.m_out);
+        return out;
     }
 
 private:
@@ -148,9 +145,10 @@ private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
         const auto prefix = make_prefix(log_level);
 
-		out << ansi_color << prefix << string << AnsiReset << "\n";
+		// std::edl flushes, which is inteded for logger
+		out << ansi_color << prefix << string << AnsiReset << std::endl; 
         if (m_log_file) {
-            *m_log_file << prefix << string << "\n";
+            *m_log_file << prefix << string << std::endl;
         }
     }
 
