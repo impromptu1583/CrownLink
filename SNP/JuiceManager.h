@@ -69,7 +69,7 @@ public:
 	void send_all(void* data, size_t size);
 
 	juice_state agent_state(const NetAddress& address);
-  bool is_relayed(const NetAddress& address);
+	bool is_relayed(const NetAddress& address);
 
 private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;

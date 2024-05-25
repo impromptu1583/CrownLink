@@ -174,8 +174,8 @@ juice_state JuiceManager::agent_state(const NetAddress& address) {
 	return JUICE_STATE_DISCONNECTED;
 }
 
-bool JuiceManager::is_relayed(const NetAddress& peer_id) {
-	if (auto agent = maybe_get_agent(peer_id)) {
+bool JuiceManager::is_relayed(const NetAddress& address) {
+	if (auto agent = maybe_get_agent(address)) {
 		return agent->is_relayed;
 	}
 	return false;
