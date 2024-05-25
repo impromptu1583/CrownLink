@@ -10,26 +10,29 @@
 
 namespace snp {
 
-client_info g_game_app_info;
+#define LOCK() CriticalSection::Lock crit_sec_lock{g_snp_context.crit_sec};
 
-CriticalSection g_crit_sec;
-std::unique_ptr<CriticalSection::Lock> g_crit_sec_ex_lock;
-#define LOCK() CriticalSection::Lock crit_sec_lock{g_crit_sec};
+struct SNPContext {
+	client_info game_app_info;
 
-std::queue<GamePacket> g_incoming_game_packets;
+	CriticalSection crit_sec;
+	std::unique_ptr<CriticalSection::Lock> crit_sec_ex_lock;
 
-std::list<AdFile> g_game_list;
-int g_next_game_ad_id = 1;
+	std::queue<GamePacket> incoming_game_packets;
 
-AdFile g_hosted_game;
+	std::list<AdFile> game_list;
+	s32 next_game_ad_id = 1;
 
-DWORD gdwLastTickCount;
+	AdFile hosted_game;
+};
+
+static SNPContext g_snp_context;
 
 void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	LOCK();
 
 	AdFile* adFile = nullptr;
-	for (auto& game : g_game_list) {
+	for (auto& game : g_snp_context.game_list) {
 		if (!memcmp(&game.game_info.saHost, &host, sizeof(NetAddress))) {
 			adFile = &game;
 			break;
@@ -37,8 +40,8 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	}
 
 	if (!adFile) {
-		adFile = &g_game_list.emplace_back();
-		adFile->game_info.dwIndex = ++g_next_game_ad_id;
+		adFile = &g_snp_context.game_list.emplace_back();
+		adFile->game_info.dwIndex = ++g_snp_context.next_game_ad_id;
 	}
 
 	s32 index = adFile->game_info.dwIndex;
@@ -46,8 +49,8 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	Util::MemoryFrame::from(adFile->extra_bytes).write(ad);
 
 	std::string prefix;
-	if (g_game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		Logger::root().info("Version byte mismatch. ours: {} theirs: {}", g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+	if (g_snp_context.game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
+		Logger::root().info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
 
@@ -80,14 +83,14 @@ void removeAdvertisement(const NetAddress& host) {}
 
 void passPacket(GamePacket& packet) {
 	LOCK();
-	g_incoming_game_packets.push(packet);
+	g_snp_context.incoming_game_packets.push(packet);
 	SetEvent(g_receive_event);
 }
 
 BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
-	g_game_app_info = *client_info;
+	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
-	g_crit_sec.init();
+	g_snp_context.crit_sec.init();
 
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
@@ -111,10 +114,10 @@ BOOL __stdcall spiDestroy() {
 }
 
 BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
-	g_crit_sec_ex_lock = std::make_unique<CriticalSection::Lock>(g_crit_sec);
+	g_snp_context.crit_sec_ex_lock = std::make_unique<CriticalSection::Lock>(g_snp_context.crit_sec);
 
 	AdFile* lastAd = nullptr;
-	for (auto& game : g_game_list) {
+	for (auto& game : g_snp_context.game_list) {
 		game.game_info.pExtra = game.extra_bytes;
 		if (lastAd) {
 			lastAd->game_info.pNext = &game.game_info;
@@ -125,12 +128,12 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 	if (lastAd) {
 		lastAd->game_info.pNext = nullptr;
 	}
-	std::erase_if(g_game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
+	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
 	try {
 		*out_game_list = nullptr;
-		if (!g_game_list.empty()) {
-			*out_game_list = &g_game_list.begin()->game_info;
+		if (!g_snp_context.game_list.empty()) {
+			*out_game_list = &g_snp_context.game_list.begin()->game_info;
 		}
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
@@ -140,7 +143,7 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 }
 
 BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
-	g_crit_sec_ex_lock.reset();
+	g_snp_context.crit_sec_ex_lock.reset();
 
 	try {
 		g_crown_link->request_advertisements();
@@ -155,20 +158,23 @@ BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	LOCK();
 
-	memset(&g_hosted_game, 0, sizeof(g_hosted_game));
-	strcpy_s(g_hosted_game.game_info.szGameName, sizeof(g_hosted_game.game_info.szGameName), game_name);
-	strcpy_s(g_hosted_game.game_info.szGameStatString, sizeof(g_hosted_game.game_info.szGameStatString), game_stat_string);
-	g_hosted_game.game_info.dwGameState = game_state;
-	g_hosted_game.game_info.dwProduct = g_game_app_info.dwProduct;
-	g_hosted_game.game_info.dwVersion = g_game_app_info.dwVerbyte;
-	g_hosted_game.game_info.dwUnk_1C = 0x0050;
-	g_hosted_game.game_info.dwUnk_24 = 0x00a7;
+	auto& hosted_game = g_snp_context.hosted_game;
+	memset(&hosted_game, 0, sizeof(hosted_game));
 
-	memcpy(g_hosted_game.extra_bytes, user_data, user_data_size);
-	g_hosted_game.game_info.dwExtraBytes = user_data_size;
-	g_hosted_game.game_info.pExtra = g_hosted_game.extra_bytes;
+	auto& game_info = hosted_game.game_info;
+	strcpy_s(game_info.szGameName, sizeof(game_info.szGameName), game_name);
+	strcpy_s(game_info.szGameStatString, sizeof(game_info.szGameStatString), game_stat_string);
+	game_info.dwGameState = game_state;
+	game_info.dwProduct = g_snp_context.game_app_info.dwProduct;
+	game_info.dwVersion = g_snp_context.game_app_info.dwVerbyte;
+	game_info.dwUnk_1C = 0x0050;
+	game_info.dwUnk_24 = 0x00a7;
 
-	g_crown_link->start_advertising(Util::MemoryFrame::from(g_hosted_game));
+	memcpy(hosted_game.extra_bytes, user_data, user_data_size);
+	game_info.dwExtraBytes = user_data_size;
+	game_info.pExtra = hosted_game.extra_bytes;
+
+	g_crown_link->start_advertising(Util::MemoryFrame::from(g_snp_context.hosted_game));
 	return true;
 }
 
@@ -181,9 +187,9 @@ BOOL __stdcall spiStopAdvertisingGame() {
 BOOL __stdcall spiGetGameInfo(DWORD index, char* game_name, int, game* out_game) {
 	LOCK();
 
-	for (auto& it : g_game_list) {
-		if (it.game_info.dwIndex == index) {
-			*out_game = it.game_info;
+	for (auto& game : g_snp_context.game_list) {
+		if (game.game_info.dwIndex == index) {
+			*out_game = game.game_info;
 			return true;
 		}
 	}
