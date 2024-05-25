@@ -61,6 +61,10 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	} break;
 	}
 
+	if (g_crown_link->juice_manager().is_relayed(host)) {
+		prefix += "[R]";
+	}
+
 	if (prefix.size()) {
 		prefix += adFile->game_info.szGameName;
 		strncpy(adFile->game_info.szGameName, prefix.c_str(), sizeof(adFile->game_info.szGameName));

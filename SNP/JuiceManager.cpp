@@ -6,6 +6,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
+		.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL,
 		.stun_server_host = snp_config.stun_server.c_str(),
 		.stun_server_port = snp_config.stun_port,
 
@@ -15,6 +16,16 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 		.cb_recv = on_recv,
 		.user_ptr = this,
 	};
+	if (snp_config.turn_username.size() && snp_config.turn_password.size()) {
+		juice_turn_server_t turn_server;
+		memset(&turn_server, 0, sizeof(turn_server));
+		turn_server.host = snp_config.turn_server.c_str();
+		turn_server.port = snp_config.turn_port;
+		turn_server.username = snp_config.turn_username.c_str();
+		turn_server.password = snp_config.turn_password.c_str();
+		config.turn_servers = &turn_server;
+		config.turn_servers_count = 1;
+	}
 	m_agent = juice_create(&config);
 
 	if (!init_message.empty()) {
@@ -69,6 +80,7 @@ void JuiceAgent::send_message(void* data, size_t size) {
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
 	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	parent.m_p2p_state = state;
+	parent.m_logger.debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
 	case JUICE_STATE_CONNECTED: {
 		parent.m_logger.info("Initially connected");
@@ -80,9 +92,11 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
 		if (std::string{local}.find("typ relay") != std::string::npos) {
+			parent.is_relayed = true;
 			parent.m_logger.warn("Local connection is relayed, performance may be affected");
 		}
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
+			parent.is_relayed = true;
 			parent.m_logger.warn("Remote connection is relayed, performance may be affected");
 		}
 		parent.m_logger.debug("Final candidates were local: {} remote: {}", local, remote);
@@ -158,4 +172,11 @@ juice_state JuiceManager::agent_state(const NetAddress& address) {
 		return agent->state();
 	}
 	return JUICE_STATE_DISCONNECTED;
+}
+
+bool JuiceManager::is_relayed(const NetAddress& peer_id) {
+	if (auto agent = maybe_get_agent(peer_id)) {
+		return agent->is_relayed;
+	}
+	return false;
 }
