@@ -6,7 +6,7 @@ constexpr auto ADDRESS_SIZE = 16;
 CrownLink::CrownLink() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
 	m_is_running = true;
-	m_signaling_socket.init();
+	m_signaling_socket.try_init();
 	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
 
@@ -126,7 +126,7 @@ void CrownLink::handle_winsock_error(s32 error_code) {
 
 	while (true) {
 		m_signaling_socket.deinit();
-		if (m_signaling_socket.init()) {
+		if (m_signaling_socket.try_init()) {
 			break;
 		}
 		std::this_thread::sleep_for(std::chrono::seconds(1));

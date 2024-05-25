@@ -80,7 +80,7 @@ public:
 		deinit();
 	}
 
-	bool init();
+	bool try_init();
 	void deinit();
 	void send_packet(NetAddress destination, SignalMessageType message_type, const std::string& message = "");
 	void send_packet(const SignalPacket& packet);

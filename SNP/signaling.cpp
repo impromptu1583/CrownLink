@@ -23,7 +23,7 @@ void from_json(const Json& json, SignalPacket& out_packet) {
 	}
 };
 
-bool SignalingSocket::init() {
+bool SignalingSocket::try_init() {
 	m_logger.info("Connecting to matchmaking server");
 	m_current_state = SocketState::Connecting;
 

@@ -41,14 +41,13 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 		adFile->game_info.dwIndex = ++g_next_game_ad_id;
 	}
 
-	int indx = adFile->game_info.dwIndex;
+	s32 index = adFile->game_info.dwIndex;
 	Util::MemoryFrame::from(adFile->game_info).writeAs(ad.readAs<game>()); // this overwrites the index lol
 	Util::MemoryFrame::from(adFile->extra_bytes).write(ad);
 
 	std::string prefix;
 	if (g_game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		Logger::root().info("Version byte mismatch. ours: {} theirs: {}",
-				g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+		Logger::root().info("Version byte mismatch. ours: {} theirs: {}", g_game_app_info.dwVerbyte, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
 
@@ -65,7 +64,8 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 		prefix += "[R]";
 	}
 
-	if (prefix.size()) {
+	if (!prefix.empty()) {
+		prefix += " ";
 		prefix += adFile->game_info.szGameName;
 		strncpy(adFile->game_info.szGameName, prefix.c_str(), sizeof(adFile->game_info.szGameName));
 	}
@@ -73,7 +73,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	adFile->game_info.dwTimer = GetTickCount();
 	adFile->game_info.saHost = *(SNETADDR*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
-	adFile->game_info.dwIndex = indx;
+	adFile->game_info.dwIndex = index;
 }
 
 void removeAdvertisement(const NetAddress& host) {}
