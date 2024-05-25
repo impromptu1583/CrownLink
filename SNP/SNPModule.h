@@ -2,10 +2,24 @@
 #include "common.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "SNPNetwork.h"
 #include "ThQueue.h"
 
 namespace snp {
+
+constexpr auto MAX_PACKET_SIZE = 500;
+
+struct NetworkInfo {
+	char* pszName;
+	DWORD dwIdentifier;
+	char* pszDescription;
+	CAPS  caps;
+};
+
+using SOCKADDR = ::SOCKADDR;
+
+void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad);
+void removeAdvertisement(const NetAddress& host);
+void passPacket(GamePacket& parket);
 
 struct NetFunctions {
 	// The size of the vtable

@@ -140,6 +140,13 @@ JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address) {
 	return *m_agents.at(address);
 }
 
+void JuiceManager::clear_inactive_agents() {
+	std::erase_if(m_agents, [this](const auto& pair) {
+		const auto& [_, agent] = pair;
+		return agent->state() == JUICE_STATE_DISCONNECTED || agent->state() == JUICE_STATE_FAILED;
+	});
+}
+
 void JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
 	auto& agent = ensure_agent(address);
 	agent.send_message(data, size);
@@ -155,16 +162,16 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 
 void JuiceManager::send_all(void* data, const size_t size) {
 	for (auto& [name, agent] : m_agents) {
-		m_logger.debug("Sending message peer {} with status: {}\n", (const char*)agent->m_address.address, as_string(agent->m_p2p_state));
+		m_logger.debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
 		agent->send_message(data, size);
 	}
 }
 
-juice_state JuiceManager::peer_status(const NetAddress& peer_id) {
-	if (auto agent = maybe_get_agent(peer_id)) {
-		return agent->m_p2p_state;
+juice_state JuiceManager::agent_state(const NetAddress& address) {
+	if (auto agent = maybe_get_agent(address)) {
+		return agent->state();
 	}
-	return juice_state(JUICE_STATE_DISCONNECTED);
+	return JUICE_STATE_DISCONNECTED;
 }
 
 bool JuiceManager::is_relayed(const NetAddress& peer_id) {

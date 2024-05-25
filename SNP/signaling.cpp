@@ -23,7 +23,7 @@ void from_json(const Json& json, SignalPacket& out_packet) {
 	}
 };
 
-bool SignalingSocket::initialize() {
+bool SignalingSocket::init() {
 	m_logger.info("Connecting to matchmaking server");
 	m_current_state = SocketState::Connecting;
 
@@ -53,7 +53,7 @@ bool SignalingSocket::initialize() {
 
 		break;
 	}
-	if (result == NULL) {
+	if (!result) {
 		m_logger.error("Signaling client failed to connect");
 		return false;
 	}
@@ -68,7 +68,7 @@ bool SignalingSocket::initialize() {
 	return true;
 }
 
-void SignalingSocket::deinitialize() {
+void SignalingSocket::deinit() {
 	if (m_socket) {
 		closesocket(m_socket);
 		m_socket = 0;
@@ -87,7 +87,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 
 	Json json = packet;
 	auto send_buffer = json.dump();
-	send_buffer += m_delimiter;
+	send_buffer += Delimiter;
 	m_logger.debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
 	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
@@ -99,10 +99,10 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 void SignalingSocket::split_into_packets(const std::string& data, std::vector<SignalPacket>& incoming_packets) {
 	size_t pos_start = 0;
 	size_t pos_end = 0;
-	size_t delim_len = m_delimiter.length();
+	size_t delim_len = Delimiter.length();
 
 	incoming_packets.clear();
-	while ((pos_end = data.find(m_delimiter, pos_start)) != std::string::npos) {
+	while ((pos_end = data.find(Delimiter, pos_start)) != std::string::npos) {
 		const auto segment = data.substr(pos_start, pos_end - pos_start);
 		pos_start = pos_end + delim_len;
 			
@@ -111,7 +111,7 @@ void SignalingSocket::split_into_packets(const std::string& data, std::vector<Si
 	}
 }
 
-int SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets) {
+s32 SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets) {
 	static constexpr unsigned int MAX_BUF_LENGTH = 4096;
 	std::vector<char> buffer(MAX_BUF_LENGTH);
 	std::string receive_buffer;

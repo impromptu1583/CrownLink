@@ -20,11 +20,7 @@ struct SnpConfig {
 
 class SnpConfigLoader {
 public:
-	SnpConfigLoader(const std::string& filename) {
-		char buffer[MAX_PATH];
-		GetModuleFileNameA(0, buffer, MAX_PATH);
-		m_path = fs::path{buffer}.parent_path() / filename;
-	}
+	SnpConfigLoader(const std::string& filename) : m_path{g_starcraft_dir / filename} {}
 
 	SnpConfig load() {
 		std::ifstream file{m_path};

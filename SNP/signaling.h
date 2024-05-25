@@ -64,7 +64,7 @@ struct SignalPacket {
 		: peer_address{address}, message_type{type}, data{data} {}
 	
 	SignalPacket(std::string& packet_string) {
-		memcpy_s((void*)&peer_address.address, sizeof(peer_address.address), packet_string.c_str(), sizeof(NetAddress));
+		memcpy_s((void*)&peer_address.bytes, sizeof(peer_address.bytes), packet_string.c_str(), sizeof(NetAddress));
 		message_type = SignalMessageType((int)packet_string.at(16) - 48);
 		data = packet_string.substr(sizeof(NetAddress) + 1);
 	}
@@ -77,14 +77,14 @@ public:
 	SignalingSocket& operator=(SignalingSocket&) = delete;
 
 	~SignalingSocket() {
-		deinitialize();
+		deinit();
 	}
 
-	bool initialize();
-	void deinitialize();
+	bool init();
+	void deinit();
 	void send_packet(NetAddress destination, SignalMessageType message_type, const std::string& message = "");
 	void send_packet(const SignalPacket& packet);
-	int  receive_packets(std::vector<SignalPacket>& incoming_packets);
+	s32 receive_packets(std::vector<SignalPacket>& incoming_packets);
 	void start_advertising();
 	void stop_advertising();
 	void request_advertisers();
@@ -95,11 +95,12 @@ private:
 	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);
 
 private:
+	inline static const std::string Delimiter = "-+";
+
 	NetAddress m_server{};
 	SocketState m_current_state = SocketState::Uninitialized;
 	SOCKET m_socket = 0;
-	int m_state = 0;
-	const std::string m_delimiter = "-+";
+	s32 m_state = 0;
 	std::string m_host;
 	std::string m_port;
 	Logger m_logger{Logger::root(), "SignalingSocket"};
