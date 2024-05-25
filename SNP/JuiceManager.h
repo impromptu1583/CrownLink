@@ -40,6 +40,7 @@ public:
 
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_message(void* data, const size_t size);
+	bool is_relayed = false;
 
 private:
 	static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
@@ -66,6 +67,7 @@ public:
 	void send_p2p(const NetAddress& address, void* data, size_t size);
 	void send_all(void* data, size_t size);
 	juice_state peer_status(const NetAddress& peer_id);
+	bool is_relayed(const NetAddress& peer_id);
 
 private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
