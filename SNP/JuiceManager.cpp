@@ -79,6 +79,7 @@ void JuiceAgent::send_message(void* data, size_t size) {
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
 	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	parent.m_p2p_state = state;
+	parent.m_logger.debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
 	case JUICE_STATE_CONNECTED: {
 		parent.m_logger.info("Initially connected");
