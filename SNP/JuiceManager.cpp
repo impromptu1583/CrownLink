@@ -6,6 +6,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::string init_message = "")
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
+		.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL,
 		.stun_server_host = snp_config.stun_server.c_str(),
 		.stun_server_port = snp_config.stun_port,
 
