@@ -13,6 +13,7 @@ enum class SignalMessageType {
 	JuiceLocalDescription = 101,
 	JuciceCandidate,
 	JuiceDone,
+	JuiceTurnCredentials,
 
 	ServerSetID = 254,
 	ServerEcho = 255,
