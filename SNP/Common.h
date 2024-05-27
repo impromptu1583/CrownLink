@@ -63,6 +63,18 @@ struct AdFile {
 	char extra_bytes[32]{};
 };
 
+inline std::string to_string(juice_state value) {
+	switch (value) {
+		EnumStringCase(JUICE_STATE_DISCONNECTED);
+		EnumStringCase(JUICE_STATE_GATHERING);
+		EnumStringCase(JUICE_STATE_CONNECTING);
+		EnumStringCase(JUICE_STATE_CONNECTED);
+		EnumStringCase(JUICE_STATE_COMPLETED);
+		EnumStringCase(JUICE_STATE_FAILED);
+	}
+	return std::to_string((s32)value);
+}
+
 inline std::string as_string(const auto& value) {
 	using std::to_string;
 	if constexpr (std::convertible_to<decltype(value), std::string>) {
