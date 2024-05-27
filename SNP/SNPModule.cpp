@@ -131,8 +131,6 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 }
 
 BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
-	std::lock_guard lock{g_advertisement_mutex};
-
 	try {
 		g_crown_link->request_advertisements();
 	} catch (GeneralException& e) {
