@@ -22,6 +22,8 @@ CrownLink::~CrownLink() {
 void CrownLink::request_advertisements() {
 	m_logger.debug("Requesting lobbies");
 	m_signaling_socket.request_advertisers();
+
+	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
 		if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
@@ -134,6 +136,7 @@ void CrownLink::handle_winsock_error(s32 error_code) {
 }
 
 void CrownLink::update_known_advertisers(const std::string& data) {
+	std::lock_guard lock{g_advertisement_mutex};
 	m_known_advertisers.clear();
 	// SNETADDR in base64 encoding is always 24 characters
 	Logger logger{m_logger, "update_known_advertisers"};

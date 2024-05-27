@@ -60,3 +60,4 @@ private:
 
 inline HANDLE g_receive_event;
 inline std::unique_ptr<CrownLink> g_crown_link;
+inline std::mutex g_advertisement_mutex;

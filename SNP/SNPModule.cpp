@@ -10,15 +10,8 @@
 
 namespace snp {
 
-#define LOCK() CriticalSection::Lock crit_sec_lock{g_snp_context.crit_sec};
-
 struct SNPContext {
 	client_info game_app_info;
-
-	CriticalSection crit_sec;
-	std::unique_ptr<CriticalSection::Lock> crit_sec_ex_lock;
-
-	std::queue<GamePacket> incoming_game_packets;
 
 	std::list<AdFile> game_list;
 	s32 next_game_ad_id = 1;
@@ -29,7 +22,7 @@ struct SNPContext {
 static SNPContext g_snp_context;
 
 void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
-	LOCK();
+	std::lock_guard lock{g_advertisement_mutex};
 
 	AdFile* adFile = nullptr;
 	for (auto& game : g_snp_context.game_list) {
@@ -81,16 +74,11 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 
 void removeAdvertisement(const NetAddress& host) {}
 
-void passPacket(GamePacket& packet) {
-	LOCK();
-	g_snp_context.incoming_game_packets.push(packet);
-	SetEvent(g_receive_event);
-}
+void passPacket(GamePacket& packet) {}
 
 BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
-	g_snp_context.crit_sec.init();
 
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
@@ -114,7 +102,7 @@ BOOL __stdcall spiDestroy() {
 }
 
 BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
-	g_snp_context.crit_sec_ex_lock = std::make_unique<CriticalSection::Lock>(g_snp_context.crit_sec);
+	std::lock_guard lock{g_advertisement_mutex};
 
 	AdFile* lastAd = nullptr;
 	for (auto& game : g_snp_context.game_list) {
@@ -143,7 +131,7 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 }
 
 BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
-	g_snp_context.crit_sec_ex_lock.reset();
+	std::lock_guard lock{g_advertisement_mutex};
 
 	try {
 		g_crown_link->request_advertisements();
@@ -156,7 +144,7 @@ BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 }
 
 BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
-	LOCK();
+	std::lock_guard lock{g_advertisement_mutex};
 
 	auto& hosted_game = g_snp_context.hosted_game;
 	memset(&hosted_game, 0, sizeof(hosted_game));
@@ -179,13 +167,13 @@ BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_passwor
 }
 
 BOOL __stdcall spiStopAdvertisingGame() {
-	LOCK();
+	std::lock_guard lock{g_advertisement_mutex};
 	g_crown_link->stop_advertising();
 	return true;
 }
 
 BOOL __stdcall spiGetGameInfo(DWORD index, char* game_name, int, game* out_game) {
-	LOCK();
+	std::lock_guard lock{g_advertisement_mutex};
 
 	for (auto& game : g_snp_context.game_list) {
 		if (game.game_info.dwIndex == index) {
@@ -220,8 +208,6 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 }
 
 BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
-	LOCK();
-
 	*peer = nullptr;
 	*out_data = nullptr;
 	*out_size = 0;
@@ -256,8 +242,6 @@ BOOL __stdcall spiReceive(NetAddress** peer, char** out_data, DWORD* out_size) {
 }
 
 BOOL __stdcall spiFree(NetAddress* loan, char* data, DWORD size) {
-	LOCK();
-
 	if (loan) {
 		delete loan;
 	}
@@ -265,8 +249,6 @@ BOOL __stdcall spiFree(NetAddress* loan, char* data, DWORD size) {
 }
 
 BOOL __stdcall spiCompareNetAddresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
-	LOCK();
-
 	DropMessage(0, "spiCompareNetAddresses");
 	if (out_result) {
 		*out_result = 0;
