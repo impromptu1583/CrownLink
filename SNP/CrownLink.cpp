@@ -146,7 +146,9 @@ void CrownLink::update_known_advertisers(const std::string& data) {
 			const auto peer_str = base64::from_base64(data.substr(i*24, 24));
 			logger.debug("Potential lobby owner received: {}", data.substr(i*24, 24));
 			m_known_advertisers.push_back(NetAddress{peer_str});
-			m_juice_manager.ensure_agent(peer_str);
+
+			std::lock_guard lock{m_juice_manager.mutex()};
+			m_juice_manager.ensure_agent(peer_str, lock);
 		} catch (const std::exception &exc) {
 			logger.error("Processing: {} error: {}", data.substr(i,24), exc.what());
 		}
