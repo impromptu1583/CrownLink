@@ -85,6 +85,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 		return;
 	}
 
+	std::lock_guard lock{m_mutex};
 	Json json = packet;
 	auto send_buffer = json.dump();
 	send_buffer += Delimiter;

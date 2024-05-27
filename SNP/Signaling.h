@@ -99,10 +99,11 @@ private:
 	inline static const std::string Delimiter = "-+";
 
 	NetAddress m_server{};
-	SocketState m_current_state = SocketState::Uninitialized;
+	std::atomic<SocketState> m_current_state = SocketState::Uninitialized;
 	SOCKET m_socket = 0;
 	s32 m_state = 0;
 	std::string m_host;
 	std::string m_port;
+	std::mutex m_mutex;
 	Logger m_logger{Logger::root(), "SignalingSocket"};
 };
