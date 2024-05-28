@@ -190,6 +190,7 @@ BOOL __stdcall spiSend(DWORD address_count, NetAddress** out_address_list, char*
 	}
 
 	if (address_count > 1) {
+		Logger::root().info("multicast attempted");
 		DropMessage(1, "spiSend, multicast not supported");
 	}
 
