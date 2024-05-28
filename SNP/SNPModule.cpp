@@ -1,6 +1,5 @@
 #include "SNPModule.h"
 
-#include "bwapi/CriticalSection.h"
 #include "bwapi/Output.h"
 #include "bwapi/Util/MemoryFrame.h"
 #include "bwapi/Storm/storm.h"
