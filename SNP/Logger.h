@@ -1,8 +1,11 @@
 #pragma once
-#include "common.h"
+#include "Common.h"
+#include <chrono>
 
-static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
-static constexpr auto LogDateFormat = "%H:%M:%S";
+inline bool g_fatal = false;
+
+static constexpr auto FileDateFormat = "{:%F_%Hh_%Mm}";
+static constexpr auto LogDateFormat = "{:%H:%M:%OS}";
 
 #define AnsiWhite   "\033[37m"
 #define AnsiYellow  "\033[33m"
@@ -45,38 +48,29 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
     {LogLevel::Trace, "trace"},
 });
 
-inline tm* get_local_time() {
-    time_t current_time = time(nullptr);
-    static tm result;
-    localtime_s(&result, &current_time);
-    return &result;
-}
-
 class LogFile {
 public:
     LogFile(std::string_view name = "log") {
-        open(name);
+        fs::path dir_path = g_starcraft_dir / "crownlink_logs";
+        std::error_code ec;
+        fs::create_directory(dir_path, ec);
+
+        std::stringstream ss;
+        ss << name << "_" << std::format(FileDateFormat, std::chrono::zoned_time{
+            std::chrono::current_zone(),std::chrono::system_clock::now() });
+        m_out.open(dir_path / ss.str(), std::ios::app);
     }
 
     friend LogFile& operator<<(LogFile& out, const auto& value) {
-        out.m_out << value << std::flush;
-
+        out.m_out << value;
         return out;
     }
 
-private:
-    void open(std::string_view name) {
-        if (m_out.is_open()) {
-            return;
-        }
+    typedef std::ostream& StdStreamCallback(std::ostream&);
 
-        std::error_code ec;
-        fs::create_directory("logs", ec);
-
-        std::stringstream ss;
-        const auto current_time = time(nullptr);
-        ss << "logs/" << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
-        m_out.open(ss.str(), std::ios::app);
+    friend LogFile& operator<<(LogFile& out, StdStreamCallback* callback) {
+        callback(out.m_out);
+        return out;
     }
 
 private:
@@ -106,7 +100,7 @@ public:
         log(std::cerr, "Fatal", AnsiBoldRed, message);
 
         MessageBoxA(0, message.c_str(), "CrownLink Fatal Error", MB_ICONERROR | MB_OK);
-        exit(-1);
+        g_fatal = true;
     }
 
     void error(std::string_view format, const auto&... args) {
@@ -136,7 +130,7 @@ public:
 
     static void set_log_level(LogLevel log_level) { s_log_level = log_level; }
 
-    static auto& root() {
+    static Logger& root() {
 		static LogFile file{"CrownLink"};
 		static Logger logger{&file};
         return logger;
@@ -146,16 +140,17 @@ private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
         const auto prefix = make_prefix(log_level);
 
-		out << ansi_color << prefix << string << AnsiReset << "\n";
+		// std::endl flushes, which is inteded for logger
+		out << ansi_color << prefix << string << AnsiReset << std::endl; 
         if (m_log_file) {
-            *m_log_file << prefix << string << "\n";
+            *m_log_file << prefix << string << std::endl;
         }
     }
 
     std::string make_prefix(std::string_view log_level) {
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        ss << "[" << std::put_time(get_local_time(), LogDateFormat) << " " << log_level << "]";
+        ss << "[" << std::format(LogDateFormat, std::chrono::utc_clock::now()) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
             ss << " " << prefix;
         }

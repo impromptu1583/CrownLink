@@ -1,4 +1,4 @@
-import asyncio, json, uuid, time, logging, sys, base64, binascii
+import asyncio, json, uuid, logging, sys, base64, requests
 from enum import IntEnum
 from copy import copy
 
@@ -9,6 +9,34 @@ SERVER_PORT = 9988
 SERVER_ID = b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
 CONNECTIONS = {}
 DELIMINATER = b"-+"
+TURN_API_KEY = None
+
+with open("./metered_api.json","r") as file:
+    try:
+        api_config = json.load(file)
+        if "metered-key" in api_config.keys():
+            TURN_API_KEY = api_config["metered-key"]
+    except Exception as e:
+        logger.error(f"API key loading failed with exception {e}")
+
+def create_turn_creds(label):
+    api_url = "https://crownlink.metered.live/api/v1/turn/credential?secretKey=" + TURN_API_KEY
+    headers = {"Content-Type":"application/json"}
+    request = {"label":label}
+    response = requests.post(api_url,data=json.dumps(request),headers=headers)
+    if response.status_code == 200:
+        return response.json()
+        
+def delete_turn_creds(username):
+    api_url = "https://crownlink.metered.live/api/v1/turn/credential?secretKey=" + TURN_API_KEY
+    headers = {"Content-Type":"application/json"}
+    request = {"username":username}
+    response = requests.delete(api_url,data=json.dumps(request),headers=headers)
+    if response.status_code != 200:
+        logger.error(f"error {response.status_code} when deleting credential for {username}")
+
+def delete_turn_creds(turn_username):
+    pass
 
 def try_b64decode(value):
     try:
@@ -18,16 +46,17 @@ def try_b64decode(value):
         return False
 
 class Signal_message_type(IntEnum):
-	SIGNAL_START_ADVERTISING = 1
-	SIGNAL_STOP_ADVERTISING = 2
-	SIGNAL_REQUEST_ADVERTISERS = 3
-	SIGNAL_SOLICIT_ADS = 4
-	SIGNAL_GAME_AD = 5
-	SIGNAL_JUICE_LOCAL_DESCRIPTION = 101
-	SIGNAL_JUICE_CANDIDATE = 102
-	SIGNAL_JUICE_DONE = 103
-	SERVER_SET_ID = 254
-	SERVER_ECHO = 255
+    SIGNAL_START_ADVERTISING = 1
+    SIGNAL_STOP_ADVERTISING = 2
+    SIGNAL_REQUEST_ADVERTISERS = 3
+    SIGNAL_SOLICIT_ADS = 4
+    SIGNAL_GAME_AD = 5
+    SIGNAL_JUICE_LOCAL_DESCRIPTION = 101
+    SIGNAL_JUICE_CANDIDATE = 102
+    SIGNAL_JUICE_DONE = 103
+    SIGNAL_JUICE_TURN_CREDENTIALS = 104
+    SERVER_SET_ID = 254
+    SERVER_ECHO = 255
 
 class Signal_packet():
     _peer_ID = b''
