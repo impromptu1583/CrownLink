@@ -6,7 +6,6 @@ constexpr auto ADDRESS_SIZE = 16;
 CrownLink::CrownLink() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
 	m_is_running = true;
-	m_signaling_socket.try_init();
 	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
 
@@ -49,6 +48,8 @@ void CrownLink::send(const NetAddress& peer, void* data, size_t size) {
 }
 
 void CrownLink::receive_signaling() {
+	m_signaling_socket.try_init();
+
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		m_juice_manager.clear_inactive_agents();
