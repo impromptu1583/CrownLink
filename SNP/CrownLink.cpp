@@ -23,17 +23,17 @@ void CrownLink::request_advertisements() {
 	m_signaling_socket.request_advertisers();
 
 	switch (m_signaling_socket.state()) {
-		case SocketState::Ready{
-			snp::clearStatusAd();
+		case SocketState::Ready: {
+			snp::clear_status_ad();
 		} break;
-		default{
+		default: {
 			auto status_string = std::string{ "Connecting CrownLink" };
 			m_ellipsis_counter = (m_ellipsis_counter + 1) % 4;
-			snp::setStatusAd("CL Server Connecting..");
+			snp::set_status_ad("CL Server Connecting..");
 			for (u32 i = 0; i < m_ellipsis_counter; i++) {
 				status_string += ".";
 			}
-			snp::setStatusAd(status_string);
+			snp::set_status_ad(status_string);
 		} break;
 	}
 		 
