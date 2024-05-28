@@ -4,8 +4,11 @@
 
 inline bool g_fatal = false;
 
-static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
-static constexpr auto LogDateFormat = "%H:%M:%S";
+//static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
+//static constexpr auto LogDateFormat = "%H:%M:%S";
+
+static constexpr auto FileDateFormat = "{:%F_%Hh_%Mm}";
+static constexpr auto LogDateFormat = "{:%T}";
 
 #define AnsiWhite   "\033[37m"
 #define AnsiYellow  "\033[33m"
@@ -63,7 +66,9 @@ public:
         fs::create_directory(dir_path, ec);
 
         std::stringstream ss;
-        ss << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
+        //ss << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
+        ss << name << "_" << std::format(FileDateFormat, std::chrono::zoned_time{
+            std::chrono::current_zone(),std::chrono::system_clock::now() });
         m_out.open(dir_path / ss.str(), std::ios::app);
     }
 
@@ -157,7 +162,7 @@ private:
         std::stringstream ss;
         const auto current_time = time(nullptr);
         //ss << "[" << std::put_time(lt, LogDateFormat) << " " << log_level << "]";
-        ss << "[" << std::format("{:%T}", std::chrono::zoned_time{
+        ss << "[" << std::format(LogDateFormat, std::chrono::zoned_time{
             std::chrono::current_zone(), std::chrono::system_clock::now()
             }) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
