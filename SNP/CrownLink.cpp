@@ -29,14 +29,12 @@ void CrownLink::request_advertisements() {
 		default: {
 			auto status_string = std::string{ "CrownLink Connecting" };
 			m_ellipsis_counter = (m_ellipsis_counter + 1) % 4;
-			snp::set_status_ad("CL Server Connecting..");
 			for (u32 i = 0; i < m_ellipsis_counter; i++) {
 				status_string += ".";
 			}
 			snp::set_status_ad(status_string);
 		} break;
 	}
-		 
 
 	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
