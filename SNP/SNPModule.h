@@ -15,11 +15,11 @@ struct NetworkInfo {
 	CAPS  caps;
 };
 
-using SOCKADDR = ::SOCKADDR;
-
 void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad);
 void removeAdvertisement(const NetAddress& host);
 void passPacket(GamePacket& parket);
+void setStatusAd(const std::string& status);
+void clearStatusAd();
 
 struct NetFunctions {
 	// The size of the vtable

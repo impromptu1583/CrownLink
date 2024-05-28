@@ -149,3 +149,7 @@ void SignalingSocket::echo(const std::string& data) {
 void SignalingSocket::set_client_id(const std::string& id) {
 	send_packet(m_server, SignalMessageType::ServerSetID, id);
 }
+
+SocketState SignalingSocket::state() {
+	return m_current_state;
+}

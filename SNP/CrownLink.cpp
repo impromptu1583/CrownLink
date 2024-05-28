@@ -23,6 +23,17 @@ void CrownLink::request_advertisements() {
 	m_logger.debug("Requesting lobbies");
 	m_signaling_socket.request_advertisers();
 
+	switch (m_signaling_socket.state()) {
+		case SocketState::Ready:
+			//snp::setStatusAd("CrownLink Ready");
+			snp::clearStatusAd();
+			break;
+		default:
+			snp::setStatusAd("CL Server Connecting..");
+			break;
+	}
+		 
+
 	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);

@@ -91,6 +91,7 @@ public:
 	void request_advertisers();
 	void echo(const std::string& data);
 	void set_client_id(const std::string& id);
+	SocketState state();
 	
 private:
 	void split_into_packets(const std::string& s, std::vector<SignalPacket>& incoming_packets);

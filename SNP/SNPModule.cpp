@@ -16,6 +16,8 @@ struct SNPContext {
 	s32 next_game_ad_id = 1;
 
 	AdFile hosted_game;
+	AdFile status_ad;
+	bool   status_ad_used;
 };
 
 static SNPContext g_snp_context;
@@ -78,7 +80,7 @@ void passPacket(GamePacket& packet) {}
 BOOL __stdcall spiInitialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
-
+	setStatusAd("Crownlink Initializing");
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
 	} catch (GeneralException& e) {
@@ -117,10 +119,18 @@ BOOL __stdcall spiLockGameList(int, int, game** out_game_list) {
 	}
 	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
+	if (lastAd && g_snp_context.status_ad_used) {
+		lastAd->game_info.pNext = &g_snp_context.status_ad.game_info;
+		g_snp_context.status_ad.game_info.dwIndex = lastAd->game_info.dwIndex + 1;
+	}
+
 	try {
 		*out_game_list = nullptr;
 		if (!g_snp_context.game_list.empty()) {
 			*out_game_list = &g_snp_context.game_list.begin()->game_info;
+		}
+		else if(g_snp_context.status_ad_used) {
+			*out_game_list = &g_snp_context.status_ad.game_info;
 		}
 	} catch (GeneralException& e) {
 		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
@@ -140,13 +150,10 @@ BOOL __stdcall spiUnlockGameList(game* game_list, DWORD*) {
 	return true;
 }
 
-BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
-	std::lock_guard lock{g_advertisement_mutex};
+static void create_ad(AdFile& ad_file, char* game_name, char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size) {
+	memset(&ad_file, 0, sizeof(ad_file));
 
-	auto& hosted_game = g_snp_context.hosted_game;
-	memset(&hosted_game, 0, sizeof(hosted_game));
-
-	auto& game_info = hosted_game.game_info;
+	auto& game_info = ad_file.game_info;
 	strcpy_s(game_info.szGameName, sizeof(game_info.szGameName), game_name);
 	strcpy_s(game_info.szGameStatString, sizeof(game_info.szGameStatString), game_stat_string);
 	game_info.dwGameState = game_state;
@@ -155,10 +162,29 @@ BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_passwor
 	game_info.dwUnk_1C = 0x0050;
 	game_info.dwUnk_24 = 0x00a7;
 
-	memcpy(hosted_game.extra_bytes, user_data, user_data_size);
+	memcpy(ad_file.extra_bytes, user_data, user_data_size);
 	game_info.dwExtraBytes = user_data_size;
-	game_info.pExtra = hosted_game.extra_bytes;
+	game_info.pExtra = ad_file.extra_bytes;
+}
 
+void setStatusAd(const std::string& status) {
+	std::lock_guard lock{ g_advertisement_mutex };
+	auto statstr = std::string(",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r");
+	char user_data[32] = {
+		12, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	};
+	create_ad(g_snp_context.status_ad, (char*) status.c_str(), (char*) statstr.c_str(), 0, &user_data, 32);
+	g_snp_context.status_ad.game_info.pNext = nullptr;
+	g_snp_context.status_ad_used = true;
+}
+
+void clearStatusAd() {
+	g_snp_context.status_ad_used = false;
+}
+
+BOOL __stdcall spiStartAdvertisingLadderGame(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
+	std::lock_guard lock{g_advertisement_mutex};
+	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
 	g_crown_link->start_advertising(Util::MemoryFrame::from(g_snp_context.hosted_game));
 	return true;
 }
