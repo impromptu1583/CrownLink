@@ -62,7 +62,7 @@ void passAdvertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	if (!prefix.empty()) {
 		prefix += " ";
 		prefix += adFile->game_info.szGameName;
-		strncpy(adFile->game_info.szGameName, prefix.c_str(), sizeof(adFile->game_info.szGameName));
+		strncpy_s(adFile->game_info.szGameName, sizeof(adFile->game_info.szGameName), prefix.c_str(), sizeof(adFile->game_info.szGameName));
 	}
 
 	adFile->game_info.dwTimer = GetTickCount();
