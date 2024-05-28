@@ -11,6 +11,15 @@ CONNECTIONS = {}
 DELIMINATER = b"-+"
 TURN_API_KEY = None
 
+TURN_CREDS_STATIC = None
+
+with open ("./turn_creds.json") as file:
+    try:
+        TURN_CREDS_STATIC = json.load(file)
+    except Exception as e:
+        logger.error(f"static creds loading failed {e}")
+        
+
 with open("./metered_api.json","r") as file:
     try:
         api_config = json.load(file)
@@ -160,6 +169,8 @@ class ServerProtocol(asyncio.Protocol):
         send_buffer.message_type = Signal_message_type.SERVER_SET_ID
         send_buffer.data = self.peer_ID_base64.decode()
         self.send_packet(send_buffer)
+        if TURN_CREDS_STATIC:
+            self.send_turn_creds()
 
     def connection_lost(self,exc):
         logger.info(f"{self.addr} : {self.peer_ID_base64}")
@@ -189,6 +200,14 @@ class ServerProtocol(asyncio.Protocol):
             send_buffer.message_type = Signal_message_type.SIGNAL_REQUEST_ADVERTISERS
             send_buffer.data = "".join(ads_b64)
             self.send_packet(send_buffer)
+            
+    def send_turn_creds(self):
+        if TURN_CREDS_STATIC:
+            send_buffer = Signal_packet()
+            send_buffer.peer_ID = SERVER_ID
+            send_buffer.message_type = Signal_message_type.SIGNAL_JUICE_TURN_CREDENTIALS
+            send_buffer.data = json.dumps(TURN_CREDS_STATIC)
+            self.send_packet(send_buffer)
 
     def data_received(self,data):
         
@@ -206,6 +225,8 @@ class ServerProtocol(asyncio.Protocol):
             logger.debug(f"{self.peer_ID_base64} >> {packet.peer_ID_base64} ({Signal_message_type(packet.message_type).name}) : {packet.data}")
 
             match(Signal_message_type(packet.message_type)):
+                case Signal_message_type.SIGNAL_JUICE_TURN_CREDENTIALS:
+                    self.send_turn_creds()
                 case Signal_message_type.SIGNAL_START_ADVERTISING:
                     self.update_advertising(True);
                     

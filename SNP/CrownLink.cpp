@@ -39,7 +39,9 @@ void CrownLink::request_advertisements() {
 	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
-		if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
+		//if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
+		if (true){
+
 			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.bytes, sizeof(NetAddress))));
 			m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 		}
