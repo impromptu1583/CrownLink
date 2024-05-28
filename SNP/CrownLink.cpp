@@ -28,7 +28,12 @@ void CrownLink::request_advertisements() {
 			snp::clearStatusAd();
 			break;
 		default:
-			snp::setStatusAd("CL Server Connecting..");
+			auto status_string = std::string{ "Connecting CrownLink" };
+			m_ellipsis_counter = (m_ellipsis_counter + 1) % 4;
+			for (u32 i = 0; i < m_ellipsis_counter; i++) {
+				status_string += ".";
+			}
+			snp::setStatusAd(status_string);
 			break;
 	}
 		 
