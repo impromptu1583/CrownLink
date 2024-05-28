@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include <chrono>
 
 inline bool g_fatal = false;
 
@@ -47,12 +48,12 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
     {LogLevel::Trace, "trace"},
 });
 
-inline tm* get_local_time() {
-    time_t current_time = time(nullptr);
-    static tm result;
-    localtime_s(&result, &current_time);
-    return &result;
-}
+//inline tm* get_local_time() {
+//    time_t current_time = time(nullptr);
+//    static tm result;
+//    localtime_s(&result, &current_time);
+//    return &result;
+//}
 
 class LogFile {
 public:
@@ -155,7 +156,10 @@ private:
     std::string make_prefix(std::string_view log_level) {
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        ss << "[" << std::put_time(get_local_time(), LogDateFormat) << " " << log_level << "]";
+        //ss << "[" << std::put_time(lt, LogDateFormat) << " " << log_level << "]";
+        ss << "[" << std::format("{:%T}", std::chrono::zoned_time{
+            std::chrono::current_zone(), std::chrono::system_clock::now()
+            }) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
             ss << " " << prefix;
         }
