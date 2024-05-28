@@ -6,7 +6,6 @@ constexpr auto ADDRESS_SIZE = 16;
 CrownLink::CrownLink() {
 	m_logger.info("Initializing, version {}", CL_VERSION);
 	m_is_running = true;
-	m_signaling_socket.try_init();
 	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
 
@@ -23,6 +22,20 @@ void CrownLink::request_advertisements() {
 	m_logger.debug("Requesting lobbies");
 	m_signaling_socket.request_advertisers();
 
+	switch (m_signaling_socket.state()) {
+		case SocketState::Ready: {
+			snp::clear_status_ad();
+		} break;
+		default: {
+			auto status_string = std::string{ "CrownLink Connecting" };
+			m_ellipsis_counter = (m_ellipsis_counter + 1) % 4;
+			for (u32 i = 0; i < m_ellipsis_counter; i++) {
+				status_string += ".";
+			}
+			snp::set_status_ad(status_string);
+		} break;
+	}
+
 	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
@@ -38,6 +51,8 @@ void CrownLink::send(const NetAddress& peer, void* data, size_t size) {
 }
 
 void CrownLink::receive_signaling() {
+	m_signaling_socket.try_init();
+
 	std::vector<SignalPacket> incoming_packets;
 	while (m_is_running) {
 		m_juice_manager.clear_inactive_agents();
@@ -85,7 +100,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
-			snp::passAdvertisement(packet.peer_address, Util::MemoryFrame::from(ad));
+			snp::pass_advertisement(packet.peer_address, Util::MemoryFrame::from(ad));
 
 			NetAddress& netaddress = (NetAddress&)ad.game_info.saHost;
 			m_logger.debug("Game Info Received:\n"

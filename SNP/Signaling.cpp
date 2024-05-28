@@ -106,9 +106,13 @@ void SignalingSocket::split_into_packets(const std::string& data, std::vector<Si
 	while ((pos_end = data.find(Delimiter, pos_start)) != std::string::npos) {
 		const auto segment = data.substr(pos_start, pos_end - pos_start);
 		pos_start = pos_end + delim_len;
-			
-		Json json = Json::parse(segment);
-		incoming_packets.push_back(json.template get<SignalPacket>());
+		try {
+			Json json = Json::parse(segment);
+			incoming_packets.push_back(json.template get<SignalPacket>());
+		}
+		catch (std::exception& e) {
+			m_logger.error("could not parse JSON \"{}\", exc: {}", segment, e.what());
+		};
 	}
 }
 
@@ -144,4 +148,8 @@ void SignalingSocket::echo(const std::string& data) {
 
 void SignalingSocket::set_client_id(const std::string& id) {
 	send_packet(m_server, SignalMessageType::ServerSetID, id);
+}
+
+SocketState SignalingSocket::state() {
+	return m_current_state;
 }

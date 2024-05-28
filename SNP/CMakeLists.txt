@@ -10,8 +10,6 @@ set(MODULE_FILES
 	"bwapi/Util/Exceptions.cpp"
 	"bwapi/Output.cpp"
 	"bwapi/Output.h"
-	"bwapi/CriticalSection.h"
-	"bwapi/CriticalSection.cpp"
 	"include/base64.hpp"
 	"include/json.hpp"
 	
