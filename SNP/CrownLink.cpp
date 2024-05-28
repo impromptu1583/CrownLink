@@ -23,13 +23,13 @@ void CrownLink::request_advertisements() {
 	m_signaling_socket.request_advertisers();
 
 	switch (m_signaling_socket.state()) {
-		case SocketState::Ready:
-			//snp::setStatusAd("CrownLink Ready");
-			snp::clearStatusAd();
-			break;
-		default:
-			snp::setStatusAd("CL Server Connecting..");
-			break;
+		case SocketState::Ready: {
+			// snp::setStatusAd("CrownLink Ready");
+			snp::clear_status_ad();
+		} break;
+		default: {
+			snp::set_status_ad("CL Server Connecting..");
+		} break;
 	}
 		 
 
@@ -97,7 +97,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
-			snp::passAdvertisement(packet.peer_address, Util::MemoryFrame::from(ad));
+			snp::pass_advertisement(packet.peer_address, Util::MemoryFrame::from(ad));
 
 			NetAddress& netaddress = (NetAddress&)ad.game_info.saHost;
 			m_logger.debug("Game Info Received:\n"
