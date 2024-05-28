@@ -4,11 +4,8 @@
 
 inline bool g_fatal = false;
 
-//static constexpr auto FileDateFormat = "%d-%m-%Y_%Hh_%Mm";
-//static constexpr auto LogDateFormat = "%H:%M:%S";
-
 static constexpr auto FileDateFormat = "{:%F_%Hh_%Mm}";
-static constexpr auto LogDateFormat = "{:%T}";
+static constexpr auto LogDateFormat = "{:%H:%M:%OS}";
 
 #define AnsiWhite   "\033[37m"
 #define AnsiYellow  "\033[33m"
@@ -51,13 +48,6 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
     {LogLevel::Trace, "trace"},
 });
 
-//inline tm* get_local_time() {
-//    time_t current_time = time(nullptr);
-//    static tm result;
-//    localtime_s(&result, &current_time);
-//    return &result;
-//}
-
 class LogFile {
 public:
     LogFile(std::string_view name = "log") {
@@ -66,7 +56,6 @@ public:
         fs::create_directory(dir_path, ec);
 
         std::stringstream ss;
-        //ss << name << "_" << std::put_time(get_local_time(), FileDateFormat) << ".txt";
         ss << name << "_" << std::format(FileDateFormat, std::chrono::zoned_time{
             std::chrono::current_zone(),std::chrono::system_clock::now() });
         m_out.open(dir_path / ss.str(), std::ios::app);
@@ -151,7 +140,7 @@ private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
         const auto prefix = make_prefix(log_level);
 
-		// std::edl flushes, which is inteded for logger
+		// std::endl flushes, which is inteded for logger
 		out << ansi_color << prefix << string << AnsiReset << std::endl; 
         if (m_log_file) {
             *m_log_file << prefix << string << std::endl;
@@ -161,10 +150,7 @@ private:
     std::string make_prefix(std::string_view log_level) {
         std::stringstream ss;
         const auto current_time = time(nullptr);
-        //ss << "[" << std::put_time(lt, LogDateFormat) << " " << log_level << "]";
-        ss << "[" << std::format(LogDateFormat, std::chrono::zoned_time{
-            std::chrono::current_zone(), std::chrono::system_clock::now()
-            }) << " " << log_level << "]";
+        ss << "[" << std::format(LogDateFormat, std::chrono::utc_clock::now()) << " " << log_level << "]";
         for (const std::string& prefix : m_prefixes) {
             ss << " " << prefix;
         }
