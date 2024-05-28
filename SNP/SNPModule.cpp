@@ -171,7 +171,7 @@ void set_status_ad(const std::string& status) {
 	std::lock_guard lock{g_advertisement_mutex};
 	auto statstr = std::string{",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r"};
 	char user_data[32] = {
-		12, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	};
 	create_ad(g_snp_context.status_ad, status.c_str(), statstr.c_str(), 0, &user_data, 32);
 	g_snp_context.status_ad.game_info.pNext = nullptr;
