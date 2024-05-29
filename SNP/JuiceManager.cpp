@@ -12,7 +12,7 @@ JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::
 
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
 	if (!m_agents.contains(address)) {
-		const auto [it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address));
+		const auto [it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address,m_turn_servers));
 		return *it->second;
 	}
 	return *m_agents.at(address);
@@ -37,8 +37,24 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	m_logger.trace("Received message for {}: {}", peer.b64(), packet.data);
 
 	std::lock_guard lock{m_mutex};
-	auto& peer_agent = ensure_agent(peer, lock);
-	peer_agent.handle_signal_packet(packet);
+	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
+		try {
+			auto json = Json::parse(packet.data);
+			juice_turn_server_t turn_server{
+				json.at("server").get<std::string>().c_str(),
+				json.at("username").get<std::string>().c_str(),
+				json.at("password").get<std::string>().c_str(),
+				json.at("port").get<uint16_t>()
+			};
+			m_turn_servers.push_back(turn_server);
+			m_logger.debug("TURN server info received: {}",packet.data);
+		} catch (std::exception& e) {
+			m_logger.error("error loading turn server {}",e.what());
+		}
+	} else {
+		auto& peer_agent = ensure_agent(peer, lock);
+		peer_agent.handle_signal_packet(packet);
+	}
 }
 
 void JuiceManager::send_all(void* data, const size_t size) {

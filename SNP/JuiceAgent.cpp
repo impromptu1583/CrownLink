@@ -4,7 +4,7 @@
 #include "JuiceManager.h"
 #include "CrownLink.h"
 
-JuiceAgent::JuiceAgent(const NetAddress& address, const std::string& init_message)
+JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<juice_turn_server_t>& turn_servers, const std::string& init_message)
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
@@ -18,16 +18,13 @@ JuiceAgent::JuiceAgent(const NetAddress& address, const std::string& init_messag
 		.cb_recv = on_recv,
 		.user_ptr = this,
 	};
-	if (snp_config.turn_username.size() && snp_config.turn_password.size()) {
-		juice_turn_server_t turn_server;
-		memset(&turn_server, 0, sizeof(turn_server));
-		turn_server.host = snp_config.turn_server.c_str();
-		turn_server.port = snp_config.turn_port;
-		turn_server.username = snp_config.turn_username.c_str();
-		turn_server.password = snp_config.turn_password.c_str();
-		config.turn_servers = &turn_server;
-		config.turn_servers_count = 1;
+
+	if (!turn_servers.empty()) {
+		config.turn_servers = &turn_servers[0];
+		config.turn_servers_count = turn_servers.size();
 	}
+
+
 	m_agent = juice_create(&config);
 
 	if (!init_message.empty()) {

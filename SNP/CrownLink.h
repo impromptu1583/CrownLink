@@ -57,7 +57,7 @@ private:
 
 	Logger m_logger{Logger::root(), "Juice"};
 
-	int m_ellipsis_counter = 3;
+	u32 m_ellipsis_counter = 3;
 };
 
 inline HANDLE g_receive_event;

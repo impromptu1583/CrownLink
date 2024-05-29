@@ -40,11 +40,9 @@ void CrownLink::request_advertisements() {
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
 		//if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
-		if (true){
-
 			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.bytes, sizeof(NetAddress))));
 			m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
-		}
+		//}
 	}
 }
 
@@ -125,6 +123,9 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 				ad.game_info.dwProduct,
 				ad.game_info.dwVersion
 			);
+		} break;
+		case SignalMessageType::JuiceTurnCredentials: {
+
 		} break;
 		case SignalMessageType::JuiceLocalDescription:
 		case SignalMessageType::JuciceCandidate:
