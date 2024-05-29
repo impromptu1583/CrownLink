@@ -3,9 +3,16 @@
 
 struct SignalPacket;
 
+struct TurnServer {
+	std::string host;
+	std::string username;
+	std::string password;
+	uint16_t    port;
+};
+
 class JuiceAgent {
 public:
-	JuiceAgent(const NetAddress& address, std::vector<juice_turn_server_t>& turn_servers, const std::string& init_message = "");
+	JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message = "");
 	~JuiceAgent();
 
 	JuiceAgent(const JuiceAgent&) = delete;

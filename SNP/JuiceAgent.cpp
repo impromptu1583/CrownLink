@@ -4,7 +4,7 @@
 #include "JuiceManager.h"
 #include "CrownLink.h"
 
-JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<juice_turn_server_t>& turn_servers, const std::string& init_message)
+JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message)
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
@@ -20,8 +20,16 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<juice_turn_server_
 	};
 
 	if (!turn_servers.empty()) {
-		config.turn_servers = &turn_servers[0];
-		config.turn_servers_count = turn_servers.size();
+		juice_turn_server servers[5]{};
+		for (int i = 0; i < turn_servers.size() && i < 5; i++) {
+			servers[i].host = turn_servers[i].host.c_str();
+			servers[i].username = turn_servers[i].username.c_str();
+			servers[i].password = turn_servers[i].password.c_str();
+			servers[i].port = turn_servers[i].port;
+		}
+		config.turn_servers = servers;
+		config.turn_servers_count = (turn_servers.size() < 5) ? turn_servers.size() : 5;
+
 	}
 
 

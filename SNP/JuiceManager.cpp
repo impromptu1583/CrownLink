@@ -45,7 +45,8 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 			auto username = json["username"].get<std::string>();
 			auto password = json["password"].get<std::string>();
 			auto port = json["port"].get<uint16_t>();
-			m_turn_servers.emplace_back(juice_turn_server_t{ host.c_str(),username.c_str(),password.c_str(),port });
+
+			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
 			m_logger.debug("TURN server info received: {}",packet.data);
 		} catch (std::exception& e) {
 			m_logger.error("error loading turn server {}",e.what());
