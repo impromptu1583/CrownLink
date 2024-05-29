@@ -164,13 +164,18 @@ class ServerProtocol(asyncio.Protocol):
         global CONNECTIONS
         CONNECTIONS[self.peer_ID] = self
         logger.info(f"{self.addr} : {self.peer_ID_base64}")
-        send_buffer = Signal_packet();
-        send_buffer.peer_ID = SERVER_ID
-        send_buffer.message_type = Signal_message_type.SERVER_SET_ID
-        send_buffer.data = self.peer_ID_base64.decode()
-        self.send_packet(send_buffer)
-        if TURN_CREDS_STATIC:
-            self.send_turn_creds()
+        packetlist = []
+        packetlist.append(Signal_packet())
+        packetlist[0].peer_ID = SERVER_ID
+        packetlist[0].message_type = Signal_message_type.SERVER_SET_ID
+        packetlist[0].data = self.peer_ID_base64.decode()
+        if TURN_CREDS_STATIC:    
+            packetlist.append(Signal_packet());
+            packetlist[1].peer_ID = SERVER_ID
+            packetlist[1].message_type = Signal_message_type.SIGNAL_JUICE_TURN_CREDENTIALS
+            packetlist[1].data = json.dumps(TURN_CREDS_STATIC)
+        self.send_packet(packetlist)
+ 
 
     def connection_lost(self,exc):
         logger.info(f"{self.addr} : {self.peer_ID_base64}")
@@ -179,9 +184,14 @@ class ServerProtocol(asyncio.Protocol):
     def error_received(self,exc):
         logger.error(f"error: {exc}")
     
-    def send_packet(self, packet: Signal_packet):
-        logger.debug(f"{packet.peer_ID_base64} >> {self.peer_ID_base64} ({Signal_message_type(packet.message_type).name}) : {packet.data}")
-        self.transport.write(packet.as_json.encode()+DELIMINATER)
+    def send_packet(self, packetlist):
+        if not isinstance(packetlist,list):
+            packetlist = [packetlist]
+        buffer = b"";
+        for packet in packetlist:
+            logger.debug(f"{packet.peer_ID_base64} >> {self.peer_ID_base64} ({Signal_message_type(packet.message_type).name}) : {packet.data}")
+            buffer += packet.as_json.encode()+DELIMINATER
+        self.transport.write(buffer)
         
     def update_advertising(self, value):
         self.advertising = value

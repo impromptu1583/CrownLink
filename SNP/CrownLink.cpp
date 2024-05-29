@@ -124,9 +124,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 				ad.game_info.dwVersion
 			);
 		} break;
-		case SignalMessageType::JuiceTurnCredentials: {
-
-		} break;
+		case SignalMessageType::JuiceTurnCredentials:
 		case SignalMessageType::JuiceLocalDescription:
 		case SignalMessageType::JuciceCandidate:
 		case SignalMessageType::JuiceDone: {
