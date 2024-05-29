@@ -40,13 +40,12 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
 		try {
 			auto json = Json::parse(packet.data);
-			juice_turn_server_t turn_server{
-				json.at("server").get<std::string>().c_str(),
-				json.at("username").get<std::string>().c_str(),
-				json.at("password").get<std::string>().c_str(),
-				json.at("port").get<uint16_t>()
-			};
-			m_turn_servers.push_back(turn_server);
+
+			auto host = json["server"].get<std::string>();
+			auto username = json["username"].get<std::string>();
+			auto password = json["password"].get<std::string>();
+			auto port = json["port"].get<uint16_t>();
+			m_turn_servers.emplace_back(juice_turn_server_t{ host.c_str(),username.c_str(),password.c_str(),port });
 			m_logger.debug("TURN server info received: {}",packet.data);
 		} catch (std::exception& e) {
 			m_logger.error("error loading turn server {}",e.what());
