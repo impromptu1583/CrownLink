@@ -11,18 +11,23 @@ JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::
 }
 
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
-	if (!m_agents.contains(address)) {
-		const auto [it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address,m_turn_servers));
+	auto it = m_agents.find(address);
+	if (it != m_agents.end()) {
+		if (it->second->state() == JUICE_STATE_FAILED) {
+			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers);
+		}
 		return *it->second;
 	}
-	return *m_agents.at(address);
+
+	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_turn_servers));
+	return *new_it->second;
 }
 
 void JuiceManager::clear_inactive_agents() {
 	std::lock_guard lock{m_mutex};
 	std::erase_if(m_agents, [this](const auto& pair) {
 		const auto& [_, agent] = pair;
-		return agent->state() == JUICE_STATE_DISCONNECTED || agent->state() == JUICE_STATE_FAILED;
+		return agent->state() == JUICE_STATE_FAILED;
 	});
 }
 
