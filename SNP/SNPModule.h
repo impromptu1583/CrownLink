@@ -1,11 +1,25 @@
 #pragma once
-#include "common.h"
+#include "Common.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "SNPNetwork.h"
 #include "ThQueue.h"
 
 namespace snp {
+
+constexpr auto MAX_PACKET_SIZE = 500;
+
+struct NetworkInfo {
+	char* pszName;
+	DWORD dwIdentifier;
+	char* pszDescription;
+	CAPS  caps;
+};
+
+void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad);
+void remove_advertisement(const NetAddress& host);
+void pass_packet(GamePacket& parket);
+void set_status_ad(const std::string& status);
+void clear_status_ad();
 
 struct NetFunctions {
 	// The size of the vtable

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "common.h"
-#include "SNPNetwork.h"
+#include "Common.h"
 #include "Output.h"
 #include "Util/Types.h"
 #include <vector>
@@ -19,20 +18,18 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-class CrownLink final : public snp::Network<NetAddress> {
+class CrownLink {
 public:
-	CrownLink() = default;
-	~CrownLink() override {
-		m_is_running = false;
-	}
+	CrownLink();
+	~CrownLink();
 
-	void initialize() override;
-	void destroy() override;
-	void requestAds() override;
-	void receive() override {}; // unused in this connection type
-	void sendAsyn(const NetAddress& to, Util::MemoryFrame packet) override;
-	void startAdvertising(Util::MemoryFrame ad) override;
-	void stopAdvertising() override;
+	CrownLink(const CrownLink&) = delete;
+	CrownLink& operator=(const CrownLink&) = delete;
+
+	void request_advertisements();
+	void send(const NetAddress& to, void* data, size_t size);
+	void start_advertising(Util::MemoryFrame ad_data);
+	void stop_advertising();
 
 	auto& receive_queue() { return m_receive_queue; }
 	auto& juice_manager() { return m_juice_manager; }
@@ -40,8 +37,8 @@ public:
 
 private:
 	void receive_signaling();
-	void signal_handler(std::vector<SignalPacket>& incoming_packets);
-	void error_handler(int n_bytes);
+	void handle_signal_packets(std::vector<SignalPacket>& packets);
+	void handle_winsock_error(s32 error_code);
 	void update_known_advertisers(const std::string& message);
 
 private:
@@ -52,7 +49,6 @@ private:
 	std::jthread m_signaling_thread;
 	std::vector<NetAddress> m_known_advertisers;
 	Util::MemoryFrame m_ad_data;
-    std::stop_source m_stop_source;
 
 	bool m_is_advertising = false;
 	bool m_is_running = true;
@@ -60,7 +56,10 @@ private:
 	NetAddress m_client_id;
 
 	Logger m_logger{Logger::root(), "Juice"};
+
+	int m_ellipsis_counter = 3;
 };
 
 inline HANDLE g_receive_event;
 inline std::unique_ptr<CrownLink> g_crown_link;
+inline std::mutex g_advertisement_mutex;

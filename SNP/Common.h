@@ -39,22 +39,41 @@ using f64 = double;
 #include <json.hpp>
 using Json = nlohmann::json;
 
+#include <Storm/storm.h>
 #include <Util/Exceptions.h>
 #include <Util/MemoryFrame.h>
 #include <Types.h>
 
+inline const fs::path g_starcraft_dir = []{
+	char buffer[MAX_PATH];
+	GetModuleFileNameA(0, buffer, MAX_PATH);
+	return fs::path{buffer}.parent_path();
+}();
+
 #include "NetAddress.h"
-#include "SNPNetwork.h"
+#include "SNPModule.h"
 
 #include "ThQueue.h"
 #include "Logger.h"
 
-constexpr const char* CL_VERSION = "0.1.51";
+constexpr const char* CL_VERSION = "0.2.2";
 
 struct AdFile {
-	game game_info;
+	game game_info{};
 	char extra_bytes[32]{};
 };
+
+inline std::string to_string(juice_state value) {
+	switch (value) {
+		EnumStringCase(JUICE_STATE_DISCONNECTED);
+		EnumStringCase(JUICE_STATE_GATHERING);
+		EnumStringCase(JUICE_STATE_CONNECTING);
+		EnumStringCase(JUICE_STATE_CONNECTED);
+		EnumStringCase(JUICE_STATE_COMPLETED);
+		EnumStringCase(JUICE_STATE_FAILED);
+	}
+	return std::to_string((s32)value);
+}
 
 inline std::string as_string(const auto& value) {
 	using std::to_string;
