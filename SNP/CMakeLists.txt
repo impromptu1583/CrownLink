@@ -71,6 +71,13 @@ target_link_libraries(SNP
 	PRIVATE juice-static
 )
 
+target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
+target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
+target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+
+
+
 # copy CAPS MPQ into SNP
 message(STATUS "Copying ${CMAKE_SOURCE_DIR}/SNP/caps.mpq at the end of SNP")
 set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
