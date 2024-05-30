@@ -138,7 +138,6 @@ public:
 
 private:
     void log(std::ostream& out, std::string_view log_level, std::string_view ansi_color, std::string_view string) {
-        std::lock_guard lock{ m_mutex };
         const auto prefix = make_prefix(log_level);
 
 		// std::endl flushes, which is inteded for logger
@@ -163,5 +162,4 @@ private:
     std::vector<std::string> m_prefixes;
     LogFile* m_log_file = nullptr;
     inline static LogLevel s_log_level = LogLevel::Info;
-    std::mutex m_mutex;
 };
