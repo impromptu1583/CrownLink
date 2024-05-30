@@ -13,7 +13,7 @@ JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
 	auto it = m_agents.find(address);
 	if (it != m_agents.end()) {
-		if (it->second->state() == JUICE_STATE_FAILED) {
+		if (!it->second->is_active()) {
 			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers);
 		}
 		return *it->second;
@@ -25,9 +25,9 @@ JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::loc
 
 void JuiceManager::clear_inactive_agents() {
 	std::lock_guard lock{m_mutex};
-	std::erase_if(m_agents, [this](const auto& pair) {
+	std::erase_if(m_agents, [](const auto& pair) {
 		const auto& [_, agent] = pair;
-		return agent->state() == JUICE_STATE_FAILED;
+		return !agent->is_active(); 
 	});
 }
 
@@ -45,11 +45,10 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
 		try {
 			auto json = Json::parse(packet.data);
-
-			auto host = json["server"].get<std::string>();
-			auto username = json["username"].get<std::string>();
-			auto password = json["password"].get<std::string>();
-			auto port = json["port"].get<uint16_t>();
+			const auto host = json["server"].get<std::string>();
+			const auto username = json["username"].get<std::string>();
+			const auto password = json["password"].get<std::string>();
+			const auto port = json["port"].get<uint16_t>();
 
 			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
 			m_logger.debug("TURN server info received: {}",packet.data);
@@ -81,7 +80,7 @@ juice_state JuiceManager::agent_state(const NetAddress& address) {
 bool JuiceManager::is_relayed(const NetAddress& address) {
 	std::lock_guard lock{m_mutex};
 	if (auto agent = maybe_get_agent(address, lock)) {
-		return agent->is_relayed;
+		return agent->is_relayed();
 	}
 	return false;
 }

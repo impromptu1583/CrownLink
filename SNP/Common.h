@@ -15,6 +15,8 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+using namespace std::literals;
+
 #define EnumStringCase(X) case X: return #X
 
 using u8 = unsigned char;

@@ -18,7 +18,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 		.cb_recv = on_recv,
 		.user_ptr = this,
 	};
-
 	if (!turn_servers.empty()) {
 		juice_turn_server servers[5]{};
 		for (int i = 0; i < turn_servers.size() && i < 5; i++) {
@@ -31,9 +30,8 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 		config.turn_servers_count = (turn_servers.size() < 5) ? turn_servers.size() : 5;
 
 	}
-
-
 	m_agent = juice_create(&config);
+	mark_active();
 
 	if (!init_message.empty()) {
 		handle_signal_packet(SignalPacket{init_message});
@@ -52,6 +50,8 @@ JuiceAgent::~JuiceAgent() {
 }
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
+	mark_active();
+
 	switch (packet.message_type) {
 	case SignalMessageType::JuiceLocalDescription: {
 		m_logger.trace("Received remote description:\n{}", packet.data);
@@ -69,6 +69,8 @@ void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 }
 
 void JuiceAgent::send_message(void* data, size_t size) {
+	mark_active();
+
 	switch (m_p2p_state) {
 	case JUICE_STATE_CONNECTED:
 	case JUICE_STATE_COMPLETED: {
@@ -86,6 +88,7 @@ void JuiceAgent::send_message(void* data, size_t size) {
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
 	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
+	parent.mark_active();
 	parent.m_p2p_state = state;
 	parent.m_logger.debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
@@ -99,11 +102,11 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
 		if (std::string{local}.find("typ relay") != std::string::npos) {
-			parent.is_relayed = true;
+			parent.set_relayed(true);
 			parent.m_logger.warn("Local connection is relayed, performance may be affected");
 		}
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
-			parent.is_relayed = true;
+			parent.set_relayed(true);
 			parent.m_logger.warn("Remote connection is relayed, performance may be affected");
 		}
 		parent.m_logger.debug("Final candidates were local: {} remote: {}", local, remote);
@@ -114,18 +117,21 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	}
 }
 
-void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr){
+void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
+	parent.mark_active();
 	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
 }
 
-void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr){
+void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
+	parent.mark_active();
 	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuiceDone);
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
+	parent.mark_active();
 	g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
 	SetEvent(g_receive_event);
 	parent.m_logger.trace("received: {}", std::string{data, size});
