@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 
 link.bat
+/signaling/metered_api.json
