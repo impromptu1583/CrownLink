@@ -45,6 +45,7 @@ JuiceAgent::~JuiceAgent() {
 }
 
 void JuiceAgent::mark_last_signal() {
+	mark_active();
 	m_last_signal = std::chrono::steady_clock::now();
 	try_initialize();
 }

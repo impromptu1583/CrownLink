@@ -60,7 +60,7 @@ inline const fs::path g_starcraft_dir = []{
 #include "ThQueue.h"
 #include "Logger.h"
 
-constexpr const char* CL_VERSION = "0.3.0";
+constexpr const char* CL_VERSION = "0.3.1";
 
 struct AdFile {
 	game game_info{};

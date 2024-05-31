@@ -96,11 +96,17 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			// -------------- PACKET: GAME STATS -------------------------------
 			// Give the ad to storm
 			m_logger.debug("received lobby info from {}", packet.peer_address.b64());
-			m_juice_manager.mark_last_signal(packet.peer_address);
+			
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
 			snp::pass_advertisement(packet.peer_address, Util::MemoryFrame::from(ad));
+
+			if (ad.game_info.dwGameState != 12) { // 12 = game in progress
+				m_juice_manager.mark_last_signal(packet.peer_address);
+			} else {
+				m_logger.debug("skipped updating signal because game is in progress");
+			}
 
 			NetAddress& netaddress = (NetAddress&)ad.game_info.saHost;
 			m_logger.debug("Game Info Received:\n"
