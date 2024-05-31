@@ -39,15 +39,14 @@ void CrownLink::request_advertisements() {
 	std::lock_guard lock{g_advertisement_mutex};
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
-		if (status == JUICE_STATE_CONNECTED || status == JUICE_STATE_COMPLETED) {
-			m_logger.trace("Requesting game state from {}", base64::to_base64(std::string((char*)advertiser.bytes, sizeof(NetAddress))));
-			m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
-		}
+		m_juice_manager.send_signal_ping(advertiser);
+		m_logger.trace("Requesting game state from {}", base64::to_base64(std::string{(char*)advertiser.bytes, sizeof(NetAddress)}));
+		m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 	}
 }
 
 void CrownLink::send(const NetAddress& peer, void* data, size_t size) {
-	m_juice_manager.send_p2p(std::string((char*)peer.bytes, sizeof(NetAddress)), data, size);
+	m_juice_manager.send_p2p(std::string{(char*)peer.bytes, sizeof(NetAddress)}, data, size);
 }
 
 void CrownLink::receive_signaling() {
@@ -97,6 +96,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			// -------------- PACKET: GAME STATS -------------------------------
 			// Give the ad to storm
 			m_logger.debug("received lobby info from {}", packet.peer_address.b64());
+			m_juice_manager.mark_last_signal(packet.peer_address);
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
@@ -124,6 +124,8 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 				ad.game_info.dwVersion
 			);
 		} break;
+		case SignalMessageType::SignalingPing:
+		case SignalMessageType::JuiceTurnCredentials:
 		case SignalMessageType::JuiceLocalDescription:
 		case SignalMessageType::JuciceCandidate:
 		case SignalMessageType::JuiceDone: {

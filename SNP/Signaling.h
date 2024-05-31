@@ -15,6 +15,7 @@ enum class SignalMessageType {
 	JuiceDone,
 	JuiceTurnCredentials,
 
+	SignalingPing = 253,
 	ServerSetID = 254,
 	ServerEcho = 255,
 };
@@ -31,6 +32,7 @@ inline std::string to_string(SignalMessageType value) {
 		EnumStringCase(SignalMessageType::JuciceCandidate);
 		EnumStringCase(SignalMessageType::JuiceDone);
 
+		EnumStringCase(SignalMessageType::SignalingPing);
 		EnumStringCase(SignalMessageType::ServerSetID);
 		EnumStringCase(SignalMessageType::ServerEcho);
 	}

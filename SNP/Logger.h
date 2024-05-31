@@ -1,6 +1,5 @@
 #pragma once
 #include "Common.h"
-#include <chrono>
 
 inline bool g_fatal = false;
 
@@ -48,6 +47,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM(LogLevel, {
     {LogLevel::Trace, "trace"},
 });
 
+inline std::mutex g_cout_mutex;
+
 class LogFile {
 public:
     LogFile(std::string_view name = "log") {
@@ -59,6 +60,10 @@ public:
         ss << name << "_" << std::format(FileDateFormat, std::chrono::zoned_time{
             std::chrono::current_zone(),std::chrono::system_clock::now() });
         m_out.open(dir_path / ss.str(), std::ios::app);
+    }
+
+    [[nodiscard]] std::lock_guard<std::mutex> lock() {
+        return std::lock_guard{m_mutex};
     }
 
     friend LogFile& operator<<(LogFile& out, const auto& value) {
@@ -74,6 +79,7 @@ public:
     }
 
 private:
+    std::mutex m_mutex;
     std::ofstream m_out;
 };
 
@@ -141,8 +147,12 @@ private:
         const auto prefix = make_prefix(log_level);
 
 		// std::endl flushes, which is inteded for logger
-		out << ansi_color << prefix << string << AnsiReset << std::endl; 
+        {
+            std::lock_guard lock{g_cout_mutex};
+			out << ansi_color << prefix << string << AnsiReset << std::endl; 
+        }
         if (m_log_file) {
+            const auto lock = m_log_file->lock();
             *m_log_file << prefix << string << std::endl;
         }
     }

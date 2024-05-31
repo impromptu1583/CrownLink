@@ -55,6 +55,9 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	case JUICE_STATE_FAILED: {
 		prefix += "[P2P Failed]";
 	} break;
+	case JUICE_STATE_DISCONNECTED:{
+		prefix += "[P2P Not Connected]";
+	} break;
 	}
 
 	if (g_crown_link->juice_manager().is_relayed(host)) {
