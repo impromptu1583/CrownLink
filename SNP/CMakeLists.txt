@@ -93,4 +93,3 @@ install(TARGETS SNP
 
 # del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-debug\SNP\CrownLink.snp
 # del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\SNPJuice\out\build\x86-release\SNP\CrownLink.snp
-# mklink "C:\Cosmonarchy\Starcraft\CrownLink_config.json" "C:\Users\Jesse\source\repos\SNPJuice\SNP\CrownLink_config.json
