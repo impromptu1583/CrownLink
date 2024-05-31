@@ -51,9 +51,7 @@ void JuiceAgent::mark_last_signal() {
 
 void JuiceAgent::try_initialize() {
 	send_signal_ping();
-	m_logger.debug("state = {}, last_signal: {}",to_string(m_p2p_state), std::chrono::steady_clock::now() - m_last_signal);
 	if (m_p2p_state == JUICE_STATE_DISCONNECTED && std::chrono::steady_clock::now() - m_last_signal < 10s) {
-		m_logger.debug("running init now");
 		char sdp[JUICE_MAX_SDP_STRING_LEN]{};
 		juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
@@ -124,7 +122,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		parent.m_logger.info("Initially connected");
 	} break;
 	case JUICE_STATE_COMPLETED: {
-		parent.m_logger.info("Connecttion negotiation finished");
+		parent.m_logger.info("Connection negotiation finished");
 		char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
