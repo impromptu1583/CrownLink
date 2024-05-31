@@ -44,6 +44,11 @@ JuiceAgent::~JuiceAgent() {
     juice_destroy(m_agent);
 }
 
+void JuiceAgent::mark_last_signal() {
+	m_last_signal = std::chrono::steady_clock::now();
+	try_initialize();
+}
+
 void JuiceAgent::try_initialize() {
 	send_signal_ping();
 	m_logger.debug("state = {}, last_signal: {}",to_string(m_p2p_state), std::chrono::steady_clock::now() - m_last_signal);

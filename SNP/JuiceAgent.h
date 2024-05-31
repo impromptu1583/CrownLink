@@ -28,7 +28,7 @@ public:
 	bool is_active() const { return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min; }
 	bool is_relayed() const { return m_is_relayed; }
 	void set_relayed(bool value) { m_is_relayed = value; }
-	void mark_last_signal() { m_last_signal = std::chrono::steady_clock::now(); }
+	void mark_last_signal();
 
 private:
 	void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
