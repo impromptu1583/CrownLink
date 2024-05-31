@@ -15,6 +15,7 @@ public:
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_p2p(const NetAddress& address, void* data, size_t size);
 	void send_all(void* data, size_t size);
+	void send_signal_ping(const NetAddress& address);
 
 	juice_state agent_state(const NetAddress& address);
 	bool is_relayed(const NetAddress& address);

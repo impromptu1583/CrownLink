@@ -37,6 +37,12 @@ void JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) 
 	agent.send_message(data, size);
 }
 
+void JuiceManager::send_signal_ping(const NetAddress& address) {
+	std::lock_guard lock{ m_mutex };
+	auto& agent = ensure_agent(address, lock);
+	agent.send_signal_ping();
+}
+
 void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	const auto& peer = packet.peer_address;
 	m_logger.trace("Received message for {}: {}", peer.b64(), packet.data);

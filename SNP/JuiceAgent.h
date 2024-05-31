@@ -20,12 +20,12 @@ public:
 
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_message(void* data, const size_t size);
+	void send_signal_ping();
 
 public:
 	const NetAddress& address() const { return m_address; }
 	juice_state state() const { return m_p2p_state; }
 	bool is_active() const { return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min; }
-
 	bool is_relayed() const { return m_is_relayed; }
 	void set_relayed(bool value) { m_is_relayed = value; }
 
@@ -33,7 +33,7 @@ private:
 	void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
 	void mark_last_signal() { m_last_signal = std::chrono::steady_clock::now(); }
 	void try_initialize();
-	void send_signal_ping();
+
 
 	static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
 	static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
