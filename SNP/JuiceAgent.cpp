@@ -36,12 +36,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 	if (!init_message.empty()) {
 		handle_signal_packet(SignalPacket{init_message});
 	}
-	char sdp[JUICE_MAX_SDP_STRING_LEN]{};
-	juice_get_local_description(m_agent, sdp, sizeof(sdp));
-
-	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
-	m_logger.trace("Init - local SDP {}", sdp);
-	juice_gather_candidates(m_agent);
+	try_initialize();
 }
 
 JuiceAgent::~JuiceAgent() {
@@ -49,8 +44,28 @@ JuiceAgent::~JuiceAgent() {
     juice_destroy(m_agent);
 }
 
+void JuiceAgent::try_initialize() {
+	send_signal_ping();
+	if (m_p2p_state == JUICE_STATE_DISCONNECTED && std::chrono::steady_clock::now() - m_last_signal < 10s) {
+		char sdp[JUICE_MAX_SDP_STRING_LEN]{};
+		juice_get_local_description(m_agent, sdp, sizeof(sdp));
+
+		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
+		m_logger.trace("Init - local SDP {}", sdp);
+		juice_gather_candidates(m_agent);
+	}
+}
+
+void JuiceAgent::send_signal_ping() {
+	if (std::chrono::steady_clock::now() - m_last_ping > 1s) {
+		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::SignalingPing, "");
+		m_last_ping = std::chrono::steady_clock::now();
+	}
+}
+
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	mark_active();
+	mark_last_signal();
 
 	switch (packet.message_type) {
 	case SignalMessageType::JuiceLocalDescription: {
@@ -72,6 +87,9 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	mark_active();
 
 	switch (m_p2p_state) {
+	case JUICE_STATE_DISCONNECTED:{
+		try_initialize();
+	} break;		
 	case JUICE_STATE_CONNECTED:
 	case JUICE_STATE_COMPLETED: {
 		m_logger.trace("Sending message {}", std::string{(const char*)data, size});
