@@ -20,7 +20,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 	};
 	if (!turn_servers.empty()) {
 		juice_turn_server servers[5]{};
-		for (int i = 0; i < turn_servers.size() && i < 5; i++) {
+		for (unsigned int i = 0; i < turn_servers.size() && i < 5; i++) {
 			servers[i].host = turn_servers[i].host.c_str();
 			servers[i].username = turn_servers[i].username.c_str();
 			servers[i].password = turn_servers[i].password.c_str();
@@ -46,7 +46,9 @@ JuiceAgent::~JuiceAgent() {
 
 void JuiceAgent::try_initialize() {
 	send_signal_ping();
+	m_logger.debug("state = {}, last_signal: {}",to_string(m_p2p_state), std::chrono::steady_clock::now() - m_last_signal);
 	if (m_p2p_state == JUICE_STATE_DISCONNECTED && std::chrono::steady_clock::now() - m_last_signal < 10s) {
+		m_logger.debug("running init now");
 		char sdp[JUICE_MAX_SDP_STRING_LEN]{};
 		juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
@@ -68,6 +70,9 @@ void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	mark_last_signal();
 
 	switch (packet.message_type) {
+	case SignalMessageType::SignalingPing:{
+		m_logger.trace("Received Ping");
+	} break;
 	case SignalMessageType::JuiceLocalDescription: {
 		m_logger.trace("Received remote description:\n{}", packet.data);
 		juice_set_remote_description(m_agent, packet.data.c_str());

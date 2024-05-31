@@ -43,6 +43,12 @@ void JuiceManager::send_signal_ping(const NetAddress& address) {
 	agent.send_signal_ping();
 }
 
+void JuiceManager::mark_last_signal(const NetAddress& address) {
+	std::lock_guard lock{ m_mutex };
+	auto& agent = ensure_agent(address, lock);
+	agent.mark_last_signal();
+}
+
 void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	const auto& peer = packet.peer_address;
 	m_logger.trace("Received message for {}: {}", peer.b64(), packet.data);

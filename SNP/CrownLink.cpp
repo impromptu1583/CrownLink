@@ -98,6 +98,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			// -------------- PACKET: GAME STATS -------------------------------
 			// Give the ad to storm
 			m_logger.debug("received lobby info from {}", packet.peer_address.b64());
+			m_juice_manager.mark_last_signal(packet.peer_address);
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
