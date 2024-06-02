@@ -55,7 +55,7 @@ static void dll_start() {
 	}
 
 	juice_set_log_handler(juice_logger);
-	juice_set_log_level(JUICE_LOG_LEVEL_VERBOSE); // Let's accept all logs and filter them out by our logger in the callback
+	juice_set_log_level(JUICE_LOG_LEVEL_DEBUG); // Let's accept all logs and filter them out by our logger in the callback
 }
 
 static void dll_exit() {
