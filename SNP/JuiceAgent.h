@@ -48,5 +48,4 @@ private:
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	NetAddress m_address;
 	juice_agent_t* m_agent;
-	Logger m_logger;
 };

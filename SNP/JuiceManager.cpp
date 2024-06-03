@@ -51,7 +51,7 @@ void JuiceManager::mark_last_signal(const NetAddress& address) {
 
 void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	const auto& peer = packet.peer_address;
-	m_logger.trace("Received message for {}: {}", peer.b64(), packet.data);
+	g_logger->trace("Received message for {}: {}", peer.b64(), packet.data);
 
 	std::lock_guard lock{m_mutex};
 	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
@@ -63,9 +63,9 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 			const auto port = json["port"].get<uint16_t>();
 
 			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
-			m_logger.debug("TURN server info received: {}",packet.data);
+			g_logger->debug("TURN server info received: {}",packet.data);
 		} catch (std::exception& e) {
-			m_logger.error("error loading turn server {}",e.what());
+			g_logger->error("error loading turn server {}",e.what());
 		}
 	} else {
 		auto& peer_agent = ensure_agent(peer, lock);
@@ -76,7 +76,7 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 void JuiceManager::send_all(void* data, const size_t size) {
 	std::lock_guard lock{m_mutex};
 	for (auto& [name, agent] : m_agents) {
-		m_logger.debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
+		g_logger->debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
 		agent->send_message(data, size);
 	}
 }

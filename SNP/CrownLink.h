@@ -55,8 +55,6 @@ private:
 	bool m_client_id_set = false;
 	NetAddress m_client_id;
 
-	Logger m_logger{Logger::root(), "Juice"};
-
 	u32 m_ellipsis_counter = 3;
 };
 

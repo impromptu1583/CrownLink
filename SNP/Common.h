@@ -43,24 +43,30 @@ using f64 = double;
 #include <json.hpp>
 using Json = nlohmann::json;
 
+inline const fs::path g_starcraft_dir = [] {
+	char buffer[MAX_PATH];
+	GetModuleFileNameA(0, buffer, MAX_PATH);
+	return fs::path{ buffer }.parent_path();
+	}();
+
+#include "spdlog/spdlog.h"
+#include "spdlog/async.h"
+#include "spdlog/sinks/basic_file_sink.h"
+#include "spdlog/sinks/daily_file_sink.h"
+inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").string(), 2, 30);
+
 #include <Storm/storm.h>
 #include <Util/Exceptions.h>
 #include <Util/MemoryFrame.h>
 #include <Types.h>
 
-inline const fs::path g_starcraft_dir = []{
-	char buffer[MAX_PATH];
-	GetModuleFileNameA(0, buffer, MAX_PATH);
-	return fs::path{buffer}.parent_path();
-}();
-
 #include "NetAddress.h"
 #include "SNPModule.h"
 
 #include "ThQueue.h"
-#include "Logger.h"
+//#include "Logger.h"
 
-constexpr const char* CL_VERSION = "0.3.1";
+constexpr const char* CL_VERSION = "0.3.1.EUD1";
 
 struct AdFile {
 	game game_info{};
@@ -90,6 +96,7 @@ inline std::string as_string(const auto& value) {
 		ss << value;
 		return ss.str();
 	}
+	return std::string();
 }
 
 // NOTE: this code doesn't yet compile, but would be VERY NICE :) -Veeq7

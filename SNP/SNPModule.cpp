@@ -44,7 +44,7 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 
 	std::string prefix;
 	if (g_snp_context.game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		Logger::root().info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+		g_logger->info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
 
@@ -84,6 +84,7 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
 	set_status_ad("Crownlink Initializing");
+	g_logger->info("Crownlink Initializing");
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
 	} catch (GeneralException& e) {
@@ -98,7 +99,7 @@ BOOL __stdcall spi_destroy() {
 	try {
 		g_crown_link.reset();
 	} catch (GeneralException& e) {
-		Logger::root().error("unhandled exception in spiDestroy {}",e.getMessage());
+		g_logger->error("unhandled exception in spiDestroy {}",e.getMessage());
 		return false;
 	}
 
@@ -218,13 +219,13 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 	}
 
 	if (address_count > 1) {
-		Logger::root().info("multicast attempted");
+		g_logger->info("multicast attempted");
 		DropMessage(1, "spiSend, multicast not supported");
 	}
 
 	try {
 		NetAddress peer = *(out_address_list[0]);
-		Logger::root().trace("spiSend: {}", std::string{data, size});
+		g_logger->trace("spiSend: {}", std::string{data, size});
 
 		g_crown_link->send(peer, data, size);
 	} catch (GeneralException& e) {
@@ -247,7 +248,7 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 				return false;
 			}
 			std::string debug_string{loan->data, loan->size};
-			Logger::root().trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
+			g_logger->trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 
 			if (GetTickCount() > loan->timestamp + 10000) {
 				DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timestamp);

@@ -30,7 +30,7 @@ set(MODULE_FILES
 	
 	"Common.h"
 	"ThQueue.h"
-	"Logger.h"
+	#"Logger.h"
 	"caps.mpq")
 
 add_library(SNP SHARED ${MODULE_FILES})
@@ -38,6 +38,10 @@ add_library(SNP SHARED ${MODULE_FILES})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)

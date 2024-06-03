@@ -4,22 +4,22 @@
 constexpr auto ADDRESS_SIZE = 16;
 
 CrownLink::CrownLink() {
-	m_logger.info("Initializing, version {}", CL_VERSION);
+	g_logger->info("Initializing, version {}", CL_VERSION);
 	m_is_running = true;
 	m_signaling_thread = std::jthread{&CrownLink::receive_signaling, this};
 }
 
 CrownLink::~CrownLink() {   
-	m_logger.info("Shutting down");
+	g_logger->info("Shutting down");
 	m_is_running = false;
 	m_signaling_socket.echo(""); // wakes up m_signaling_thread so it can close
 	m_signaling_socket.deinit();
 	m_signaling_thread.join();
-	m_logger.debug("Receive thread closed");
+	g_logger->debug("Receive thread closed");
 }
 
 void CrownLink::request_advertisements() {
-	m_logger.debug("Requesting lobbies");
+	g_logger->debug("Requesting lobbies");
 	m_signaling_socket.request_advertisers();
 
 	switch (m_signaling_socket.state()) {
@@ -40,7 +40,7 @@ void CrownLink::request_advertisements() {
 	for (const auto& advertiser : m_known_advertisers) {
 		auto status = m_juice_manager.agent_state(advertiser);
 		m_juice_manager.send_signal_ping(advertiser);
-		m_logger.trace("Requesting game state from {}", base64::to_base64(std::string{(char*)advertiser.bytes, sizeof(NetAddress)}));
+		g_logger->trace("Requesting game state from {}", base64::to_base64(std::string{(char*)advertiser.bytes, sizeof(NetAddress)}));
 		m_signaling_socket.send_packet(advertiser, SignalMessageType::SolicitAds);
 	}
 }
@@ -76,7 +76,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 				}
 			} else {
 				m_client_id = base64::from_base64(packet.data);
-				m_logger.info("received client ID from server: {}", m_client_id.b64());
+				g_logger->info("received client ID from server: {}", m_client_id.b64());
 				m_client_id_set = true;
 			}
 		} break;
@@ -85,7 +85,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 		} break;
 		case SignalMessageType::SolicitAds: {
 			if (m_is_advertising) {
-				m_logger.debug("received solicitation from {}, replying with our lobby info", packet.peer_address.b64());
+				g_logger->debug("received solicitation from {}, replying with our lobby info", packet.peer_address.b64());
 				std::string send_buffer;
 				send_buffer.append((char*)m_ad_data.begin(), m_ad_data.size());
 				m_signaling_socket.send_packet(packet.peer_address, SignalMessageType::GameAd,
@@ -95,7 +95,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 		case SignalMessageType::GameAd: {
 			// -------------- PACKET: GAME STATS -------------------------------
 			// Give the ad to storm
-			m_logger.debug("received lobby info from {}", packet.peer_address.b64());
+			g_logger->debug("received lobby info from {}", packet.peer_address.b64());
 			
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
@@ -105,11 +105,11 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			if (ad.game_info.dwGameState != 12) { // 12 = game in progress
 				m_juice_manager.mark_last_signal(packet.peer_address);
 			} else {
-				m_logger.debug("skipped updating signal because game is in progress");
+				g_logger->debug("skipped updating signal because game is in progress");
 			}
 
 			NetAddress& netaddress = (NetAddress&)ad.game_info.saHost;
-			m_logger.debug("Game Info Received:\n"
+			g_logger->debug("Game Info Received:\n"
 				"  dwIndex: {}\n"
 				"  dwGameState: {}\n"
 				"  saHost: {}\n"
@@ -144,9 +144,9 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 void CrownLink::handle_winsock_error(s32 error_code) {
 	// Winsock error codes: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 	if (error_code == 0) {
-		m_logger.error("Connection to server closed, attempting reconnect");
+		g_logger->error("Connection to server closed, attempting reconnect");
 	} else {
-		m_logger.error("Winsock error {} received, attempting reconnect", WSAGetLastError());
+		g_logger->error("Winsock error {} received, attempting reconnect", WSAGetLastError());
 	}
 
 	while (true) {
@@ -162,18 +162,17 @@ void CrownLink::update_known_advertisers(const std::string& data) {
 	std::lock_guard lock{g_advertisement_mutex};
 	m_known_advertisers.clear();
 	// SNETADDR in base64 encoding is always 24 characters
-	Logger logger{m_logger, "update_known_advertisers"};
-	logger.trace("Data received: {}", data);
+	g_logger->trace("Data received: {}", data);
 	for (size_t i = 0; (i + 1) * 24 < data.size() + 1; i++) {
 		try {
 			const auto peer_str = base64::from_base64(data.substr(i*24, 24));
-			logger.debug("Potential lobby owner received: {}", data.substr(i*24, 24));
+			g_logger->debug("Potential lobby owner received: {}", data.substr(i*24, 24));
 			m_known_advertisers.push_back(NetAddress{peer_str});
 
 			std::lock_guard lock{m_juice_manager.mutex()};
 			m_juice_manager.ensure_agent(peer_str, lock);
 		} catch (const std::exception &exc) {
-			logger.error("Processing: {} error: {}", data.substr(i,24), exc.what());
+			g_logger->error("Processing: {} error: {}", data.substr(i,24), exc.what());
 		}
 	}
 }
@@ -182,11 +181,11 @@ void CrownLink::start_advertising(Util::MemoryFrame ad_data) {
 	m_ad_data = ad_data;
 	m_is_advertising = true;
 	m_signaling_socket.start_advertising();
-	m_logger.info("Started advertising lobby");
+	g_logger->info("Started advertising lobby");
 }
 
 void CrownLink::stop_advertising() {
 	m_is_advertising = false;
 	m_signaling_socket.stop_advertising();
-	m_logger.info("Stopped advertising lobby");
+	g_logger->info("Stopped advertising lobby");
 }

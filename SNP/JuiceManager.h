@@ -26,6 +26,5 @@ public:
 private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
 	std::mutex m_mutex;
-	Logger m_logger{Logger::root(), "P2P Manager"};
 	std::vector<TurnServer> m_turn_servers;
 };
