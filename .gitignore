@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 link.bat
 /signaling/metered_api.json
+/signaling/creds.json
