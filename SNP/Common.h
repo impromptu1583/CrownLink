@@ -32,6 +32,8 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
+
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
@@ -55,7 +57,6 @@ inline const fs::path g_starcraft_dir = [] {
 inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").string(), 2, 30);
 
 #include <Storm/storm.h>
-#include <Util/MemoryFrame.h>
 
 #include "NetAddress.h"
 #include "SNPModule.h"
@@ -63,11 +64,6 @@ inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_s
 #include "ThQueue.h"
 
 constexpr const char* CL_VERSION = "0.3.2";
-
-struct AdFile {
-	game game_info{};
-	char extra_bytes[32]{};
-};
 
 inline std::string to_string(juice_state value) {
 	switch (value) {

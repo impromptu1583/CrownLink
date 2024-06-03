@@ -26,7 +26,7 @@ public:
 
 	void request_advertisements();
 	void send(const NetAddress& to, void* data, size_t size);
-	void start_advertising(Util::MemoryFrame ad_data);
+	void start_advertising(AdFile ad_data);
 	void stop_advertising();
 
 	auto& receive_queue() { return m_receive_queue; }
@@ -46,7 +46,7 @@ private:
 
 	std::jthread m_signaling_thread;
 	std::vector<NetAddress> m_known_advertisers;
-	Util::MemoryFrame m_ad_data;
+	AdFile m_ad_data;
 
 	bool m_is_advertising = false;
 	bool m_is_running = true;

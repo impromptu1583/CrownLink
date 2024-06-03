@@ -8,7 +8,7 @@ void to_json(Json& out_json, const SignalPacket& packet) {
 			{"data", packet.data},
 		};
 	} catch (const Json::exception& e) {
-		g_logger->error("Signal packet to_json error : {}", e.what());
+		spdlog::error("Signal packet to_json error : {}", e.what());
 	}
 };
 
@@ -19,12 +19,12 @@ void from_json(const Json& json, SignalPacket& out_packet) {
 		json.at("message_type").get_to(out_packet.message_type);
 		json.at("data").get_to(out_packet.data);
 	} catch (const Json::exception& ex) {
-		g_logger->error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json.dump());
+		spdlog::error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json.dump());
 	}
 };
 
 bool SignalingSocket::try_init() {
-	g_logger->info("Connecting to matchmaking server");
+	spdlog::info("Connecting to matchmaking server");
 	m_current_state = SocketState::Connecting;
 
 	addrinfo hints = {}; 
@@ -35,26 +35,26 @@ bool SignalingSocket::try_init() {
 
 	const auto& snp_config = SnpConfig::instance();
 	if (const auto error = getaddrinfo(snp_config.server.c_str(), std::to_string(snp_config.port).c_str(), &hints, &result)) {
-		g_logger->error("getaddrinfo failed with error {}: {}", error, gai_strerror(error));
+		spdlog::error("getaddrinfo failed with error {}: {}", error, gai_strerror(error));
 		return false;
 	}
 
 	for (auto info = result; info; info = info->ai_next) {
 		if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
-			g_logger->debug("Client: Socket failed with error: {}", std::strerror(errno));
+			spdlog::debug("Client: Socket failed with error: {}", std::strerror(errno));
 			continue;
 		}
 
 		if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
 			closesocket(m_socket);
-			g_logger->error("Client: Couldn't connect to server: {}", std::strerror(errno));
+			spdlog::error("Client: Couldn't connect to server: {}", std::strerror(errno));
 			continue;
 		}
 
 		break;
 	}
 	if (!result) {
-		g_logger->error("Signaling client failed to connect");
+		spdlog::error("Signaling client failed to connect");
 		return false;
 	}
 
@@ -63,7 +63,7 @@ bool SignalingSocket::try_init() {
 	// Server address: each byte is 11111111
 	memset(&m_server, 255, sizeof(NetAddress));
 
-	g_logger->info("Successfully connected to matchmaking server");
+	spdlog::info("Successfully connected to matchmaking server");
 	m_current_state = SocketState::Ready;
 	return true;
 }
@@ -81,7 +81,7 @@ void SignalingSocket::send_packet(NetAddress dest, SignalMessageType msg_type, c
 
 void SignalingSocket::send_packet(const SignalPacket& packet) {
 	if (m_current_state != SocketState::Ready) {
-		g_logger->error("Signal send_packet attempted but provider is not ready. State: {}", as_string(m_current_state));
+		spdlog::error("Signal send_packet attempted but provider is not ready. State: {}", as_string(m_current_state));
 		return;
 	}
 
@@ -89,11 +89,11 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 	Json json = packet;
 	auto send_buffer = json.dump();
 	send_buffer += Delimiter;
-	g_logger->debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
+	spdlog::debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
 	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
 	if (bytes == -1) {
-		g_logger->error("Signaling send packet error: {}", std::strerror(errno));
+		spdlog::error("Signaling send packet error: {}", std::strerror(errno));
 	}
 }
 
@@ -111,7 +111,7 @@ void SignalingSocket::split_into_packets(const std::string& data, std::vector<Si
 			incoming_packets.push_back(json.template get<SignalPacket>());
 		}
 		catch (std::exception& e) {
-			g_logger->error("could not parse JSON \"{}\", exc: {}", segment, e.what());
+			spdlog::error("could not parse JSON \"{}\", exc: {}", segment, e.what());
 		};
 	}
 }
@@ -122,7 +122,7 @@ s32 SignalingSocket::receive_packets(std::vector<SignalPacket>& incoming_packets
 	std::string receive_buffer;
 	auto bytes = recv(m_socket, &buffer[0], buffer.size(), 0);
 	if (bytes > 0) {
-		g_logger->trace("Received {}", bytes);
+		spdlog::trace("Received {}", bytes);
 		buffer.resize(bytes);
 		receive_buffer.append(buffer.begin(), buffer.end());
 		split_into_packets(receive_buffer, incoming_packets);

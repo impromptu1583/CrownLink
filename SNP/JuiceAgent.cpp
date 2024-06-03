@@ -41,7 +41,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 }
 
 JuiceAgent::~JuiceAgent() {
-	g_logger->debug("Agent {} closed", m_address.b64());
+	spdlog::debug("Agent {} closed", m_address.b64());
     juice_destroy(m_agent);
 }
 
@@ -58,7 +58,7 @@ void JuiceAgent::try_initialize() {
 		juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
 		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
-		g_logger->trace("Init - local SDP {}", sdp);
+		spdlog::trace("Init - local SDP {}", sdp);
 		juice_gather_candidates(m_agent);
 	}
 }
@@ -76,18 +76,18 @@ void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 
 	switch (packet.message_type) {
 	case SignalMessageType::SignalingPing:{
-		g_logger->trace("Received Ping");
+		spdlog::trace("Received Ping");
 	} break;
 	case SignalMessageType::JuiceLocalDescription: {
-		g_logger->trace("Received remote description:\n{}", packet.data);
+		spdlog::trace("Received remote description:\n{}", packet.data);
 		juice_set_remote_description(m_agent, packet.data.c_str());
 	} break;
 	case SignalMessageType::JuciceCandidate: {
-		g_logger->trace("Received remote candidate {}", packet.data);
+		spdlog::trace("Received remote candidate {}", packet.data);
 		juice_add_remote_candidate(m_agent, packet.data.c_str());
 	} break;
 	case SignalMessageType::JuiceDone: {
-		g_logger->trace("Remote gathering done");
+		spdlog::trace("Remote gathering done");
 		juice_set_remote_gathering_done(m_agent);
 	} break;
 	}
@@ -102,14 +102,14 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	} break;		
 	case JUICE_STATE_CONNECTED:
 	case JUICE_STATE_COMPLETED: {
-		g_logger->trace("Sending message {}", std::string{(const char*)data, size});
+		spdlog::trace("Sending message {}", std::string{(const char*)data, size});
 		juice_send(m_agent, (const char*)data, size);
 	} break;
 	case JUICE_STATE_FAILED: {
-		g_logger->error("Trying to send message but P2P connection failed");
+		spdlog::error("Trying to send message but P2P connection failed");
 	} break;
 	default: {
-		g_logger->error("Trying to send message but P2P connection is in unexpected state");
+		spdlog::error("Trying to send message but P2P connection is in unexpected state");
 	} break;
 	}
 }
@@ -118,33 +118,33 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
 	parent.m_p2p_state = state;
-	g_logger->debug("Connection changed state, new state: {}", to_string(state));
+	spdlog::debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
 	case JUICE_STATE_CONNECTED: {
-		g_logger->info("Initially connected");
+		spdlog::info("Initially connected");
 	} break;
 	case JUICE_STATE_COMPLETED: {
-		g_logger->info("Connection negotiation finished");
+		spdlog::info("Connection negotiation finished");
 		char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
 		if (std::string{local}.find("typ relay") != std::string::npos) {
 			parent.set_connection_type(JuiceConnectionType::Relay);
-			g_logger->warn("Local connection is relayed, performance may be affected");
+			spdlog::warn("Local connection is relayed, performance may be affected");
 		}
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
 			parent.set_connection_type(JuiceConnectionType::Relay);
-			g_logger->warn("Remote connection is relayed, performance may be affected");
+			spdlog::warn("Remote connection is relayed, performance may be affected");
 		}
 		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
 			parent.set_connection_type(JuiceConnectionType::Radmin);
-			g_logger->warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
+			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
 		}
-		g_logger->debug("Final candidates were local: {} remote: {}", local, remote);
+		spdlog::debug("Final candidates were local: {} remote: {}", local, remote);
 	} break;
 	case JUICE_STATE_FAILED: {
-		g_logger->error("Could not connect, gave up");
+		spdlog::error("Could not connect, gave up");
 	} break;
 	}
 }
@@ -166,5 +166,5 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
 	parent.mark_active();
 	g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
 	SetEvent(g_receive_event);
-	g_logger->trace("received: {}", std::string{data, size});
+	spdlog::trace("received: {}", std::string{data, size});
 }

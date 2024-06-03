@@ -40,13 +40,13 @@ public:
 				json = Json::parse(file);
 				m_config_existed = true;
 			} catch (const Json::parse_error& e){
-				g_logger->error("Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
+				spdlog::error("Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 			}
 		}
 		if (m_config_existed) {
-			g_logger->info("Config file loaded, contents: {}", json.dump());
+			spdlog::info("Config file loaded, contents: {}", json.dump());
 		} else {
-			g_logger->warn("Config file not found, defaults will be used");
+			spdlog::warn("Config file not found, defaults will be used");
 		}
 
 		SnpConfig config{};
@@ -68,25 +68,25 @@ public:
 		load_field(json, "log-level", config.log_level);
 		switch (config.log_level) {
 			case LogLevel::Trace: {
-				g_logger->set_level(spdlog::level::trace);
+				spdlog::set_level(spdlog::level::trace);
 			}break;
 			case LogLevel::Debug: {
-				g_logger->set_level(spdlog::level::debug);
+				spdlog::set_level(spdlog::level::debug);
 			}break;
 			case LogLevel::Info: {
-				g_logger->set_level(spdlog::level::info);
+				spdlog::set_level(spdlog::level::info);
 			}break;
 			case LogLevel::Warn: {
-				g_logger->set_level(spdlog::level::warn);
+				spdlog::set_level(spdlog::level::warn);
 			}break;
 			case LogLevel::Error: {
-				g_logger->set_level(spdlog::level::err);
+				spdlog::set_level(spdlog::level::err);
 			}break;
 			case LogLevel::Fatal: {
-				g_logger->set_level(spdlog::level::critical);
+				spdlog::set_level(spdlog::level::critical);
 			}break;
 			case LogLevel::None:{
-				g_logger->set_level(spdlog::level::off);
+				spdlog::set_level(spdlog::level::off);
 			}break;
 		}
 
@@ -116,9 +116,9 @@ public:
 		};
 
 		if (m_config_existed) {
-			g_logger->info("Creating new config at {}", m_path.string());
+			spdlog::info("Creating new config at {}", m_path.string());
 		} else {
-			g_logger->info("Updating config at {}", m_path.string());
+			spdlog::info("Updating config at {}", m_path.string());
 		}
 
 		std::ofstream file{m_path};
@@ -135,9 +135,9 @@ private:
 		try {
 			json.at(key).get_to(out_value);
 		} catch (const Json::out_of_range& ex) {
-			g_logger->warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		} catch (const Json::type_error& ex) {
-			g_logger->warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		}
 	}
 

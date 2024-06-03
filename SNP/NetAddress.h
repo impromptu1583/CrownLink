@@ -45,3 +45,7 @@ struct GamePacket {
     };
 };
 
+struct AdFile {
+    game game_info{};
+    char extra_bytes[32]{};
+};
