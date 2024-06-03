@@ -61,7 +61,10 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	}
 
 	if (g_crown_link->juice_manager().is_relayed(host)) {
-		prefix += "[R]";
+		prefix += "[Relayed]";
+	}
+	if (g_crown_link->juice_manager().is_radmin(host)) {
+		prefix += "[Radmin]";
 	}
 
 	if (!prefix.empty()) {

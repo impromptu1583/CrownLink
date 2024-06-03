@@ -20,6 +20,7 @@ public:
 
 	juice_state agent_state(const NetAddress& address);
 	bool is_relayed(const NetAddress& address);
+	bool is_radmin(const NetAddress& address);
 
 	std::mutex& mutex() { return m_mutex; }
 

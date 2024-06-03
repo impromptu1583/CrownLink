@@ -3,6 +3,7 @@
 #include "Signaling.h"
 #include "JuiceManager.h"
 #include "CrownLink.h"
+#include <regex>
 
 JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message)
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
@@ -135,6 +136,9 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
 			parent.set_relayed(true);
 			g_logger->warn("Remote connection is relayed, performance may be affected");
+		}
+		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
+			parent.set_radmin(true);
 		}
 		g_logger->debug("Final candidates were local: {} remote: {}", local, remote);
 	} break;

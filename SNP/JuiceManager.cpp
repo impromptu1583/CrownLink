@@ -96,3 +96,11 @@ bool JuiceManager::is_relayed(const NetAddress& address) {
 	}
 	return false;
 }
+
+bool JuiceManager::is_radmin(const NetAddress& address) {
+	std::lock_guard lock{ m_mutex };
+	if (auto agent = maybe_get_agent(address, lock)) {
+		return agent->is_radmin();
+	}
+	return false;
+}
