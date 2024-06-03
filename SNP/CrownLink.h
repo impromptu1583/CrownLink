@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Common.h"
-#include "Output.h"
-#include "Util/Types.h"
 #include <vector>
 #include <thread>
 #include <chrono>

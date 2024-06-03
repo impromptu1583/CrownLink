@@ -5,11 +5,8 @@ set(MODULE_FILES
 	"bwapi/Storm/storm.cpp"
 	"bwapi/Util/MemoryFrame.cpp"
 	"bwapi/Util/MemoryFrame.h"
-	"bwapi/Util/Types.h"
 	"bwapi/Util/Exceptions.h"
 	"bwapi/Util/Exceptions.cpp"
-	"bwapi/Output.cpp"
-	"bwapi/Output.h"
 	"include/base64.hpp"
 	"include/json.hpp"
 	

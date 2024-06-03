@@ -1,6 +1,6 @@
 #include "SNPModule.h"
 
-#include "bwapi/Output.h"
+//#include "bwapi/Output.h"
 #include "bwapi/Util/MemoryFrame.h"
 #include "bwapi/Storm/storm.h"
 #include "CrownLink.h"
@@ -87,8 +87,8 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 	g_logger->info("Crownlink Initializing");
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
@@ -98,8 +98,8 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 BOOL __stdcall spi_destroy() {
 	try {
 		g_crown_link.reset();
-	} catch (GeneralException& e) {
-		g_logger->error("unhandled exception in spiDestroy {}",e.getMessage());
+	} catch (std::exception& e) {
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
@@ -136,8 +136,8 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 		else if(g_snp_context.status_ad_used) {
 			*out_game_list = &g_snp_context.status_ad.game_info;
 		}
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -146,8 +146,8 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 	try {
 		g_crown_link->request_advertisements();
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
@@ -220,7 +220,6 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 
 	if (address_count > 1) {
 		g_logger->info("multicast attempted");
-		DropMessage(1, "spiSend, multicast not supported");
 	}
 
 	try {
@@ -228,8 +227,8 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 		g_logger->trace("spiSend: {}", std::string{data, size});
 
 		g_crown_link->send(peer, data, size);
-	} catch (GeneralException& e) {
-		DropLastError("spiSend failed: %s", e.getMessage());
+	} catch (std::exception& e) {
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -251,7 +250,6 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 			g_logger->trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 
 			if (GetTickCount() > loan->timestamp + 10000) {
-				DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timestamp);
 				continue;
 			}
 
@@ -261,9 +259,9 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 
 			break;
 		}
-	} catch (GeneralException& e) {
+	} catch (std::exception& e) {
 		delete loan;
-		DropLastError("spiLockGameList failed: %s", e.getMessage());
+		g_logger->error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -277,7 +275,6 @@ BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
 }
 
 BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
-	DropMessage(0, "spiCompareNetAddresses");
 	if (out_result) {
 		*out_result = 0;
 	}
@@ -300,17 +297,14 @@ BOOL __stdcall spi_unlock_device_list(void*) {
 }
 
 BOOL __stdcall spi_free_external_message(NetAddress* address, char* data, DWORD size) {
-	DropMessage(0, "spiFreeExternalMessage");
 	return false;
 }
 
 BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, int, int) {
-	DropMessage(0, "spiGetPerformanceData");
 	return false;
 }
 
 BOOL __stdcall spi_initialize_device(int, void*, void*, DWORD*, void*) {
-	DropMessage(0, "spiInitializeDevice");
 	return false;
 }
 
@@ -329,19 +323,16 @@ BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out
 }
 
 BOOL __stdcall spi_select_game(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
-	DropMessage(0, "spiSelectGame");
 	// Looks like an old function and doesn't seem like it's used anymore
 	// UDPN's function Creates an IPX game select dialog window
 	return false;
 }
 
 BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
-	DropMessage(0, "spiSendExternalMessage");
 	return false;
 }
 
 BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
-	DropMessage(0, "spiLeagueGetName");
 	return true;
 }
 
