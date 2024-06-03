@@ -65,7 +65,7 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 		prefix += "[Relayed]";
 	} break;
 	case JuiceConnectionType::Radmin:{
-		prefix += "[radmin]";
+		prefix += "[Radmin]";
 	} break;
 	}
 
