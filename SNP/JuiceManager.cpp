@@ -89,18 +89,10 @@ juice_state JuiceManager::agent_state(const NetAddress& address) {
 	return JUICE_STATE_DISCONNECTED;
 }
 
-bool JuiceManager::is_relayed(const NetAddress& address) {
-	std::lock_guard lock{m_mutex};
-	if (auto agent = maybe_get_agent(address, lock)) {
-		return agent->is_relayed();
-	}
-	return false;
-}
-
-bool JuiceManager::is_radmin(const NetAddress& address) {
+JuiceConnectionType JuiceManager::final_connection_type(const NetAddress& address) {
 	std::lock_guard lock{ m_mutex };
 	if (auto agent = maybe_get_agent(address, lock)) {
-		return agent->is_radmin();
+		return agent->connection_type();
 	}
-	return false;
+	return JuiceConnectionType::Standard;
 }

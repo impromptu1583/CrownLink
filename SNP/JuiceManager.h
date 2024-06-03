@@ -19,8 +19,7 @@ public:
 	void mark_last_signal(const NetAddress& address);
 
 	juice_state agent_state(const NetAddress& address);
-	bool is_relayed(const NetAddress& address);
-	bool is_radmin(const NetAddress& address);
+	JuiceConnectionType final_connection_type(const NetAddress& address);
 
 	std::mutex& mutex() { return m_mutex; }
 

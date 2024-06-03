@@ -60,11 +60,13 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	} break;
 	}
 
-	if (g_crown_link->juice_manager().is_relayed(host)) {
+	switch (g_crown_link->juice_manager().final_connection_type(host)) {
+	case JuiceConnectionType::Relay: {
 		prefix += "[Relayed]";
-	}
-	if (g_crown_link->juice_manager().is_radmin(host)) {
-		prefix += "[Radmin]";
+	} break;
+	case JuiceConnectionType::Radmin:{
+		prefix += "[radmin]";
+	} break;
 	}
 
 	if (!prefix.empty()) {

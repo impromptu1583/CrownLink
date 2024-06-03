@@ -130,15 +130,16 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
 		if (std::string{local}.find("typ relay") != std::string::npos) {
-			parent.set_relayed(true);
+			parent.set_connection_type(JuiceConnectionType::Relay);
 			g_logger->warn("Local connection is relayed, performance may be affected");
 		}
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
-			parent.set_relayed(true);
+			parent.set_connection_type(JuiceConnectionType::Relay);
 			g_logger->warn("Remote connection is relayed, performance may be affected");
 		}
 		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
-			parent.set_radmin(true);
+			parent.set_connection_type(JuiceConnectionType::Radmin);
+			g_logger->warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
 		}
 		g_logger->debug("Final candidates were local: {} remote: {}", local, remote);
 	} break;
