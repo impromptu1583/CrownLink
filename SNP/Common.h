@@ -51,20 +51,16 @@ inline const fs::path g_starcraft_dir = [] {
 
 #include "spdlog/spdlog.h"
 #include "spdlog/async.h"
-#include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/daily_file_sink.h"
 inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").string(), 2, 30);
 
 #include <Storm/storm.h>
-//#include <Util/Exceptions.h>
 #include <Util/MemoryFrame.h>
-//#include <Types.h>
 
 #include "NetAddress.h"
 #include "SNPModule.h"
 
 #include "ThQueue.h"
-//#include "Logger.h"
 
 constexpr const char* CL_VERSION = "0.3.2";
 
