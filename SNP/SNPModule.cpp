@@ -190,7 +190,6 @@ void clear_status_ad() {
 BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
-	//g_crown_link->start_advertising(Util::MemoryFrame::from(g_snp_context.hosted_game));
 	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }
