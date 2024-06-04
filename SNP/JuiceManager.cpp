@@ -65,6 +65,7 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
 			spdlog::debug("TURN server info received: {}",packet.data);
 		} catch (std::exception& e) {
+			spdlog::dump_backtrace();
 			spdlog::error("error loading turn server {}",e.what());
 		}
 	} else {

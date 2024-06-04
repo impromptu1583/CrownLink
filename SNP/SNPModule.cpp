@@ -74,7 +74,6 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	adFile->game_info.dwTimer = GetTickCount();
 	adFile->game_info.saHost = *(SNETADDR*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
-	//adFile->game_info.dwIndex = index;
 }
 
 void remove_advertisement(const NetAddress& host) {}
@@ -84,6 +83,12 @@ void pass_packet(GamePacket& packet) {}
 BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
+	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
+	auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", log_filename, 2, 30);
+	g_logger->set_level(spdlog::level::info);
+	g_logger->flush_on(spdlog::level::err);
+	spdlog::set_default_logger(g_logger);
+	spdlog::enable_backtrace(32);
 	set_status_ad("Crownlink Initializing");
 	spdlog::info("Crownlink Initializing");
 	try {
@@ -103,6 +108,7 @@ BOOL __stdcall spi_destroy() {
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
+	spdlog::shutdown();
 
 	return true;
 }
@@ -138,6 +144,7 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 			*out_game_list = &g_snp_context.status_ad.game_info;
 		}
 	} catch (std::exception& e) {
+		spdlog::dump_backtrace();
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
@@ -148,6 +155,7 @@ BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 	try {
 		g_crown_link->request_advertisements();
 	} catch (std::exception& e) {
+		spdlog::dump_backtrace();
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
@@ -262,6 +270,7 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 		}
 	} catch (std::exception& e) {
 		delete loan;
+		spdlog::dump_backtrace();
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}

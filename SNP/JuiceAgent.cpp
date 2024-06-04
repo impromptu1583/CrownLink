@@ -106,9 +106,11 @@ void JuiceAgent::send_message(void* data, size_t size) {
 		juice_send(m_agent, (const char*)data, size);
 	} break;
 	case JUICE_STATE_FAILED: {
+		spdlog::dump_backtrace();
 		spdlog::error("Trying to send message but P2P connection failed");
 	} break;
 	default: {
+		spdlog::dump_backtrace();
 		spdlog::error("Trying to send message but P2P connection is in unexpected state");
 	} break;
 	}
@@ -144,6 +146,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 		spdlog::debug("Final candidates were local: {} remote: {}", local, remote);
 	} break;
 	case JUICE_STATE_FAILED: {
+		spdlog::dump_backtrace();
 		spdlog::error("Could not connect, gave up");
 	} break;
 	}

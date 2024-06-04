@@ -40,6 +40,7 @@ public:
 				json = Json::parse(file);
 				m_config_existed = true;
 			} catch (const Json::parse_error& e){
+				spdlog::dump_backtrace();
 				spdlog::error("Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 			}
 		}

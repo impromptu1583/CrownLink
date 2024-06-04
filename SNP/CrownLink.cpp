@@ -144,8 +144,10 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 void CrownLink::handle_winsock_error(s32 error_code) {
 	// Winsock error codes: https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-error-codes-2
 	if (error_code == 0) {
+		spdlog::dump_backtrace();
 		spdlog::error("Connection to server closed, attempting reconnect");
 	} else {
+		spdlog::dump_backtrace();
 		spdlog::error("Winsock error {} received, attempting reconnect", WSAGetLastError());
 	}
 
@@ -172,6 +174,7 @@ void CrownLink::update_known_advertisers(const std::string& data) {
 			std::lock_guard lock{m_juice_manager.mutex()};
 			m_juice_manager.ensure_agent(peer_str, lock);
 		} catch (const std::exception &exc) {
+			spdlog::dump_backtrace();
 			spdlog::error("Processing: {} error: {}", data.substr(i,24), exc.what());
 		}
 	}

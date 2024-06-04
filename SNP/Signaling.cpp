@@ -8,6 +8,7 @@ void to_json(Json& out_json, const SignalPacket& packet) {
 			{"data", packet.data},
 		};
 	} catch (const Json::exception& e) {
+		spdlog::dump_backtrace();
 		spdlog::error("Signal packet to_json error : {}", e.what());
 	}
 };
@@ -19,6 +20,7 @@ void from_json(const Json& json, SignalPacket& out_packet) {
 		json.at("message_type").get_to(out_packet.message_type);
 		json.at("data").get_to(out_packet.data);
 	} catch (const Json::exception& ex) {
+		spdlog::dump_backtrace();
 		spdlog::error("Signal packet from_json error: {}. JSON dump: {}", ex.what(), json.dump());
 	}
 };
@@ -35,6 +37,7 @@ bool SignalingSocket::try_init() {
 
 	const auto& snp_config = SnpConfig::instance();
 	if (const auto error = getaddrinfo(snp_config.server.c_str(), std::to_string(snp_config.port).c_str(), &hints, &result)) {
+		spdlog::dump_backtrace();
 		spdlog::error("getaddrinfo failed with error {}: {}", error, gai_strerror(error));
 		return false;
 	}
@@ -47,6 +50,7 @@ bool SignalingSocket::try_init() {
 
 		if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
 			closesocket(m_socket);
+			spdlog::dump_backtrace();
 			spdlog::error("Client: Couldn't connect to server: {}", std::strerror(errno));
 			continue;
 		}
@@ -54,6 +58,7 @@ bool SignalingSocket::try_init() {
 		break;
 	}
 	if (!result) {
+		spdlog::dump_backtrace();
 		spdlog::error("Signaling client failed to connect");
 		return false;
 	}
@@ -81,6 +86,7 @@ void SignalingSocket::send_packet(NetAddress dest, SignalMessageType msg_type, c
 
 void SignalingSocket::send_packet(const SignalPacket& packet) {
 	if (m_current_state != SocketState::Ready) {
+		spdlog::dump_backtrace();
 		spdlog::error("Signal send_packet attempted but provider is not ready. State: {}", as_string(m_current_state));
 		return;
 	}
@@ -93,6 +99,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 
 	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
 	if (bytes == -1) {
+		spdlog::dump_backtrace();
 		spdlog::error("Signaling send packet error: {}", std::strerror(errno));
 	}
 }
@@ -111,6 +118,7 @@ void SignalingSocket::split_into_packets(const std::string& data, std::vector<Si
 			incoming_packets.push_back(json.template get<SignalPacket>());
 		}
 		catch (std::exception& e) {
+			spdlog::dump_backtrace();
 			spdlog::error("could not parse JSON \"{}\", exc: {}", segment, e.what());
 		};
 	}

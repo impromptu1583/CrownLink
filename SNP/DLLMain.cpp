@@ -52,7 +52,6 @@ static void dll_start() {
 	if (auto error_code = WSAStartup(wVersionRequested, &wsaData); error_code != S_OK) {
 		spdlog::critical("WSAStartup failed with error {}", error_code);
 	}
-	spdlog::set_default_logger(g_logger);
 
 	juice_set_log_handler(juice_logger);
 	juice_set_log_level(JUICE_LOG_LEVEL_DEBUG); // Let's accept all logs and filter them out by our logger in the callback

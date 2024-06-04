@@ -46,15 +46,14 @@ using f64 = double;
 using Json = nlohmann::json;
 
 inline const fs::path g_starcraft_dir = [] {
-	char buffer[MAX_PATH];
-	GetModuleFileNameA(0, buffer, MAX_PATH);
+	wchar_t buffer[MAX_PATH];
+	GetModuleFileNameW(0, buffer, MAX_PATH);
 	return fs::path{ buffer }.parent_path();
 	}();
 
 #include "spdlog/spdlog.h"
 #include "spdlog/async.h"
 #include "spdlog/sinks/daily_file_sink.h"
-inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").string(), 2, 30);
 
 #include <Storm/storm.h>
 
@@ -63,7 +62,7 @@ inline auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", (g_s
 
 #include "ThQueue.h"
 
-constexpr const char* CL_VERSION = "0.3.2";
+constexpr const char* CL_VERSION = "0.3.2-6/4/2410:15am";
 
 inline std::string to_string(juice_state value) {
 	switch (value) {
