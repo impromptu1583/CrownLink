@@ -104,6 +104,13 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	case JUICE_STATE_COMPLETED: {
 		spdlog::trace("Sending message {}", std::string{(const char*)data, size});
 		juice_send(m_agent, (const char*)data, size);
+		m_sendcounter++;
+		if (std::chrono::steady_clock::now() - m_last_send > 375ms) {
+			m_misscounter++;
+			spdlog::info("missed send time limit, new count: {} of {} {}%", m_misscounter, m_sendcounter, m_misscounter*100/m_sendcounter);
+			m_last_send = std::chrono::steady_clock::now();
+		}
+
 	} break;
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();
@@ -143,7 +150,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 			parent.set_connection_type(JuiceConnectionType::Radmin);
 			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
 		}
-		spdlog::debug("Final candidates were local: {} remote: {}", local, remote);
+		spdlog::info("Final candidates were local: {} remote: {}", local, remote);
 	} break;
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();

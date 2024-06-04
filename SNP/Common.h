@@ -62,7 +62,7 @@ inline const fs::path g_starcraft_dir = [] {
 
 #include "ThQueue.h"
 
-constexpr const char* CL_VERSION = "0.3.2-6/4/2410:15am";
+constexpr const char* CL_VERSION = "0.3.2";
 
 inline std::string to_string(juice_state value) {
 	switch (value) {
