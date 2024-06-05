@@ -108,5 +108,4 @@ private:
 	std::string m_host;
 	std::string m_port;
 	std::mutex m_mutex;
-	Logger m_logger{Logger::root(), "SignalingSocket"};
 };

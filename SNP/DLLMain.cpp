@@ -36,14 +36,13 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {
-	static Logger logger{Logger::root(), "libjuice"};
 	switch (log_level) {
-	case JUICE_LOG_LEVEL_VERBOSE: logger.trace("{}", message); break;
-	case JUICE_LOG_LEVEL_DEBUG:   logger.debug("{}", message); break;
-	case JUICE_LOG_LEVEL_WARN:    logger.warn("{}", message); break;
-	case JUICE_LOG_LEVEL_INFO:    logger.info("{}", message); break;
-	case JUICE_LOG_LEVEL_ERROR:   logger.error("{}", message); break;
-	case JUICE_LOG_LEVEL_FATAL:   logger.fatal("{}", message); break;
+	case JUICE_LOG_LEVEL_VERBOSE: spdlog::trace("{}", message); break;
+	case JUICE_LOG_LEVEL_DEBUG:   spdlog::debug("{}", message); break;
+	case JUICE_LOG_LEVEL_WARN:    spdlog::warn("{}", message); break;
+	case JUICE_LOG_LEVEL_INFO:    spdlog::info("{}", message); break;
+	case JUICE_LOG_LEVEL_ERROR:   spdlog::error("{}", message); break;
+	case JUICE_LOG_LEVEL_FATAL:   spdlog::critical("{}", message); break;
 	}
 }
 
@@ -51,11 +50,11 @@ static void dll_start() {
 	WSADATA wsaData{};
 	WORD wVersionRequested = MAKEWORD(2, 2);
 	if (auto error_code = WSAStartup(wVersionRequested, &wsaData); error_code != S_OK) {
-		Logger::root().fatal("WSAStartup failed with error {}", error_code);
+		spdlog::critical("WSAStartup failed with error {}", error_code);
 	}
 
 	juice_set_log_handler(juice_logger);
-	juice_set_log_level(JUICE_LOG_LEVEL_VERBOSE); // Let's accept all logs and filter them out by our logger in the callback
+	juice_set_log_level(JUICE_LOG_LEVEL_DEBUG); // Let's accept all logs and filter them out by our logger in the callback
 }
 
 static void dll_exit() {

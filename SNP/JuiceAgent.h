@@ -10,6 +10,12 @@ struct TurnServer {
 	uint16_t    port;
 };
 
+enum class JuiceConnectionType {
+	Standard,
+	Relay,
+	Radmin
+};
+
 class JuiceAgent {
 public:
 	JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message = "");
@@ -26,14 +32,13 @@ public:
 	const NetAddress& address() const { return m_address; }
 	juice_state state() const { return m_p2p_state; }
 	bool is_active() const { return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min; }
-	bool is_relayed() const { return m_is_relayed; }
-	void set_relayed(bool value) { m_is_relayed = value; }
+	void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };
+	JuiceConnectionType connection_type() { return m_connection_type; };
 	void mark_last_signal();
 
 private:
 	void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
 	void try_initialize();
-
 
 	static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
 	static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
@@ -42,11 +47,15 @@ private:
 
 private:
 	bool m_is_relayed = false;
+	bool m_is_radmin = false;
+	JuiceConnectionType m_connection_type = JuiceConnectionType::Standard;
 	std::chrono::steady_clock::time_point m_last_active;
 	std::chrono::steady_clock::time_point m_last_signal;
 	std::chrono::steady_clock::time_point m_last_ping = std::chrono::steady_clock::now() - 1s;
+	std::chrono::steady_clock::time_point m_last_send;
+	u32 m_misscounter = 0;
+	u32 m_sendcounter = 0;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	NetAddress m_address;
 	juice_agent_t* m_agent;
-	Logger m_logger;
 };

@@ -32,6 +32,8 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
+
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
@@ -39,33 +41,28 @@ using f64 = double;
 
 #include <juice.h>
 #include <base64.hpp>
-
+#include <concurrentqueue.h>
 #include <json.hpp>
 using Json = nlohmann::json;
 
-#include <Storm/storm.h>
-#include <Util/Exceptions.h>
-#include <Util/MemoryFrame.h>
-#include <Types.h>
+inline const fs::path g_starcraft_dir = [] {
+	wchar_t buffer[MAX_PATH];
+	GetModuleFileNameW(0, buffer, MAX_PATH);
+	return fs::path{ buffer }.parent_path();
+	}();
 
-inline const fs::path g_starcraft_dir = []{
-	char buffer[MAX_PATH];
-	GetModuleFileNameA(0, buffer, MAX_PATH);
-	return fs::path{buffer}.parent_path();
-}();
+#include "spdlog/spdlog.h"
+#include "spdlog/async.h"
+#include "spdlog/sinks/daily_file_sink.h"
+
+#include <Storm/storm.h>
 
 #include "NetAddress.h"
 #include "SNPModule.h"
 
-#include "ThQueue.h"
-#include "Logger.h"
+//#include "ThQueue.h"
 
-constexpr const char* CL_VERSION = "0.3.1";
-
-struct AdFile {
-	game game_info{};
-	char extra_bytes[32]{};
-};
+constexpr const char* CL_VERSION = "0.3.5";
 
 inline std::string to_string(juice_state value) {
 	switch (value) {
@@ -90,6 +87,7 @@ inline std::string as_string(const auto& value) {
 		ss << value;
 		return ss.str();
 	}
+	return std::string();
 }
 
 // NOTE: this code doesn't yet compile, but would be VERY NICE :) -Veeq7

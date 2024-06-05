@@ -1,6 +1,16 @@
 #pragma once
 #include "Common.h"
 
+enum class LogLevel {
+	None,
+	Fatal,
+	Error,
+	Warn,
+	Info,
+	Debug,
+	Trace
+};
+
 struct SnpConfig {
 	std::string server = "crownlink.platypus.coffee";
 	u16 port = 9988;
@@ -30,13 +40,14 @@ public:
 				json = Json::parse(file);
 				m_config_existed = true;
 			} catch (const Json::parse_error& e){
-				m_logger.error("Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
+				spdlog::dump_backtrace();
+				spdlog::error("Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte);
 			}
 		}
 		if (m_config_existed) {
-			m_logger.info("Config file loaded, contents: {}", json.dump());
+			spdlog::info("Config file loaded, contents: {}", json.dump());
 		} else {
-			m_logger.warn("Config file not found, defaults will be used");
+			spdlog::warn("Config file not found, defaults will be used");
 		}
 
 		SnpConfig config{};
@@ -56,7 +67,29 @@ public:
 		}
 
 		load_field(json, "log-level", config.log_level);
-		Logger::set_log_level(config.log_level);
+		switch (config.log_level) {
+			case LogLevel::Trace: {
+				spdlog::set_level(spdlog::level::trace);
+			}break;
+			case LogLevel::Debug: {
+				spdlog::set_level(spdlog::level::debug);
+			}break;
+			case LogLevel::Info: {
+				spdlog::set_level(spdlog::level::info);
+			}break;
+			case LogLevel::Warn: {
+				spdlog::set_level(spdlog::level::warn);
+			}break;
+			case LogLevel::Error: {
+				spdlog::set_level(spdlog::level::err);
+			}break;
+			case LogLevel::Fatal: {
+				spdlog::set_level(spdlog::level::critical);
+			}break;
+			case LogLevel::None:{
+				spdlog::set_level(spdlog::level::off);
+			}break;
+		}
 
 		save(config);
 		return config;
@@ -84,9 +117,9 @@ public:
 		};
 
 		if (m_config_existed) {
-			m_logger.info("Creating new config at {}", m_path.string());
+			spdlog::info("Creating new config at {}", m_path.string());
 		} else {
-			m_logger.info("Updating config at {}", m_path.string());
+			spdlog::info("Updating config at {}", m_path.string());
 		}
 
 		std::ofstream file{m_path};
@@ -103,16 +136,15 @@ private:
 		try {
 			json.at(key).get_to(out_value);
 		} catch (const Json::out_of_range& ex) {
-			m_logger.warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		} catch (const Json::type_error& ex) {
-			m_logger.warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
 		}
 	}
 
 private:
 	bool m_config_existed = false;
 	fs::path m_path;
-	Logger m_logger{Logger::root(), "Config"};
 };
 
 inline SnpConfig& SnpConfig::instance() {

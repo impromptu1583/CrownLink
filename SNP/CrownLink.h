@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Common.h"
-#include "Output.h"
-#include "Util/Types.h"
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -28,7 +26,7 @@ public:
 
 	void request_advertisements();
 	void send(const NetAddress& to, void* data, size_t size);
-	void start_advertising(Util::MemoryFrame ad_data);
+	void start_advertising(AdFile ad_data);
 	void stop_advertising();
 
 	auto& receive_queue() { return m_receive_queue; }
@@ -42,20 +40,19 @@ private:
 	void update_known_advertisers(const std::string& message);
 
 private:
-	ThQueue<GamePacket> m_receive_queue;
+	//ThQueue<GamePacket> m_receive_queue;
+	moodycamel::ConcurrentQueue<GamePacket> m_receive_queue;
 	JuiceManager m_juice_manager;
 	SignalingSocket m_signaling_socket;
 
 	std::jthread m_signaling_thread;
 	std::vector<NetAddress> m_known_advertisers;
-	Util::MemoryFrame m_ad_data;
+	AdFile m_ad_data;
 
 	bool m_is_advertising = false;
 	bool m_is_running = true;
 	bool m_client_id_set = false;
 	NetAddress m_client_id;
-
-	Logger m_logger{Logger::root(), "Juice"};
 
 	u32 m_ellipsis_counter = 3;
 };

@@ -19,13 +19,12 @@ public:
 	void mark_last_signal(const NetAddress& address);
 
 	juice_state agent_state(const NetAddress& address);
-	bool is_relayed(const NetAddress& address);
+	JuiceConnectionType final_connection_type(const NetAddress& address);
 
 	std::mutex& mutex() { return m_mutex; }
 
 private:
 	std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
 	std::mutex m_mutex;
-	Logger m_logger{Logger::root(), "P2P Manager"};
 	std::vector<TurnServer> m_turn_servers;
 };

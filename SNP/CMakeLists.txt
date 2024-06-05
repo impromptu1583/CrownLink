@@ -3,13 +3,6 @@
 set(MODULE_FILES
 	"bwapi/Storm/storm.h"
 	"bwapi/Storm/storm.cpp"
-	"bwapi/Util/MemoryFrame.cpp"
-	"bwapi/Util/MemoryFrame.h"
-	"bwapi/Util/Types.h"
-	"bwapi/Util/Exceptions.h"
-	"bwapi/Util/Exceptions.cpp"
-	"bwapi/Output.cpp"
-	"bwapi/Output.h"
 	"include/base64.hpp"
 	"include/json.hpp"
 	
@@ -29,8 +22,8 @@ set(MODULE_FILES
 	"Config.h"
 	
 	"Common.h"
-	"ThQueue.h"
-	"Logger.h"
+	#"ThQueue.h"
+	#"Logger.h"
 	"caps.mpq")
 
 add_library(SNP SHARED ${MODULE_FILES})
@@ -38,6 +31,10 @@ add_library(SNP SHARED ${MODULE_FILES})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+set(VCPKG_TARGET_TRIPLET "x86-windows-static")
+
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET SNP PROPERTY CXX_STANDARD 20)

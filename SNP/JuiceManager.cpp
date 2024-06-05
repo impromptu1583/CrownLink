@@ -51,7 +51,7 @@ void JuiceManager::mark_last_signal(const NetAddress& address) {
 
 void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	const auto& peer = packet.peer_address;
-	m_logger.trace("Received message for {}: {}", peer.b64(), packet.data);
+	spdlog::trace("Received message for {}: {}", peer.b64(), packet.data);
 
 	std::lock_guard lock{m_mutex};
 	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
@@ -63,9 +63,10 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 			const auto port = json["port"].get<uint16_t>();
 
 			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
-			m_logger.debug("TURN server info received: {}",packet.data);
+			spdlog::debug("TURN server info received: {}",packet.data);
 		} catch (std::exception& e) {
-			m_logger.error("error loading turn server {}",e.what());
+			spdlog::dump_backtrace();
+			spdlog::error("error loading turn server {}",e.what());
 		}
 	} else {
 		auto& peer_agent = ensure_agent(peer, lock);
@@ -76,7 +77,7 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 void JuiceManager::send_all(void* data, const size_t size) {
 	std::lock_guard lock{m_mutex};
 	for (auto& [name, agent] : m_agents) {
-		m_logger.debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
+		spdlog::debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
 		agent->send_message(data, size);
 	}
 }
@@ -89,10 +90,10 @@ juice_state JuiceManager::agent_state(const NetAddress& address) {
 	return JUICE_STATE_DISCONNECTED;
 }
 
-bool JuiceManager::is_relayed(const NetAddress& address) {
-	std::lock_guard lock{m_mutex};
+JuiceConnectionType JuiceManager::final_connection_type(const NetAddress& address) {
+	std::lock_guard lock{ m_mutex };
 	if (auto agent = maybe_get_agent(address, lock)) {
-		return agent->is_relayed();
+		return agent->connection_type();
 	}
-	return false;
+	return JuiceConnectionType::Standard;
 }

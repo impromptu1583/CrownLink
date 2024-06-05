@@ -1,10 +1,6 @@
 #include "SNPModule.h"
 
-#include "bwapi/Output.h"
-#include "bwapi/Util/MemoryFrame.h"
-#include "bwapi/Storm/storm.h"
 #include "CrownLink.h"
-#include <queue>
 #include <list>
 
 namespace snp {
@@ -17,12 +13,12 @@ struct SNPContext {
 
 	AdFile hosted_game;
 	AdFile status_ad;
-	bool   status_ad_used;
+	bool   status_ad_used = false;
 };
 
 static SNPContext g_snp_context;
 
-void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
+void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	std::lock_guard lock{g_advertisement_mutex};
 
 	AdFile* adFile = nullptr;
@@ -35,16 +31,16 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 
 	if (!adFile) {
 		adFile = &g_snp_context.game_list.emplace_back();
-		adFile->game_info.dwIndex = ++g_snp_context.next_game_ad_id;
+		ad.game_info.dwIndex = ++g_snp_context.next_game_ad_id;
+	} else {
+		ad.game_info.dwIndex = adFile->game_info.dwIndex;
 	}
 
-	s32 index = adFile->game_info.dwIndex;
-	Util::MemoryFrame::from(adFile->game_info).writeAs(ad.readAs<game>()); // this overwrites the index lol
-	Util::MemoryFrame::from(adFile->extra_bytes).write(ad);
+	memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile));
 
 	std::string prefix;
 	if (g_snp_context.game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		Logger::root().info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
 
@@ -60,8 +56,13 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	} break;
 	}
 
-	if (g_crown_link->juice_manager().is_relayed(host)) {
-		prefix += "[R]";
+	switch (g_crown_link->juice_manager().final_connection_type(host)) {
+	case JuiceConnectionType::Relay: {
+		prefix += "[Relayed]";
+	} break;
+	case JuiceConnectionType::Radmin:{
+		prefix += "[Radmin]";
+	} break;
 	}
 
 	if (!prefix.empty()) {
@@ -73,7 +74,6 @@ void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad) {
 	adFile->game_info.dwTimer = GetTickCount();
 	adFile->game_info.saHost = *(SNETADDR*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
-	adFile->game_info.dwIndex = index;
 }
 
 void remove_advertisement(const NetAddress& host) {}
@@ -83,11 +83,18 @@ void pass_packet(GamePacket& packet) {}
 BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
+	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
+	auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", log_filename, 2, 30);
+	g_logger->set_level(spdlog::level::info);
+	g_logger->flush_on(spdlog::level::err);
+	spdlog::set_default_logger(g_logger);
+	spdlog::enable_backtrace(32);
 	set_status_ad("Crownlink Initializing");
+	spdlog::info("Crownlink Initializing");
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
@@ -97,10 +104,11 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 BOOL __stdcall spi_destroy() {
 	try {
 		g_crown_link.reset();
-	} catch (GeneralException& e) {
-		Logger::root().error("unhandled exception in spiDestroy {}",e.getMessage());
+	} catch (std::exception& e) {
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
+	spdlog::shutdown();
 
 	return true;
 }
@@ -135,8 +143,9 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 		else if(g_snp_context.status_ad_used) {
 			*out_game_list = &g_snp_context.status_ad.game_info;
 		}
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		spdlog::dump_backtrace();
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -145,8 +154,9 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 	try {
 		g_crown_link->request_advertisements();
-	} catch (GeneralException& e) {
-		DropLastError(__FUNCTION__ " unhandled exception: %s", e.getMessage());
+	} catch (std::exception& e) {
+		spdlog::dump_backtrace();
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
@@ -188,7 +198,7 @@ void clear_status_ad() {
 BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
-	g_crown_link->start_advertising(Util::MemoryFrame::from(g_snp_context.hosted_game));
+	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }
 
@@ -218,17 +228,16 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 	}
 
 	if (address_count > 1) {
-		Logger::root().info("multicast attempted");
-		DropMessage(1, "spiSend, multicast not supported");
+		spdlog::info("multicast attempted");
 	}
 
 	try {
 		NetAddress peer = *(out_address_list[0]);
-		Logger::root().trace("spiSend: {}", std::string{data, size});
+		spdlog::trace("spiSend: {}", std::string{data, size});
 
 		g_crown_link->send(peer, data, size);
-	} catch (GeneralException& e) {
-		DropLastError("spiSend failed: %s", e.getMessage());
+	} catch (std::exception& e) {
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -242,15 +251,18 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 	GamePacket* loan = new GamePacket{};
 	try {
 		while (true) {
-			if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
+			/*if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
+				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+				return false;
+			}*/
+			if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
 				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 				return false;
 			}
 			std::string debug_string{loan->data, loan->size};
-			Logger::root().trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
+			spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 
 			if (GetTickCount() > loan->timestamp + 10000) {
-				DropMessage(1, "Dropped outdated packet (%dms delay)", GetTickCount() - loan->timestamp);
 				continue;
 			}
 
@@ -260,9 +272,10 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 
 			break;
 		}
-	} catch (GeneralException& e) {
+	} catch (std::exception& e) {
 		delete loan;
-		DropLastError("spiLockGameList failed: %s", e.getMessage());
+		spdlog::dump_backtrace();
+		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
@@ -276,7 +289,6 @@ BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
 }
 
 BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
-	DropMessage(0, "spiCompareNetAddresses");
 	if (out_result) {
 		*out_result = 0;
 	}
@@ -299,17 +311,14 @@ BOOL __stdcall spi_unlock_device_list(void*) {
 }
 
 BOOL __stdcall spi_free_external_message(NetAddress* address, char* data, DWORD size) {
-	DropMessage(0, "spiFreeExternalMessage");
 	return false;
 }
 
 BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, int, int) {
-	DropMessage(0, "spiGetPerformanceData");
 	return false;
 }
 
 BOOL __stdcall spi_initialize_device(int, void*, void*, DWORD*, void*) {
-	DropMessage(0, "spiInitializeDevice");
 	return false;
 }
 
@@ -328,19 +337,16 @@ BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out
 }
 
 BOOL __stdcall spi_select_game(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
-	DropMessage(0, "spiSelectGame");
 	// Looks like an old function and doesn't seem like it's used anymore
 	// UDPN's function Creates an IPX game select dialog window
 	return false;
 }
 
 BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
-	DropMessage(0, "spiSendExternalMessage");
 	return false;
 }
 
 BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
-	DropMessage(0, "spiLeagueGetName");
 	return true;
 }
 

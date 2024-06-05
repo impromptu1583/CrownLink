@@ -3,12 +3,13 @@
 #include "Signaling.h"
 #include "JuiceManager.h"
 #include "CrownLink.h"
+#include <regex>
 
 JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message)
-: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address}, m_logger{ Logger::root(), "P2P Agent", address.b64() } {
+: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
-		.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL,
+		.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD,
 		.stun_server_host = snp_config.stun_server.c_str(),
 		.stun_server_port = snp_config.stun_port,
 
@@ -40,7 +41,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 }
 
 JuiceAgent::~JuiceAgent() {
-	m_logger.debug("Agent {} closed", m_address.b64());
+	spdlog::debug("Agent {} closed", m_address.b64());
     juice_destroy(m_agent);
 }
 
@@ -57,7 +58,7 @@ void JuiceAgent::try_initialize() {
 		juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
 		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
-		m_logger.trace("Init - local SDP {}", sdp);
+		spdlog::trace("Init - local SDP {}", sdp);
 		juice_gather_candidates(m_agent);
 	}
 }
@@ -75,18 +76,18 @@ void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 
 	switch (packet.message_type) {
 	case SignalMessageType::SignalingPing:{
-		m_logger.trace("Received Ping");
+		spdlog::trace("Received Ping");
 	} break;
 	case SignalMessageType::JuiceLocalDescription: {
-		m_logger.trace("Received remote description:\n{}", packet.data);
+		spdlog::trace("Received remote description:\n{}", packet.data);
 		juice_set_remote_description(m_agent, packet.data.c_str());
 	} break;
 	case SignalMessageType::JuciceCandidate: {
-		m_logger.trace("Received remote candidate {}", packet.data);
+		spdlog::trace("Received remote candidate {}", packet.data);
 		juice_add_remote_candidate(m_agent, packet.data.c_str());
 	} break;
 	case SignalMessageType::JuiceDone: {
-		m_logger.trace("Remote gathering done");
+		spdlog::trace("Remote gathering done");
 		juice_set_remote_gathering_done(m_agent);
 	} break;
 	}
@@ -101,14 +102,23 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	} break;		
 	case JUICE_STATE_CONNECTED:
 	case JUICE_STATE_COMPLETED: {
-		m_logger.trace("Sending message {}", std::string{(const char*)data, size});
+		spdlog::trace("Sending message {}", std::string{(const char*)data, size});
 		juice_send(m_agent, (const char*)data, size);
+		m_sendcounter++;
+		if (std::chrono::steady_clock::now() - m_last_send > 375ms) {
+			m_misscounter++;
+			spdlog::info("missed send time limit, new count: {} of {} {}%", m_misscounter, m_sendcounter, m_misscounter*100/m_sendcounter);
+			m_last_send = std::chrono::steady_clock::now();
+		}
+
 	} break;
 	case JUICE_STATE_FAILED: {
-		m_logger.error("Trying to send message but P2P connection failed");
+		spdlog::dump_backtrace();
+		spdlog::error("Trying to send message but P2P connection failed");
 	} break;
 	default: {
-		m_logger.error("Trying to send message but P2P connection is in unexpected state");
+		spdlog::dump_backtrace();
+		spdlog::error("Trying to send message but P2P connection is in unexpected state");
 	} break;
 	}
 }
@@ -117,29 +127,34 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
 	parent.m_p2p_state = state;
-	parent.m_logger.debug("Connection changed state, new state: {}", to_string(state));
+	spdlog::debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
 	case JUICE_STATE_CONNECTED: {
-		parent.m_logger.info("Initially connected");
+		spdlog::info("Initially connected");
 	} break;
 	case JUICE_STATE_COMPLETED: {
-		parent.m_logger.info("Connection negotiation finished");
+		spdlog::info("Connection negotiation finished");
 		char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
 		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
 		if (std::string{local}.find("typ relay") != std::string::npos) {
-			parent.set_relayed(true);
-			parent.m_logger.warn("Local connection is relayed, performance may be affected");
+			parent.set_connection_type(JuiceConnectionType::Relay);
+			spdlog::warn("Local connection is relayed, performance may be affected");
 		}
 		if (std::string{remote}.find("typ relay") != std::string::npos) {
-			parent.set_relayed(true);
-			parent.m_logger.warn("Remote connection is relayed, performance may be affected");
+			parent.set_connection_type(JuiceConnectionType::Relay);
+			spdlog::warn("Remote connection is relayed, performance may be affected");
 		}
-		parent.m_logger.debug("Final candidates were local: {} remote: {}", local, remote);
+		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
+			parent.set_connection_type(JuiceConnectionType::Radmin);
+			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
+		}
+		spdlog::info("Final candidates were local: {} remote: {}", local, remote);
 	} break;
 	case JUICE_STATE_FAILED: {
-		parent.m_logger.error("Could not connect, gave up");
+		spdlog::dump_backtrace();
+		spdlog::error("Could not connect, gave up");
 	} break;
 	}
 }
@@ -159,7 +174,8 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
-	g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
+	//g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
+	g_crown_link->receive_queue().enqueue(GamePacket{ parent.m_address, data, size });
 	SetEvent(g_receive_event);
-	parent.m_logger.trace("received: {}", std::string{data, size});
+	spdlog::trace("received: {}", std::string{data, size});
 }

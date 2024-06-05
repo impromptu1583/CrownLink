@@ -2,7 +2,7 @@
 #include "Common.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "ThQueue.h"
+//#include "ThQueue.h"
 
 namespace snp {
 
@@ -15,7 +15,7 @@ struct NetworkInfo {
 	CAPS  caps;
 };
 
-void pass_advertisement(const NetAddress& host, Util::MemoryFrame ad);
+void pass_advertisement(const NetAddress& host, AdFile& ad);
 void remove_advertisement(const NetAddress& host);
 void pass_packet(GamePacket& parket);
 void set_status_ad(const std::string& status);
