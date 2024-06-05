@@ -174,7 +174,8 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
-	g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
+	//g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
+	g_crown_link->receive_queue().enqueue(GamePacket{ parent.m_address, data, size });
 	SetEvent(g_receive_event);
 	spdlog::trace("received: {}", std::string{data, size});
 }

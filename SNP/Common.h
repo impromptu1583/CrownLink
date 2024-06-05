@@ -41,7 +41,7 @@ using f64 = double;
 
 #include <juice.h>
 #include <base64.hpp>
-
+#include <concurrentqueue.h>
 #include <json.hpp>
 using Json = nlohmann::json;
 

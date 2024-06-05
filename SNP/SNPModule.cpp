@@ -251,7 +251,11 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 	GamePacket* loan = new GamePacket{};
 	try {
 		while (true) {
-			if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
+			/*if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
+				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+				return false;
+			}*/
+			if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
 				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 				return false;
 			}

@@ -40,7 +40,8 @@ private:
 	void update_known_advertisers(const std::string& message);
 
 private:
-	ThQueue<GamePacket> m_receive_queue;
+	//ThQueue<GamePacket> m_receive_queue;
+	moodycamel::ConcurrentQueue<GamePacket> m_receive_queue;
 	JuiceManager m_juice_manager;
 	SignalingSocket m_signaling_socket;
 
