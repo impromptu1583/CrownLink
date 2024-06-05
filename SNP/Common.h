@@ -60,9 +60,9 @@ inline const fs::path g_starcraft_dir = [] {
 #include "NetAddress.h"
 #include "SNPModule.h"
 
-#include "ThQueue.h"
+//#include "ThQueue.h"
 
-constexpr const char* CL_VERSION = "0.3.2";
+constexpr const char* CL_VERSION = "0.3.5";
 
 inline std::string to_string(juice_state value) {
 	switch (value) {
