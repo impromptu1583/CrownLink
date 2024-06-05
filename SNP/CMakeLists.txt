@@ -22,7 +22,7 @@ set(MODULE_FILES
 	"Config.h"
 	
 	"Common.h"
-	"ThQueue.h"
+	#"ThQueue.h"
 	#"Logger.h"
 	"caps.mpq")
 
