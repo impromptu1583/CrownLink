@@ -162,7 +162,11 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
-	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
+	if (!std::regex_match(sdp, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
+		g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
+	} else {
+		spdlog::info("skipped sending radmin candidate: {}", sdp);
+	}
 }
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
