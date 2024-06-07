@@ -1,8 +1,6 @@
 ﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(MODULE_FILES
-	"bwapi/Storm/storm.h"
-	"bwapi/Storm/storm.cpp"
 	"include/base64.hpp"
 	"include/json.hpp"
 	
@@ -18,13 +16,10 @@ set(MODULE_FILES
 	"JuiceManager.cpp"
 	"JuiceAgent.h"
 	"JuiceAgent.cpp"
-    "NetAddress.h"
-	"Config.h"
-	
+    "../NetShared/StormTypes.h"
+	"Config.h"	
 	"Common.h"
-	#"ThQueue.h"
-	#"Logger.h"
-	"caps.mpq")
+)
 
 add_library(SNP SHARED ${MODULE_FILES})
 
@@ -48,9 +43,7 @@ set_target_properties(SNP
 		SUFFIX ".snp"
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi/Storm)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/bwapi/Util)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NetShared)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 include(FetchContent)
