@@ -72,7 +72,7 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	}
 
 	adFile->game_info.dwTimer = GetTickCount();
-	adFile->game_info.saHost = *(SNETADDR*)&host;
+	adFile->game_info.saHost = *(NetAddress*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
 }
 
@@ -220,7 +220,7 @@ BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_ga
 		}
 	}
 
-	SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
+	//SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
 	return false;
 }
 
@@ -258,7 +258,7 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 				return false;
 			}*/
 			if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
-				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+				//SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 				return false;
 			}
 			std::string debug_string{loan->data, loan->size};
@@ -295,7 +295,7 @@ BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* addre
 		*out_result = 0;
 	}
 	if (!address1 || !address2 || !out_result) {
-		SErrSetLastError(ERROR_INVALID_PARAMETER);
+		//SErrSetLastError(ERROR_INVALID_PARAMETER);
 		return false;
 	}
 
@@ -334,7 +334,7 @@ BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out
 	if (out_size) {
 		*out_size = 0;
 	}
-	SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+	//SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 	return false;
 }
 

@@ -55,9 +55,9 @@ inline const fs::path g_starcraft_dir = [] {
 #include "spdlog/async.h"
 #include "spdlog/sinks/daily_file_sink.h"
 
-#include <Storm/storm.h>
+//#include <Storm/storm.h>
 
-#include "NetAddress.h"
+#include "../NetShared/StormTypes.h"
 #include "SNPModule.h"
 
 //#include "ThQueue.h"
