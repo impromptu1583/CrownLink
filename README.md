@@ -7,6 +7,12 @@ Crownlink is a networking provider that is compatible with blizzard's storm-base
 ## Usage
 Download the latest `CrownLink.snp` from releases and drop it in your game directory next to the default ones. For Cosmonarchy this is typically `C:\Cosmonarchy\Starcraft\`. You should have a new entry in the multiplayer menu show up.
 
+### IMPORTANT:
+Please make sure you have an up to date version of microsoft visual c++ redistributable x86 installed:
+[vc_redist.x86.exe](https://aka.ms/vs/17/release/vc_redist.x86.exe)
+
+(comes from this site: [learn.microsoft.com](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-140))
+
 ## Connection modes / tags
 You may see games in the multiplayer menu tagged with `[Relayed]` in the game name. This means direct peer to peer communication couldn't be established and a TURN relay server is in use. Performance may not be as good as a direct peer to peer connection.
 
