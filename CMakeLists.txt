@@ -17,3 +17,4 @@ project ("SNP")
 
 # Include sub-projects.
 add_subdirectory ("SNP")
+add_subdirectory ("Server")
