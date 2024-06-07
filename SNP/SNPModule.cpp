@@ -116,6 +116,8 @@ BOOL __stdcall spi_destroy() {
 BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	std::lock_guard lock{g_advertisement_mutex};
 
+	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
+
 	AdFile* last_ad = nullptr;
 	for (auto& game : g_snp_context.game_list) {
 		game.game_info.pExtra = game.extra_bytes;
@@ -128,7 +130,6 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	if (last_ad) {
 		last_ad->game_info.pNext = nullptr;
 	}
-	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
 
 	if (last_ad && g_snp_context.status_ad_used) {
 		last_ad->game_info.pNext = &g_snp_context.status_ad.game_info;
@@ -138,6 +139,7 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	try {
 		*out_game_list = nullptr;
 		if (!g_snp_context.game_list.empty()) {
+			
 			*out_game_list = &g_snp_context.game_list.begin()->game_info;
 		}
 		else if(g_snp_context.status_ad_used) {
