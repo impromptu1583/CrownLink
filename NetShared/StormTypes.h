@@ -106,33 +106,21 @@ struct module_info {
 };
 
 struct game {
-    u32     dwIndex;
-    u32     dwGameState;
-    u32     dwUnk_08; // creation time
-    NetAddress  saHost;
-    u32     dwUnk_1C; // host latency
-    u32     dwTimer;
-    u32     dwUnk_24; // game category bits
-    char    szGameName[128];
-    char    szGameStatString[128];
+    u32     game_index;
+    u32     game_state;
+    u32     creation_time;
+    NetAddress  host;
+    u32     host_latency;
+    u32     host_last_time;
+    u32     category_bits;
+    char    game_name[128];
+    char    game_description[128];
     game*   pNext;
     void*   pExtra;
-    u32     dwExtraBytes;
-    u32     dwProduct;
-    u32     dwVersion;
+    u32     extra_bytes;
+    u32     program_id;
+    u32     version_id;
 };
-
-struct storm_head {
-    u16 wChecksum;
-    u16 wLength;
-    u16 wSent;
-    u16 wReceived;
-    u8  bCommandClass;
-    u8  bCommandType;
-    u8  bPlayerId;
-    u8  bFlags;
-};
-
 
 struct GamePacket {
     NetAddress sender{};
