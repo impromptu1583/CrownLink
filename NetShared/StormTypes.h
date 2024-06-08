@@ -35,15 +35,15 @@ struct std::hash<NetAddress> {
 
 
 struct CAPS {
-    u32 dwSize;                 // Size of this structure  // sizeof(CAPS)
-    u32 dwUnk_0x04;             // Some flags?
-    u32 maxmessagesize;         // Size of the packet buffer, must be between 128 and 512
-    u32 dwUnk_0x0C;             // Unknown
-    u32 dwDisplayedPlayerCount; // Displayed player count in the mode selection list
-    u32 dwUnk_0x14;             // some kind of timeout or timer related
-    u32 dwPlayerLatency;        // ... latency?
-    u32 dwPlayerCount;          // the number of players that can participate, must be between 1 and 20
-    u32 dwCallDelay;            // the number of calls before data is sent over the network // between 2 and 8; single player is set to 1
+    u32 size;
+    u32 flags;             // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
+    u32 max_message_size;  // must be between 128 and 512
+    u32 max_queue_size;
+    u32 max_players;
+    u32 bytes_per_second;
+    u32 latency;
+    u32 turns_per_second; // the turn_per_second and turns_in_transit values
+    u32 turns_in_transit; // in the appended mpq file seem to be used instead
 };
 
 struct client_info {
