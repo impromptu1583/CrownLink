@@ -32,71 +32,73 @@ struct std::hash<NetAddress> {
     }
 };
 
+
+
 struct CAPS {
-    DWORD dwSize;                 // Size of this structure  // sizeof(CAPS)
-    DWORD dwUnk_0x04;             // Some flags?
-    DWORD maxmessagesize;         // Size of the packet buffer, must be between 128 and 512
-    DWORD dwUnk_0x0C;             // Unknown
-    DWORD dwDisplayedPlayerCount; // Displayed player count in the mode selection list
-    DWORD dwUnk_0x14;             // some kind of timeout or timer related
-    DWORD dwPlayerLatency;        // ... latency?
-    DWORD dwPlayerCount;          // the number of players that can participate, must be between 1 and 20
-    DWORD dwCallDelay;            // the number of calls before data is sent over the network // between 2 and 8; single player is set to 1
+    u32 dwSize;                 // Size of this structure  // sizeof(CAPS)
+    u32 dwUnk_0x04;             // Some flags?
+    u32 maxmessagesize;         // Size of the packet buffer, must be between 128 and 512
+    u32 dwUnk_0x0C;             // Unknown
+    u32 dwDisplayedPlayerCount; // Displayed player count in the mode selection list
+    u32 dwUnk_0x14;             // some kind of timeout or timer related
+    u32 dwPlayerLatency;        // ... latency?
+    u32 dwPlayerCount;          // the number of players that can participate, must be between 1 and 20
+    u32 dwCallDelay;            // the number of calls before data is sent over the network // between 2 and 8; single player is set to 1
 };
 
 struct client_info {
-    DWORD dwSize; // 60
+    u32   dwSize; // 60
     char* pszName;
     char* pszVersion;
-    DWORD dwProduct;
-    DWORD dwVerbyte;
-    DWORD dwUnk5;
-    DWORD dwMaxPlayers;
-    DWORD dwUnk7;
-    DWORD dwUnk8;
-    DWORD dwUnk9;
-    DWORD dwUnk10; // 0xFF
+    u32   dwProduct;
+    u32   dwVerbyte;
+    u32   dwUnk5;
+    u32   dwMaxPlayers;
+    u32   dwUnk7;
+    u32   dwUnk8;
+    u32   dwUnk9;
+    u32   dwUnk10; // 0xFF
     char* pszCdKey;
     char* pszCdOwner;
-    DWORD dwIsShareware;
-    DWORD dwLangId;
+    u32   dwIsShareware;
+    u32   dwLangId;
 };
 
 struct user_info {
-    DWORD dwSize; // 16
+    u32   dwSize; // 16
     char* pszPlayerName;
     char* pszUnknown;
-    DWORD dwUnknown;
+    u32   dwUnknown;
 };
 
 struct battle_info {
-    DWORD dwSize;   // 92
-    DWORD dwUnkType;
-    HWND  hFrameWnd;
+    u32   dwSize;   // 92
+    u32   dwUnkType;
+    void* hFrameWnd;
     void* pfnBattleGetResource;
     void* pfnBattleGetErrorString;
     void* pfnBattleMakeCreateGameDialog;
     void* pfnBattleUpdateIcons;
-    DWORD dwUnk_07;
+    u32   dwUnk_07;
     void* pfnBattleErrorDialog;
     void* pfnBattlePlaySound;
-    DWORD dwUnk_10;
+    u32   dwUnk_10;
     void* pfnBattleGetCursorLink;
-    DWORD dwUnk_12;
+    u32   dwUnk_12;
     void* pfnUnk_13;
-    DWORD dwUnk_14;
+    u32   dwUnk_14;
     void* pfnBattleMakeProfileDialog;
     char* pszProfileStrings;
     void* pfnBattleDrawProfileInfo;
     void* pfnUnk_18;
-    DWORD dwUnk_19;
+    u32   dwUnk_19;
     void* pfnUnk_20;
     void* pfnUnk_21;
     void* pfnBattleSetLeagueName;
 };
 
 struct module_info {
-    DWORD dwSize; // 20
+    u32   dwSize; // 20
     char* pszVersionString;
     char* pszModuleName;
     char* pszMainArchive;
@@ -104,31 +106,31 @@ struct module_info {
 };
 
 struct game {
-    DWORD     dwIndex;
-    DWORD     dwGameState;
-    DWORD     dwUnk_08; // creation time
+    u32     dwIndex;
+    u32     dwGameState;
+    u32     dwUnk_08; // creation time
     NetAddress  saHost;
-    DWORD     dwUnk_1C; // host latency
-    DWORD     dwTimer;
-    DWORD     dwUnk_24; // game category bits
-    char      szGameName[128];
-    char      szGameStatString[128];
-    game* pNext;
-    void* pExtra;
-    DWORD     dwExtraBytes;
-    DWORD     dwProduct;
-    DWORD     dwVersion;
+    u32     dwUnk_1C; // host latency
+    u32     dwTimer;
+    u32     dwUnk_24; // game category bits
+    char    szGameName[128];
+    char    szGameStatString[128];
+    game*   pNext;
+    void*   pExtra;
+    u32     dwExtraBytes;
+    u32     dwProduct;
+    u32     dwVersion;
 };
 
 struct storm_head {
-    WORD wChecksum;
-    WORD wLength;
-    WORD wSent;
-    WORD wReceived;
-    BYTE bCommandClass;
-    BYTE bCommandType;
-    BYTE bPlayerId;
-    BYTE bFlags;
+    u16 wChecksum;
+    u16 wLength;
+    u16 wSent;
+    u16 wReceived;
+    u8  bCommandClass;
+    u8  bCommandType;
+    u8  bPlayerId;
+    u8  bFlags;
 };
 
 
