@@ -23,7 +23,7 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 
 	AdFile* adFile = nullptr;
 	for (auto& game : g_snp_context.game_list) {
-		if (!memcmp(&game.game_info.saHost, &host, sizeof(NetAddress))) {
+		if (!memcmp(&game.game_info.host, &host, sizeof(NetAddress))) {
 			adFile = &game;
 			break;
 		}
@@ -31,16 +31,16 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 
 	if (!adFile) {
 		adFile = &g_snp_context.game_list.emplace_back();
-		ad.game_info.dwIndex = ++g_snp_context.next_game_ad_id;
+		ad.game_info.game_index = ++g_snp_context.next_game_ad_id;
 	} else {
-		ad.game_info.dwIndex = adFile->game_info.dwIndex;
+		ad.game_info.game_index = adFile->game_info.game_index;
 	}
 
 	memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile));
 
 	std::string prefix;
-	if (g_snp_context.game_app_info.version_id != adFile->game_info.dwVersion) {
-		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.dwVersion);
+	if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
+		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
 		prefix += "[!Ver]";
 	}
 
@@ -67,12 +67,12 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 
 	if (!prefix.empty()) {
 		prefix += " ";
-		prefix += adFile->game_info.szGameName;
-		strncpy_s(adFile->game_info.szGameName, sizeof(adFile->game_info.szGameName), prefix.c_str(), sizeof(adFile->game_info.szGameName));
+		prefix += adFile->game_info.game_name;
+		strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
 	}
 
-	adFile->game_info.dwTimer = GetTickCount();
-	adFile->game_info.saHost = *(NetAddress*)&host;
+	adFile->game_info.host_last_time = GetTickCount();
+	adFile->game_info.host = *(NetAddress*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
 }
 
@@ -116,7 +116,7 @@ BOOL __stdcall spi_destroy() {
 BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	std::lock_guard lock{g_advertisement_mutex};
 
-	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.dwTimer + 2000; });
+	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.host_last_time + 2000; });
 
 	AdFile* last_ad = nullptr;
 	for (auto& game : g_snp_context.game_list) {
@@ -133,7 +133,7 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 
 	if (last_ad && g_snp_context.status_ad_used) {
 		last_ad->game_info.pNext = &g_snp_context.status_ad.game_info;
-		g_snp_context.status_ad.game_info.dwIndex = last_ad->game_info.dwIndex + 1;
+		g_snp_context.status_ad.game_info.game_index = last_ad->game_info.game_index + 1;
 	}
 
 	try {
@@ -169,16 +169,16 @@ static void create_ad(AdFile& ad_file, const char* game_name, const char* game_s
 	memset(&ad_file, 0, sizeof(ad_file));
 
 	auto& game_info = ad_file.game_info;
-	strcpy_s(game_info.szGameName, sizeof(game_info.szGameName), game_name);
-	strcpy_s(game_info.szGameStatString, sizeof(game_info.szGameStatString), game_stat_string);
-	game_info.dwGameState = game_state;
-	game_info.dwProduct = g_snp_context.game_app_info.program_id;
-	game_info.dwVersion = g_snp_context.game_app_info.version_id;
-	game_info.dwUnk_1C = 0x0050;
-	game_info.dwUnk_24 = 0x00a7;
+	strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
+	strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
+	game_info.game_state = game_state;
+	game_info.program_id = g_snp_context.game_app_info.program_id;
+	game_info.version_id = g_snp_context.game_app_info.version_id;
+	game_info.host_latency = 0x0050;
+	game_info.category_bits = 0x00a7;
 
 	memcpy(ad_file.extra_bytes, user_data, user_data_size);
-	game_info.dwExtraBytes = user_data_size;
+	game_info.extra_bytes = user_data_size;
 	game_info.pExtra = ad_file.extra_bytes;
 }
 
@@ -214,7 +214,7 @@ BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_ga
 	std::lock_guard lock{g_advertisement_mutex};
 
 	for (auto& game : g_snp_context.game_list) {
-		if (game.game_info.dwIndex == index) {
+		if (game.game_info.game_index == index) {
 			*out_game = game.game_info;
 			return true;
 		}
