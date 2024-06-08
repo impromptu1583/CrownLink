@@ -39,8 +39,8 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile));
 
 	std::string prefix;
-	if (g_snp_context.game_app_info.dwVerbyte != adFile->game_info.dwVersion) {
-		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.dwVerbyte, adFile->game_info.dwVersion);
+	if (g_snp_context.game_app_info.version_id != adFile->game_info.dwVersion) {
+		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.dwVersion);
 		prefix += "[!Ver]";
 	}
 
@@ -172,8 +172,8 @@ static void create_ad(AdFile& ad_file, const char* game_name, const char* game_s
 	strcpy_s(game_info.szGameName, sizeof(game_info.szGameName), game_name);
 	strcpy_s(game_info.szGameStatString, sizeof(game_info.szGameStatString), game_stat_string);
 	game_info.dwGameState = game_state;
-	game_info.dwProduct = g_snp_context.game_app_info.dwProduct;
-	game_info.dwVersion = g_snp_context.game_app_info.dwVerbyte;
+	game_info.dwProduct = g_snp_context.game_app_info.program_id;
+	game_info.dwVersion = g_snp_context.game_app_info.version_id;
 	game_info.dwUnk_1C = 0x0050;
 	game_info.dwUnk_24 = 0x00a7;
 

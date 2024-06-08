@@ -117,7 +117,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 				"  szGameName[128]: {}\n"
 				"  szGameStatString[128]: {}\n"
 				"  dwExtraBytes: {}\n"
-				"  dwProduct: {}\n"
+				"  program_id: {}\n"
 				"  dwVersion: {}\n",
 				ad.game_info.dwIndex,
 				ad.game_info.dwGameState,

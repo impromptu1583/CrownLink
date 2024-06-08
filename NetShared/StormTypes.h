@@ -47,32 +47,32 @@ struct CAPS {
 };
 
 struct client_info {
-    u32   dwSize; // 60
-    char* pszName;
-    char* pszVersion;
-    u32   dwProduct;
-    u32   dwVerbyte;
+    u32   size; // 60
+    char* program_name;
+    char* program_description;
+    u32   program_id;
+    u32   version_id;
     u32   dwUnk5;
-    u32   dwMaxPlayers;
+    u32   max_players;
     u32   dwUnk7;
     u32   dwUnk8;
     u32   dwUnk9;
     u32   dwUnk10; // 0xFF
-    char* pszCdKey;
-    char* pszCdOwner;
-    u32   dwIsShareware;
-    u32   dwLangId;
+    char* cd_key;
+    char* cd_owner;
+    u32   is_shareware;
+    u32   language_id;
 };
 
 struct user_info {
-    u32   dwSize; // 16
-    char* pszPlayerName;
-    char* pszUnknown;
+    u32   size; // 16
+    char* player_name;
+    char* player_description;
     u32   dwUnknown;
 };
 
 struct battle_info {
-    u32   dwSize;   // 92
+    u32   size;   // 92
     u32   dwUnkType;
     void* hFrameWnd;
     void* pfnBattleGetResource;
@@ -98,11 +98,11 @@ struct battle_info {
 };
 
 struct module_info {
-    u32   dwSize; // 20
-    char* pszVersionString;
-    char* pszModuleName;
-    char* pszMainArchive;
-    char* pszPatchArchive;
+    u32   size; // 20
+    char* version_string;
+    char* executable_file;
+    char* original_archive_file;
+    char* patch_archive_file;
 };
 
 struct game {
