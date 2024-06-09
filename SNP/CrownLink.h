@@ -21,6 +21,14 @@ enum class CrownLinkMode {
 	DBCL  // double brain cells version
 };
 
+inline std::string to_string(CrownLinkMode value) {
+	switch (value) {
+		EnumStringCase(CrownLinkMode::CLNK);
+		EnumStringCase(CrownLinkMode::DBCL);
+	}
+	return std::to_string((s32) value);
+}
+
 class CrownLink {
 public:
 	CrownLink();

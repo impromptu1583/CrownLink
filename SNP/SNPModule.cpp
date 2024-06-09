@@ -91,9 +91,11 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 	spdlog::set_default_logger(g_logger);
 	spdlog::enable_backtrace(32);
 	set_status_ad("Crownlink Initializing");
-	spdlog::info("Crownlink Initializing");
+	spdlog::info("Crownlink Initializing, mode:{}",to_string(g_crown_link->mode()));
+	auto mode = g_crown_link->mode();
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
+		g_crown_link->set_mode(mode);
 	} catch (std::exception& e) {
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
@@ -202,11 +204,12 @@ BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_pas
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
 	if (g_crown_link->mode() == CrownLinkMode::DBCL) {
+		spdlog::info("advertising DBCL game, adding prefix");
 		auto prefix = std::string("[DBC]");
 		prefix += g_snp_context.hosted_game.game_info.game_name;
 		if (prefix.size() > 127) { prefix.resize(127); }
 		strncpy_s(g_snp_context.hosted_game.game_info.game_name, sizeof(g_snp_context.hosted_game.game_info.game_name), prefix.c_str(), sizeof(g_snp_context.hosted_game.game_info.game_name));
-	}
+	} else { spdlog::info("advertising game, mode: {}", to_string(g_crown_link->mode())); }
 	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }
