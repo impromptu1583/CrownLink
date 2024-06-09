@@ -20,6 +20,7 @@ BOOL WINAPI SnpQuery(DWORD index, DWORD* out_network_code, char** out_network_na
 			} break;
 			case DBCL_ID:
 			{
+				g_network_info.caps.turns_per_second = 4;
 				*out_network_code = g_network_info.dwIdentifier;
 				*out_network_name = g_network_info.pszName;
 				*out_network_description = g_network_info.pszDescription;
