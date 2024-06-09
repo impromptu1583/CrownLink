@@ -16,6 +16,11 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
+enum class CrownLinkMode {
+	CLNK, // standard version
+	DBCL  // double brain cells version
+};
+
 class CrownLink {
 public:
 	CrownLink();
@@ -32,6 +37,9 @@ public:
 	auto& receive_queue() { return m_receive_queue; }
 	auto& juice_manager() { return m_juice_manager; }
 	auto& signaling_socket() { return m_signaling_socket; }
+
+	void set_mode(const CrownLinkMode& v) { m_cl_version = v; }
+	CrownLinkMode mode() const { return m_cl_version; }
 
 private:
 	void receive_signaling();
@@ -55,6 +63,7 @@ private:
 	NetAddress m_client_id;
 
 	u32 m_ellipsis_counter = 3;
+	CrownLinkMode m_cl_version = CrownLinkMode::CLNK;
 };
 
 inline HANDLE g_receive_event;

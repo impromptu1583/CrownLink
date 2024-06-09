@@ -66,8 +66,9 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	}
 
 	if (!prefix.empty()) {
-		prefix += " ";
+		//prefix += " ";
 		prefix += adFile->game_info.game_name;
+		if (prefix.size() > 127) { prefix.resize(127); }
 		strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
 	}
 
@@ -200,6 +201,12 @@ void clear_status_ad() {
 BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
+	if (g_crown_link->mode() == CrownLinkMode::DBCL) {
+		auto prefix = std::string("[DBC]");
+		prefix += g_snp_context.hosted_game.game_info.game_name;
+		if (prefix.size() > 127) { prefix.resize(127); }
+		strncpy_s(g_snp_context.hosted_game.game_info.game_name, sizeof(g_snp_context.hosted_game.game_info.game_name), prefix.c_str(), sizeof(g_snp_context.hosted_game.game_info.game_name));
+	}
 	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }
