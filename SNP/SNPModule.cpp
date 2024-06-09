@@ -43,6 +43,16 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
 		prefix += "[!Ver]";
 	}
+	try {
+		if (adFile->crownlink_mode == CrownLinkMode::DBCL) {
+			prefix += "[DBC]";
+		}
+		if (adFile->crownlink_mode != g_crown_link->mode()) {
+			adFile->game_info.version_id = 0; // should ensure we can't join the game
+		}
+	} catch (std::exception& e){
+		spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
+	}
 
 	switch (g_crown_link->juice_manager().agent_state(host)) {
 	case JUICE_STATE_CONNECTING:{
@@ -66,8 +76,9 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	}
 
 	if (!prefix.empty()) {
-		prefix += " ";
+		//prefix += " ";
 		prefix += adFile->game_info.game_name;
+		if (prefix.size() > 127) { prefix.resize(127); }
 		strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
 	}
 
@@ -90,9 +101,11 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 	spdlog::set_default_logger(g_logger);
 	spdlog::enable_backtrace(32);
 	set_status_ad("Crownlink Initializing");
-	spdlog::info("Crownlink Initializing");
+	spdlog::info("Crownlink Initializing, mode:{}",to_string(g_crown_link->mode()));
+	auto mode = g_crown_link->mode();
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
+		g_crown_link->set_mode(mode);
 	} catch (std::exception& e) {
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
@@ -167,7 +180,7 @@ BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 
 static void create_ad(AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size) {
 	memset(&ad_file, 0, sizeof(ad_file));
-
+	ad_file.crownlink_mode = g_crown_link->mode();
 	auto& game_info = ad_file.game_info;
 	strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
 	strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);

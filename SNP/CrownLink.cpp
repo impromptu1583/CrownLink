@@ -99,7 +99,7 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
-			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
+			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), sizeof(ad));
 			snp::pass_advertisement(packet.peer_address, ad);
 
 			if (ad.game_info.game_state != 12) { // 12 = game in progress
