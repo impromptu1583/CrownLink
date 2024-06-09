@@ -6,11 +6,20 @@
 
 #include "CrownLink.h"
 #define CLNK_ID 0
+#define DBCL_ID 1
 
 BOOL WINAPI SnpQuery(DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, CAPS** out_caps) {
 	if (out_network_code && out_network_name && out_network_description && out_caps) {
 		switch (index) {
 			case CLNK_ID: {
+				*out_network_code = g_network_info.dwIdentifier;
+				*out_network_name = g_network_info.pszName;
+				*out_network_description = g_network_info.pszDescription;
+				*out_caps = &g_network_info.caps;
+				return true;
+			} break;
+			case DBCL_ID:
+			{
 				*out_network_code = g_network_info.dwIdentifier;
 				*out_network_name = g_network_info.pszName;
 				*out_network_description = g_network_info.pszDescription;
@@ -28,6 +37,14 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
 			case CLNK_ID: {
 				*out_funcs = &snp::g_spi_functions;
 				g_crown_link = std::make_unique<CrownLink>();
+				g_crown_link->set_mode(CrownLinkMode::CLNK);
+				return true;
+			} break;
+			case DBCL_ID:
+			{
+				*out_funcs = &snp::g_spi_functions;
+				g_crown_link = std::make_unique<CrownLink>();
+				g_crown_link->set_mode(CrownLinkMode::DBCL);
 				return true;
 			} break;
 		}

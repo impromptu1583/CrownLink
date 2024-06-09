@@ -99,35 +99,35 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			
 			auto decoded_data = base64::from_base64(packet.data);
 			AdFile ad{};
-			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), decoded_data.size());
+			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), sizeof(ad));
 			snp::pass_advertisement(packet.peer_address, ad);
 
-			if (ad.game_info.dwGameState != 12) { // 12 = game in progress
+			if (ad.game_info.game_state != 12) { // 12 = game in progress
 				m_juice_manager.mark_last_signal(packet.peer_address);
 			} else {
 				spdlog::debug("skipped updating signal because game is in progress");
 			}
 
-			NetAddress& netaddress = (NetAddress&)ad.game_info.saHost;
+			NetAddress& netaddress = (NetAddress&)ad.game_info.host;
 			spdlog::debug("Game Info Received:\n"
-				"  dwIndex: {}\n"
-				"  dwGameState: {}\n"
-				"  saHost: {}\n"
-				"  dwTimer: {}\n"
-				"  szGameName[128]: {}\n"
-				"  szGameStatString[128]: {}\n"
-				"  dwExtraBytes: {}\n"
-				"  dwProduct: {}\n"
-				"  dwVersion: {}\n",
-				ad.game_info.dwIndex,
-				ad.game_info.dwGameState,
+				"  game_index: {}\n"
+				"  game_state: {}\n"
+				"  host: {}\n"
+				"  host_last_time: {}\n"
+				"  game_name[128]: {}\n"
+				"  game_description[128]: {}\n"
+				"  extra_bytes: {}\n"
+				"  program_id: {}\n"
+				"  version_id: {}\n",
+				ad.game_info.game_index,
+				ad.game_info.game_state,
 				netaddress.b64(),
-				ad.game_info.dwTimer,
-				ad.game_info.szGameName,
-				ad.game_info.szGameStatString,
-				ad.game_info.dwExtraBytes,
-				ad.game_info.dwProduct,
-				ad.game_info.dwVersion
+				ad.game_info.host_last_time,
+				ad.game_info.game_name,
+				ad.game_info.game_description,
+				ad.game_info.extra_bytes,
+				ad.game_info.program_id,
+				ad.game_info.version_id
 			);
 		} break;
 		case SignalMessageType::SignalingPing:

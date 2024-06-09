@@ -33,6 +33,9 @@ public:
 	auto& juice_manager() { return m_juice_manager; }
 	auto& signaling_socket() { return m_signaling_socket; }
 
+	void set_mode(const CrownLinkMode& v) { m_cl_version = v; }
+	CrownLinkMode mode() const { return m_cl_version; }
+
 private:
 	void receive_signaling();
 	void handle_signal_packets(std::vector<SignalPacket>& packets);
@@ -55,6 +58,7 @@ private:
 	NetAddress m_client_id;
 
 	u32 m_ellipsis_counter = 3;
+	CrownLinkMode m_cl_version = CrownLinkMode::CLNK;
 };
 
 inline HANDLE g_receive_event;

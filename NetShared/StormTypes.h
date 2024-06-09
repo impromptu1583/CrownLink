@@ -33,104 +33,92 @@ struct std::hash<NetAddress> {
 };
 
 struct CAPS {
-    DWORD dwSize;                 // Size of this structure  // sizeof(CAPS)
-    DWORD dwUnk_0x04;             // Some flags?
-    DWORD maxmessagesize;         // Size of the packet buffer, must be between 128 and 512
-    DWORD dwUnk_0x0C;             // Unknown
-    DWORD dwDisplayedPlayerCount; // Displayed player count in the mode selection list
-    DWORD dwUnk_0x14;             // some kind of timeout or timer related
-    DWORD dwPlayerLatency;        // ... latency?
-    DWORD dwPlayerCount;          // the number of players that can participate, must be between 1 and 20
-    DWORD dwCallDelay;            // the number of calls before data is sent over the network // between 2 and 8; single player is set to 1
+    u32 size;
+    u32 flags;             // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
+    u32 max_message_size;  // must be between 128 and 512
+    u32 max_queue_size;
+    u32 max_players;
+    u32 bytes_per_second;
+    u32 latency;
+    u32 turns_per_second; // the turn_per_second and turns_in_transit values
+    u32 turns_in_transit; // in the appended mpq file seem to be used instead
 };
 
 struct client_info {
-    DWORD dwSize; // 60
-    char* pszName;
-    char* pszVersion;
-    DWORD dwProduct;
-    DWORD dwVerbyte;
-    DWORD dwUnk5;
-    DWORD dwMaxPlayers;
-    DWORD dwUnk7;
-    DWORD dwUnk8;
-    DWORD dwUnk9;
-    DWORD dwUnk10; // 0xFF
-    char* pszCdKey;
-    char* pszCdOwner;
-    DWORD dwIsShareware;
-    DWORD dwLangId;
+    u32   size; // 60
+    char* program_name;
+    char* program_description;
+    u32   program_id;
+    u32   version_id;
+    u32   dwUnk5;
+    u32   max_players;
+    u32   dwUnk7;
+    u32   dwUnk8;
+    u32   dwUnk9;
+    u32   dwUnk10; // 0xFF
+    char* cd_key;
+    char* cd_owner;
+    u32   is_shareware;
+    u32   language_id;
 };
 
 struct user_info {
-    DWORD dwSize; // 16
-    char* pszPlayerName;
-    char* pszUnknown;
-    DWORD dwUnknown;
+    u32   size; // 16
+    char* player_name;
+    char* player_description;
+    u32   dwUnknown;
 };
 
 struct battle_info {
-    DWORD dwSize;   // 92
-    DWORD dwUnkType;
-    HWND  hFrameWnd;
+    u32   size;   // 92
+    u32   dwUnkType;
+    void* hFrameWnd;
     void* pfnBattleGetResource;
     void* pfnBattleGetErrorString;
     void* pfnBattleMakeCreateGameDialog;
     void* pfnBattleUpdateIcons;
-    DWORD dwUnk_07;
+    u32   dwUnk_07;
     void* pfnBattleErrorDialog;
     void* pfnBattlePlaySound;
-    DWORD dwUnk_10;
+    u32   dwUnk_10;
     void* pfnBattleGetCursorLink;
-    DWORD dwUnk_12;
+    u32   dwUnk_12;
     void* pfnUnk_13;
-    DWORD dwUnk_14;
+    u32   dwUnk_14;
     void* pfnBattleMakeProfileDialog;
     char* pszProfileStrings;
     void* pfnBattleDrawProfileInfo;
     void* pfnUnk_18;
-    DWORD dwUnk_19;
+    u32   dwUnk_19;
     void* pfnUnk_20;
     void* pfnUnk_21;
     void* pfnBattleSetLeagueName;
 };
 
 struct module_info {
-    DWORD dwSize; // 20
-    char* pszVersionString;
-    char* pszModuleName;
-    char* pszMainArchive;
-    char* pszPatchArchive;
+    u32   size; // 20
+    char* version_string;
+    char* executable_file;
+    char* original_archive_file;
+    char* patch_archive_file;
 };
 
 struct game {
-    DWORD     dwIndex;
-    DWORD     dwGameState;
-    DWORD     dwUnk_08; // creation time
-    NetAddress  saHost;
-    DWORD     dwUnk_1C; // host latency
-    DWORD     dwTimer;
-    DWORD     dwUnk_24; // game category bits
-    char      szGameName[128];
-    char      szGameStatString[128];
-    game* pNext;
-    void* pExtra;
-    DWORD     dwExtraBytes;
-    DWORD     dwProduct;
-    DWORD     dwVersion;
+    u32     game_index;
+    u32     game_state;
+    u32     creation_time;
+    NetAddress  host;
+    u32     host_latency;
+    u32     host_last_time;
+    u32     category_bits;
+    char    game_name[128];
+    char    game_description[128];
+    game*   pNext;
+    void*   pExtra;
+    u32     extra_bytes;
+    u32     program_id;
+    u32     version_id;
 };
-
-struct storm_head {
-    WORD wChecksum;
-    WORD wLength;
-    WORD wSent;
-    WORD wReceived;
-    BYTE bCommandClass;
-    BYTE bCommandType;
-    BYTE bPlayerId;
-    BYTE bFlags;
-};
-
 
 struct GamePacket {
     NetAddress sender{};
@@ -145,7 +133,21 @@ struct GamePacket {
     };
 };
 
+enum class CrownLinkMode {
+    CLNK, // standard version
+    DBCL  // double brain cells version
+};
+
+inline std::string to_string(CrownLinkMode value) {
+    switch (value) {
+        EnumStringCase(CrownLinkMode::CLNK);
+        EnumStringCase(CrownLinkMode::DBCL);
+    }
+    return std::to_string((s32) value);
+}
+
 struct AdFile {
     game game_info{};
     char extra_bytes[32]{};
+    CrownLinkMode crownlink_mode{};
 };
