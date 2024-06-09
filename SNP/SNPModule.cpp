@@ -43,6 +43,16 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
 		prefix += "[!Ver]";
 	}
+	try {
+		if (adFile->crownlink_mode == CrownLinkMode::DBCL) {
+			prefix += "[DBC]";
+		}
+		if (adFile->crownlink_mode != g_crown_link->mode()) {
+			adFile->game_info.version_id = 0; // should ensure we can't join the game
+		}
+	} catch (std::exception& e){
+		spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
+	}
 
 	switch (g_crown_link->juice_manager().agent_state(host)) {
 	case JUICE_STATE_CONNECTING:{
@@ -170,7 +180,7 @@ BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 
 static void create_ad(AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size) {
 	memset(&ad_file, 0, sizeof(ad_file));
-
+	ad_file.crownlink_mode = g_crown_link->mode();
 	auto& game_info = ad_file.game_info;
 	strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
 	strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
@@ -203,13 +213,6 @@ void clear_status_ad() {
 BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
-	if (g_crown_link->mode() == CrownLinkMode::DBCL) {
-		spdlog::info("advertising DBCL game, adding prefix");
-		auto prefix = std::string("[DBC]");
-		prefix += g_snp_context.hosted_game.game_info.game_name;
-		if (prefix.size() > 127) { prefix.resize(127); }
-		strncpy_s(g_snp_context.hosted_game.game_info.game_name, sizeof(g_snp_context.hosted_game.game_info.game_name), prefix.c_str(), sizeof(g_snp_context.hosted_game.game_info.game_name));
-	} else { spdlog::info("advertising game, mode: {}", to_string(g_crown_link->mode())); }
 	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }

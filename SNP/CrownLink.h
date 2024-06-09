@@ -16,19 +16,6 @@ inline snp::NetworkInfo g_network_info{
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
-enum class CrownLinkMode {
-	CLNK, // standard version
-	DBCL  // double brain cells version
-};
-
-inline std::string to_string(CrownLinkMode value) {
-	switch (value) {
-		EnumStringCase(CrownLinkMode::CLNK);
-		EnumStringCase(CrownLinkMode::DBCL);
-	}
-	return std::to_string((s32) value);
-}
-
 class CrownLink {
 public:
 	CrownLink();
