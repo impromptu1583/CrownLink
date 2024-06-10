@@ -1,38 +1,8 @@
 #pragma once
+
+#include "../shared_common.h"
+
 #define JSON_DIAGNOSTICS 1
-
-#include <string>
-#include <concepts>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-#include <format>
-#include <initializer_list>
-#include <fstream>
-#include <chrono>
-#include <mutex>
-
-#include <filesystem>
-namespace fs = std::filesystem;
-
-using namespace std::literals;
-
-#define EnumStringCase(X) case X: return #X
-
-using u8 = unsigned char;
-using u16 = unsigned short;
-using u32 = unsigned int;
-using u64 = unsigned long long;
-
-using s8 = signed char;
-using s16 = signed short;
-using s32 = signed int;
-using s64 = signed long long;
-
-using f32 = float;
-using f64 = double;
-
-
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -62,7 +32,7 @@ inline const fs::path g_starcraft_dir = [] {
 
 //#include "ThQueue.h"
 
-constexpr const char* CL_VERSION = "0.3.8";
+
 
 inline std::string to_string(juice_state value) {
 	switch (value) {

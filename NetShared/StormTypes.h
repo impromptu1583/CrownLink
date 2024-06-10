@@ -1,5 +1,5 @@
 #pragma once
-#include "Common.h"
+#include "../shared_common.h"
 
 struct NetAddress {
     u8 bytes[16]{};
