@@ -1,15 +1,10 @@
 #include "../shared_common.h"
 
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <sstream>
 #define STORMLIB_NO_AUTO_LINK
 #include "StormLib.h"
-#include <filesystem>
-namespace fs = std::filesystem;
-
-using u32 = unsigned int;
 
 struct CAPS {
     u32 size;
