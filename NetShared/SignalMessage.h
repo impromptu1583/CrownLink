@@ -22,6 +22,7 @@ enum class MessageType {
 	JuiceTurnCredentials,
 
 	Echo,               // perhaps replaced by ping command
+	GamePacket			// potential support of relaying
 };
 
 inline std::string to_string(MessageType value) {
