@@ -49,12 +49,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include(FetchContent)
 
 # juice
+set (NO_TESTS ON CACHE INTERNAL "Turn off libjuice tests")
+set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
 	GIT_TAG v1.4.1
 )
 FetchContent_MakeAvailable(Juice)
+
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
 	PUBLIC ws2_32
@@ -66,11 +69,11 @@ target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 
-
-
 # copy CAPS MPQ into SNP
 message(STATUS "Copying ${CMAKE_SOURCE_DIR}/SNP/caps.mpq at the end of SNP")
-set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
+#set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
+
+add_dependencies(SNP CrownMPQ)
 
 add_custom_command( TARGET SNP
 	POST_BUILD
