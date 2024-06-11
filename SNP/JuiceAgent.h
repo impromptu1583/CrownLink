@@ -52,9 +52,6 @@ private:
 	std::chrono::steady_clock::time_point m_last_active;
 	std::chrono::steady_clock::time_point m_last_signal;
 	std::chrono::steady_clock::time_point m_last_ping = std::chrono::steady_clock::now() - 1s;
-	std::chrono::steady_clock::time_point m_last_send;
-	u32 m_misscounter = 0;
-	u32 m_sendcounter = 0;
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	NetAddress m_address;
 	juice_agent_t* m_agent;
