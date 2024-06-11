@@ -1,11 +1,13 @@
+#pragma once
 #include "../shared_common.h"
+#include "StormTypes.h"
 
 namespace signaling {
 
 enum class MessageType {
-	ConnectionRequest,  // client sends to server to request connection (including requests like reconnect same id)
-	Challenge,          // server sends a challenge to verify connection
-	ChallengeResponse,  // client sends response
+	ConnectionRequest,  // body: public_key, info needed for reconnect if need be
+	// from here on out all body contents to be encrypted
+
 	ClientProfile,      // server sends client info to connect (STUN/TURN etc)
 
 	StartAdvertising,   // includes game ad as payload
@@ -19,7 +21,6 @@ enum class MessageType {
 	JuiceLocalDescription,
 	JuciceCandidate,
 	JuiceDone,
-	JuiceTurnCredentials,
 
 	Echo,               // perhaps replaced by ping command
 	GamePacket			// potential support of relaying
@@ -27,21 +28,7 @@ enum class MessageType {
 
 inline std::string to_string(MessageType value) {
 	switch (value) {
-		EnumStringCase(MessageType::ConnectionRequest);
-		EnumStringCase(MessageType::Challenge);
-		EnumStringCase(MessageType::ChallengeResponse);
-		EnumStringCase(MessageType::ClientProfile);
-		EnumStringCase(MessageType::StartAdvertising);
-		EnumStringCase(MessageType::StopAdvertising);
-		EnumStringCase(MessageType::Advertisements);
-		EnumStringCase(MessageType::ping);
-		EnumStringCase(MessageType::pong);
-		EnumStringCase(MessageType::JuiceLocalDescription);
-		EnumStringCase(MessageType::JuciceCandidate);
-		EnumStringCase(MessageType::JuiceDone);
-		EnumStringCase(MessageType::JuiceTurnCredentials);
 		EnumStringCase(MessageType::Echo);
-
 	}
 	return std::to_string((s32) value);
 }
@@ -49,3 +36,26 @@ inline std::string to_string(MessageType value) {
 
 }
 
+struct ConnectionRequest {
+	u32 version{0};
+	CrownLinkMode mode{CrownLinkMode::CLNK};
+	NetAddress previous_id{}; // initialize to zero or something if not needed?
+};
+
+struct IceServer {
+	u32 port{0};
+	std::string host{""};
+	std::string username{""}; // leave blank for STUN
+	std::string password{""};
+};
+
+struct ConnectionInfo {
+	IceServer stun_server{};
+	IceServer turn_server_1{};
+	IceServer turn_server_2{};
+};
+
+struct ClientProfile {
+	NetAddress client_id;
+	std::string connection_info;
+};
