@@ -148,7 +148,7 @@ BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, ba
 	g_receive_event = event;
 	init_logging();
 	set_status_ad("Crownlink Initializing");
-	spdlog::info("Crownlink Initializing, mode:{}",to_string(g_crown_link->mode()));
+	spdlog::info("Crownlink Initializing, mode:{}, game version: {}",to_string(g_crown_link->mode()),g_snp_context.game_app_info.version_id);
 	auto mode = g_crown_link->mode();
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
