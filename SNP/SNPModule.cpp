@@ -296,7 +296,7 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 	try {
 		NetAddress peer = *(out_address_list[0]);
 		
-		spdlog::trace("spiSend to {}: {:a}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
+		spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
 
 		g_crown_link->send(peer, data, size);
 	} catch (std::exception& e) {
@@ -324,7 +324,7 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 			}
 			std::string debug_string{loan->data, loan->size};
 			//spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
-			spdlog::trace("spiRecv fr {}: {:a}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
+			spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
 			if (GetTickCount() > loan->timestamp + 10000) {
 				continue;
 			}
