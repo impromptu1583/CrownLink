@@ -1,5 +1,10 @@
 #include "CrownMPQ.h"
 
+#define  SNET_CAPS_PAGELOCKEDBUFFERS      0x00000001
+#define  SNET_CAPS_BASICINTERFACE         0x00000002
+#define  SNET_CAPS_DEBUGONLY              0x10000000
+#define  SNET_CAPS_RETAILONLY             0x20000000
+
 static int SaveMPQ(fs::path filename, std::string& dat) {
     HANDLE mpq = NULL;
     HANDLE file = NULL;
@@ -39,7 +44,7 @@ int main(int argc, char* argv[]) {
         std::string("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: ")+CL_VERSION,
         CAPS{
             36,
-            0x00000003, // 0x20000003
+            SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE,
             504,
             16,
             256,
@@ -55,7 +60,7 @@ int main(int argc, char* argv[]) {
         std::string("A new connection method for Cosmonarchy!\n\nUse this version for extreme latency situations.\n\n\n\nVersion: ")+CL_VERSION,
         CAPS{
             36,
-            0x00000003, // 0x20000003
+            SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE,
             504,
             16,
             256,

@@ -9,7 +9,7 @@ add_executable(CrownMPQ CrownMPQ.cpp)
 
 target_link_libraries(CrownMPQ PRIVATE StormLib)
 
-add_custom_command( TARGET CrownMPQ
-	POST_BUILD
-	COMMAND cmd /C "$<SHELL_PATH:$<TARGET_FILE:CrownMPQ>> $<SHELL_PATH:${mpqfile}>"
-)
+#add_custom_command( TARGET CrownMPQ
+#	POST_BUILD
+#	COMMAND cmd /C "$<SHELL_PATH:$<TARGET_FILE:CrownMPQ>> $<SHELL_PATH:${mpqfile}>"
+#)

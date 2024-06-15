@@ -103,7 +103,7 @@ static void init_logging() {
 	std::vector<spdlog::sink_ptr> sinks{ standard_sink,trace_sink };
 	auto g_logger = std::make_shared<spdlog::async_logger>("cl", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 	spdlog::register_logger(g_logger);
-	g_logger->flush_on(spdlog::level::err);
+	g_logger->flush_on(spdlog::level::debug);
 	spdlog::set_default_logger(g_logger);
 	switch (snp_config.log_level) {
 		case LogLevel::Trace:
@@ -140,6 +140,7 @@ static void init_logging() {
 			spdlog::enable_backtrace(32);
 		}break;
 	}
+	spdlog::set_level(spdlog::level::trace); // for fraudarchy debug
 
 }
 
@@ -296,7 +297,7 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 	try {
 		NetAddress peer = *(out_address_list[0]);
 		
-		spdlog::trace("spiSend to {}: {:a}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
+		spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
 
 		g_crown_link->send(peer, data, size);
 	} catch (std::exception& e) {
@@ -324,7 +325,7 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 			}
 			std::string debug_string{loan->data, loan->size};
 			//spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
-			spdlog::trace("spiRecv fr {}: {:a}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
+			spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
 			if (GetTickCount() > loan->timestamp + 10000) {
 				continue;
 			}
