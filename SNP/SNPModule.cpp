@@ -103,7 +103,7 @@ static void init_logging() {
 	std::vector<spdlog::sink_ptr> sinks{ standard_sink,trace_sink };
 	auto g_logger = std::make_shared<spdlog::async_logger>("cl", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 	spdlog::register_logger(g_logger);
-	g_logger->flush_on(spdlog::level::err);
+	g_logger->flush_on(spdlog::level::debug);
 	spdlog::set_default_logger(g_logger);
 	switch (snp_config.log_level) {
 		case LogLevel::Trace:
@@ -140,6 +140,7 @@ static void init_logging() {
 			spdlog::enable_backtrace(32);
 		}break;
 	}
+	spdlog::set_level(spdlog::level::trace); // for fraudarchy debug
 
 }
 
