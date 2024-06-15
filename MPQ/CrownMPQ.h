@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #define STORMLIB_NO_AUTO_LINK
+
 #include "StormLib.h"
 
 struct CAPS {
