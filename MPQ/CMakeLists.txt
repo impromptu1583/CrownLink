@@ -3,13 +3,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(StormLib STATIC IMPORTED)
-set_property(TARGET StormLib PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/StormLibDAS.lib)
+set_target_properties(StormLib PROPERTIES
+	IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/StormLibRAS.lib
+	IMPORTED_LOCATION_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/StormLibDAS.lib
+	IMPORTED_CONFIGURATIONS "RELEASE;DEBUG"
+)
+
+
 
 add_executable(CrownMPQ CrownMPQ.cpp)
 
 target_link_libraries(CrownMPQ PRIVATE StormLib)
 
-#add_custom_command( TARGET CrownMPQ
-#	POST_BUILD
+add_custom_command( TARGET CrownMPQ
+	POST_BUILD
+	COMMAND "$<$<CONFIG:Debug>:cmd;/C;\"$<SHELL_PATH:$<TARGET_FILE:CrownMPQ>>;$<SHELL_PATH:${mpqfile}>\">"
+	COMMAND_EXPAND_LISTS
+)
+
 #	COMMAND cmd /C "$<SHELL_PATH:$<TARGET_FILE:CrownMPQ>> $<SHELL_PATH:${mpqfile}>"
-#)
