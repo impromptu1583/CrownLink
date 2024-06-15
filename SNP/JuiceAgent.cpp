@@ -102,15 +102,7 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	} break;		
 	case JUICE_STATE_CONNECTED:
 	case JUICE_STATE_COMPLETED: {
-		spdlog::trace("Sending message {}", std::string{(const char*)data, size});
 		juice_send(m_agent, (const char*)data, size);
-		m_sendcounter++;
-		if (std::chrono::steady_clock::now() - m_last_send > 375ms) {
-			m_misscounter++;
-			spdlog::info("missed send time limit, new count: {} of {} {}%", m_misscounter, m_sendcounter, m_misscounter*100/m_sendcounter);
-			m_last_send = std::chrono::steady_clock::now();
-		}
-
 	} break;
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();
@@ -181,5 +173,4 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
 	//g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
 	g_crown_link->receive_queue().enqueue(GamePacket{ parent.m_address, data, size });
 	SetEvent(g_receive_event);
-	spdlog::trace("received: {}", std::string{data, size});
 }

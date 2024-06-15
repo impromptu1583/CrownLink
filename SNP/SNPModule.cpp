@@ -91,17 +91,65 @@ void remove_advertisement(const NetAddress& host) {}
 
 void pass_packet(GamePacket& packet) {}
 
+static void init_logging() {
+	const auto& snp_config = SnpConfig::instance();
+	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
+	auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
+	spdlog::init_thread_pool(8192, 1);
+	auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
+	standard_sink->set_level(spdlog::level::debug);
+	auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024*1024*10, 3);
+	trace_sink->set_level(spdlog::level::trace);
+	std::vector<spdlog::sink_ptr> sinks{ standard_sink,trace_sink };
+	auto g_logger = std::make_shared<spdlog::async_logger>("cl", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+	spdlog::register_logger(g_logger);
+	g_logger->flush_on(spdlog::level::debug);
+	spdlog::set_default_logger(g_logger);
+	switch (snp_config.log_level) {
+		case LogLevel::Trace:
+		{
+			spdlog::set_level(spdlog::level::trace);
+		}break;
+		case LogLevel::Debug:
+		{
+			spdlog::set_level(spdlog::level::debug);
+		}break;
+		case LogLevel::Info:
+		{
+			spdlog::set_level(spdlog::level::info);
+			spdlog::enable_backtrace(32);
+		}break;
+		case LogLevel::Warn:
+		{
+			spdlog::set_level(spdlog::level::warn);
+			spdlog::enable_backtrace(32);
+		}break;
+		case LogLevel::Error:
+		{
+			spdlog::set_level(spdlog::level::err);
+			spdlog::enable_backtrace(32);
+		}break;
+		case LogLevel::Fatal:
+			spdlog::enable_backtrace(32);
+			{
+				spdlog::set_level(spdlog::level::critical);
+			}break;
+		case LogLevel::None:
+		{
+			spdlog::set_level(spdlog::level::off);
+			spdlog::enable_backtrace(32);
+		}break;
+	}
+	spdlog::set_level(spdlog::level::trace); // for fraudarchy debug
+
+}
+
 BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
-	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
-	auto g_logger = spdlog::daily_logger_mt<spdlog::async_factory>("cl", log_filename, 2, 30);
-	g_logger->set_level(spdlog::level::info);
-	g_logger->flush_on(spdlog::level::err);
-	spdlog::set_default_logger(g_logger);
-	spdlog::enable_backtrace(32);
+	init_logging();
 	set_status_ad("Crownlink Initializing");
-	spdlog::info("Crownlink Initializing, mode:{}",to_string(g_crown_link->mode()));
+	spdlog::info("Crownlink Initializing, mode:{}, game version: {}",to_string(g_crown_link->mode()),g_snp_context.game_app_info.version_id);
 	auto mode = g_crown_link->mode();
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
@@ -248,7 +296,8 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 
 	try {
 		NetAddress peer = *(out_address_list[0]);
-		spdlog::trace("spiSend: {}", std::string{data, size});
+		
+		spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
 
 		g_crown_link->send(peer, data, size);
 	} catch (std::exception& e) {
@@ -275,8 +324,8 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 				return false;
 			}
 			std::string debug_string{loan->data, loan->size};
-			spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
-
+			//spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
+			spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
 			if (GetTickCount() > loan->timestamp + 10000) {
 				continue;
 			}
