@@ -96,52 +96,47 @@ static void init_logging() {
 	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
 	auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
 	spdlog::init_thread_pool(8192, 1);
+
 	auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
 	standard_sink->set_level(spdlog::level::debug);
+
 	auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024*1024*10, 3);
 	trace_sink->set_level(spdlog::level::trace);
-	std::vector<spdlog::sink_ptr> sinks{ standard_sink,trace_sink };
+
+	std::vector<spdlog::sink_ptr> sinks{std::move(standard_sink), std::move(trace_sink)};
 	auto g_logger = std::make_shared<spdlog::async_logger>("cl", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
 	spdlog::register_logger(g_logger);
 	g_logger->flush_on(spdlog::level::debug);
 	spdlog::set_default_logger(g_logger);
 	switch (snp_config.log_level) {
-		case LogLevel::Trace:
-		{
+		case LogLevel::Trace: {
 			spdlog::set_level(spdlog::level::trace);
-		}break;
-		case LogLevel::Debug:
-		{
+		} break;
+		case LogLevel::Debug: {
 			spdlog::set_level(spdlog::level::debug);
-		}break;
-		case LogLevel::Info:
-		{
+		} break;
+		case LogLevel::Info: {
 			spdlog::set_level(spdlog::level::info);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Warn:
-		{
+		} break;
+		case LogLevel::Warn: {
 			spdlog::set_level(spdlog::level::warn);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Error:
-		{
+		} break;
+		case LogLevel::Error: {
 			spdlog::set_level(spdlog::level::err);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Fatal:
+		} break;
+		case LogLevel::Fatal: {
 			spdlog::enable_backtrace(32);
-			{
-				spdlog::set_level(spdlog::level::critical);
-			}break;
-		case LogLevel::None:
-		{
+            spdlog::set_level(spdlog::level::critical);
+        } break;
+		case LogLevel::None: {
 			spdlog::set_level(spdlog::level::off);
 			spdlog::enable_backtrace(32);
-		}break;
+		} break;
 	}
 	spdlog::set_level(spdlog::level::trace); // for fraudarchy debug
-
 }
 
 BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
