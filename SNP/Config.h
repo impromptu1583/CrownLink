@@ -70,25 +70,25 @@ public:
 		switch (config.log_level) {
 			case LogLevel::Trace: {
 				spdlog::set_level(spdlog::level::trace);
-			}break;
+			} break;
 			case LogLevel::Debug: {
 				spdlog::set_level(spdlog::level::debug);
-			}break;
+			} break;
 			case LogLevel::Info: {
 				spdlog::set_level(spdlog::level::info);
-			}break;
+			} break;
 			case LogLevel::Warn: {
 				spdlog::set_level(spdlog::level::warn);
-			}break;
+			} break;
 			case LogLevel::Error: {
 				spdlog::set_level(spdlog::level::err);
-			}break;
+			} break;
 			case LogLevel::Fatal: {
 				spdlog::set_level(spdlog::level::critical);
-			}break;
+			} break;
 			case LogLevel::None:{
 				spdlog::set_level(spdlog::level::off);
-			}break;
+			} break;
 		}
 
 		save(config);

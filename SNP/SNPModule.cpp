@@ -55,24 +55,24 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 	}
 
 	switch (g_crown_link->juice_manager().agent_state(host)) {
-	case JUICE_STATE_CONNECTING:{
-		prefix += "[P2P Connecting]";
-	} break;
-	case JUICE_STATE_FAILED: {
-		prefix += "[P2P Failed]";
-	} break;
-	case JUICE_STATE_DISCONNECTED:{
-		prefix += "[P2P Not Connected]";
-	} break;
+        case JUICE_STATE_CONNECTING: {
+            prefix += "[P2P Connecting]";
+        } break;
+        case JUICE_STATE_FAILED: {
+            prefix += "[P2P Failed]";
+        } break;
+        case JUICE_STATE_DISCONNECTED: {
+            prefix += "[P2P Not Connected]";
+        } break;
 	}
 
 	switch (g_crown_link->juice_manager().final_connection_type(host)) {
-	case JuiceConnectionType::Relay: {
-		prefix += "[Relayed]";
-	} break;
-	case JuiceConnectionType::Radmin:{
-		prefix += "[Radmin]";
-	} break;
+        case JuiceConnectionType::Relay: {
+            prefix += "[Relayed]";
+        } break;
+        case JuiceConnectionType::Radmin: {
+            prefix += "[Radmin]";
+        } break;
 	}
 
 	if (!prefix.empty()) {
