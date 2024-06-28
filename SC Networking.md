@@ -25,7 +25,10 @@ timer | message type | conf seq | send seq |   ?a  | from  | ?c
 xx xx |    0d  00    |  08  00  |  1a  00  | 02 00 | 01 00 | 05
 ```
 
-the single byte payload always seems to be `05`
+when connecting the single byte payload always seems to be `05`
+
+when waiting on a user (e.g. drop player screen) the payload appears to be the user id)
+
 
 ### Type 10 00 Join Lobby
 
@@ -215,3 +218,13 @@ A blank type 14 message is sent when a player leaves (typically sent 3x). This o
                header        from h|
 ed be 14 00 0b 00 07 00 00 0b 00 00 e0 00 00 00 01 00 00 40  ...................@
 ```
+
+## Type 18
+
+Sent to inform clients that an unresponsive client is being dropped after a user clicks "drop player"
+```
+               header        from h|
+ed 16 18 00 0e 00 09 00 00 0c 00 00 02 00 00 00 77 01 00 00 06 00 00 40
+```
+This message is for dropping player 02 so possibly byte 13 is the player ID that is being dropped.
+`00 0c` might have something to do with the message type as type `0c` messages are sent as pings to unresponsive users
