@@ -4,14 +4,14 @@
 #include <mutex>
 #include <condition_variable>
 
-template <typename T, typename Queue = std::queue<T>>
-class ThQueue {
+template <typename T, template <typename> typename Queue = std::queue>
+class SyncQueue {
 public:
-    ThQueue() = default;
-    ThQueue(const ThQueue&) = delete;
-    ThQueue& operator=(const ThQueue&) = delete;
+    SyncQueue() = default;
+    SyncQueue(const SyncQueue&) = delete;
+    SyncQueue& operator=(const SyncQueue&) = delete;
 
-    ~ThQueue() {
+    ~SyncQueue() {
         end();
     }
 
@@ -74,7 +74,7 @@ public:
 
 private:
     bool m_ended{false};
-    Queue m_queue;
+    Queue<T> m_queue;
     std::mutex m_mutex;
     std::condition_variable m_cv;
 };
@@ -112,4 +112,4 @@ private:
 };
 
 template <typename Prio, typename T>
-using ThPriorityQueue = ThQueue<std::pair<Prio, T>, PriorityQueueWrapper<std::pair<Prio, T>>>;
+using SyncPriorityQueue = SyncQueue<std::pair<Prio, T>, PriorityQueueWrapper>;

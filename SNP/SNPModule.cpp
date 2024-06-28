@@ -50,29 +50,29 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 		if (adFile->crownlink_mode != g_crown_link->mode()) {
 			adFile->game_info.version_id = 0; // should ensure we can't join the game
 		}
-	} catch (std::exception& e){
+	} catch (const std::exception& e){
 		spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
 	}
 
 	switch (g_crown_link->juice_manager().agent_state(host)) {
-	case JUICE_STATE_CONNECTING:{
-		prefix += "[P2P Connecting]";
-	} break;
-	case JUICE_STATE_FAILED: {
-		prefix += "[P2P Failed]";
-	} break;
-	case JUICE_STATE_DISCONNECTED:{
-		prefix += "[P2P Not Connected]";
-	} break;
+        case JUICE_STATE_CONNECTING: {
+            prefix += "[P2P Connecting]";
+        } break;
+        case JUICE_STATE_FAILED: {
+            prefix += "[P2P Failed]";
+        } break;
+        case JUICE_STATE_DISCONNECTED: {
+            prefix += "[P2P Not Connected]";
+        } break;
 	}
 
 	switch (g_crown_link->juice_manager().final_connection_type(host)) {
-	case JuiceConnectionType::Relay: {
-		prefix += "[Relayed]";
-	} break;
-	case JuiceConnectionType::Radmin:{
-		prefix += "[Radmin]";
-	} break;
+        case JuiceConnectionType::Relay: {
+            prefix += "[Relayed]";
+        } break;
+        case JuiceConnectionType::Radmin: {
+            prefix += "[Radmin]";
+        } break;
 	}
 
 	if (!prefix.empty()) {
@@ -93,80 +93,77 @@ void pass_packet(GamePacket& packet) {}
 
 static void init_logging() {
 	const auto& snp_config = SnpConfig::instance();
-	auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
-	auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
 	spdlog::init_thread_pool(8192, 1);
+
+	const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
 	auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
 	standard_sink->set_level(spdlog::level::debug);
+
+	const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
 	auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024*1024*10, 3);
 	trace_sink->set_level(spdlog::level::trace);
-	std::vector<spdlog::sink_ptr> sinks{ standard_sink,trace_sink };
-	auto g_logger = std::make_shared<spdlog::async_logger>("cl", sinks.begin(), sinks.end(), spdlog::thread_pool(), spdlog::async_overflow_policy::block);
-	spdlog::register_logger(g_logger);
-	g_logger->flush_on(spdlog::level::debug);
-	spdlog::set_default_logger(g_logger);
+
+    auto logger = std::make_shared<spdlog::async_logger>("Crownlink", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)}, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+	spdlog::register_logger(logger);
+	logger->flush_on(spdlog::level::debug);
+	spdlog::set_default_logger(logger);
+
 	switch (snp_config.log_level) {
-		case LogLevel::Trace:
-		{
+		case LogLevel::Trace: {
 			spdlog::set_level(spdlog::level::trace);
-		}break;
-		case LogLevel::Debug:
-		{
+		} break;
+		case LogLevel::Debug: {
 			spdlog::set_level(spdlog::level::debug);
-		}break;
-		case LogLevel::Info:
-		{
+		} break;
+		case LogLevel::Info: {
 			spdlog::set_level(spdlog::level::info);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Warn:
-		{
+		} break;
+		case LogLevel::Warn: {
 			spdlog::set_level(spdlog::level::warn);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Error:
-		{
+		} break;
+		case LogLevel::Error: {
 			spdlog::set_level(spdlog::level::err);
 			spdlog::enable_backtrace(32);
-		}break;
-		case LogLevel::Fatal:
+		} break;
+		case LogLevel::Fatal: {
+            spdlog::set_level(spdlog::level::critical);
 			spdlog::enable_backtrace(32);
-			{
-				spdlog::set_level(spdlog::level::critical);
-			}break;
-		case LogLevel::None:
-		{
+        } break;
+		case LogLevel::None: {
 			spdlog::set_level(spdlog::level::off);
 			spdlog::enable_backtrace(32);
-		}break;
+		} break;
 	}
-	spdlog::set_level(spdlog::level::trace); // for fraudarchy debug
-
+	spdlog::set_level(spdlog::level::trace); // For fraudarchy debug
 }
 
-BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
+static BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
 	g_snp_context.game_app_info = *client_info;
 	g_receive_event = event;
 	init_logging();
+
 	set_status_ad("Crownlink Initializing");
-	spdlog::info("Crownlink Initializing, mode:{}, game version: {}",to_string(g_crown_link->mode()),g_snp_context.game_app_info.version_id);
+	spdlog::info("Crownlink Initializing, mode: {}, game version: {}",to_string(g_crown_link->mode()),g_snp_context.game_app_info.version_id);
+
 	auto mode = g_crown_link->mode();
 	try {
 		g_crown_link = std::make_unique<CrownLink>();
 		g_crown_link->set_mode(mode);
-	} catch (std::exception& e) {
-		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
+	} catch (const std::exception& e) {
+		spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 
 	return true;
 }
 
-BOOL __stdcall spi_destroy() {
+static BOOL __stdcall spi_destroy() {
 	try {
 		g_crown_link.reset();
-	} catch (std::exception& e) {
-		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
+	} catch (const std::exception& e) {
+		spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	spdlog::shutdown();
@@ -174,7 +171,7 @@ BOOL __stdcall spi_destroy() {
 	return true;
 }
 
-BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	std::lock_guard lock{g_advertisement_mutex};
 
 	std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.host_last_time + 2000; });
@@ -206,7 +203,7 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 		else if(g_snp_context.status_ad_used) {
 			*out_game_list = &g_snp_context.status_ad.game_info;
 		}
-	} catch (std::exception& e) {
+	} catch (const std::exception& e) {
 		spdlog::dump_backtrace();
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
@@ -214,10 +211,10 @@ BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 	return true;
 }
 
-BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
+static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 	try {
 		g_crown_link->request_advertisements();
-	} catch (std::exception& e) {
+	} catch (const std::exception& e) {
 		spdlog::dump_backtrace();
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
@@ -258,20 +255,20 @@ void clear_status_ad() {
 	g_snp_context.status_ad_used = false;
 }
 
-BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
+static BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
 	std::lock_guard lock{g_advertisement_mutex};
 	create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
 	g_crown_link->start_advertising(g_snp_context.hosted_game);
 	return true;
 }
 
-BOOL __stdcall spi_stop_advertising_game() {
+static BOOL __stdcall spi_stop_advertising_game() {
 	std::lock_guard lock{g_advertisement_mutex};
 	g_crown_link->stop_advertising();
 	return true;
 }
 
-BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
 	std::lock_guard lock{g_advertisement_mutex};
 
 	for (auto& game : g_snp_context.game_list) {
@@ -281,11 +278,11 @@ BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_ga
 		}
 	}
 
-	//SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
+	// SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
 	return false;
 }
 
-BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
+static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
 	if (!address_count) {
 		return true;
 	}
@@ -295,19 +292,17 @@ BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char
 	}
 
 	try {
-		NetAddress peer = *(out_address_list[0]);
-		
-		spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{ data,size }));
-
+		const NetAddress& peer = out_address_list[0][0];
+		spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{data, size}));
 		g_crown_link->send(peer, data, size);
-	} catch (std::exception& e) {
+	} catch (const std::exception& e) {
 		spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
 		return false;
 	}
 	return true;
 }
 
-BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) {
+static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) {
 	*peer = nullptr;
 	*out_data = nullptr;
 	*out_size = 0;
@@ -315,16 +310,11 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 	GamePacket* loan = new GamePacket{};
 	try {
 		while (true) {
-			/*if (!g_crown_link->receive_queue().try_pop_dont_wait(*loan)) {
-				SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
-				return false;
-			}*/
 			if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
-				//SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 				return false;
 			}
 			std::string debug_string{loan->data, loan->size};
-			//spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
+			// spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 			spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
 			if (GetTickCount() > loan->timestamp + 10000) {
 				continue;
@@ -345,19 +335,19 @@ BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) 
 	return true;
 }
 
-BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
+static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
 	if (loan) {
 		delete loan;
 	}
 	return true;
 }
 
-BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
+static BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* address2, DWORD* out_result) {
 	if (out_result) {
 		*out_result = 0;
 	}
 	if (!address1 || !address2 || !out_result) {
-		//SErrSetLastError(ERROR_INVALID_PARAMETER);
+		// SErrSetLastError(ERROR_INVALID_PARAMETER);
 		return false;
 	}
 
@@ -365,28 +355,28 @@ BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress* addre
 	return true;
 }
 
-BOOL __stdcall spi_lock_device_list(DWORD* out_device_list) {
+static BOOL __stdcall spi_lock_device_list(DWORD* out_device_list) {
 	*out_device_list = 0;
 	return true;
 }
 
-BOOL __stdcall spi_unlock_device_list(void*) {
+static BOOL __stdcall spi_unlock_device_list(void*) {
 	return true;
 }
 
-BOOL __stdcall spi_free_external_message(NetAddress* address, char* data, DWORD size) {
+static BOOL __stdcall spi_free_external_message(NetAddress* address, char* data, DWORD size) {
 	return false;
 }
 
-BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, int, int) {
+static BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, int, int) {
 	return false;
 }
 
-BOOL __stdcall spi_initialize_device(int, void*, void*, DWORD*, void*) {
+static BOOL __stdcall spi_initialize_device(int, void*, void*, DWORD*, void*) {
 	return false;
 }
 
-BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out_data, DWORD* out_size) {
+static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out_data, DWORD* out_size) {
 	if (out_address) {
 		*out_address = nullptr;
 	}
@@ -396,21 +386,21 @@ BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out
 	if (out_size) {
 		*out_size = 0;
 	}
-	//SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
+	// SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
 	return false;
 }
 
-BOOL __stdcall spi_select_game(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
+static BOOL __stdcall spi_select_game(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
 	// Looks like an old function and doesn't seem like it's used anymore
 	// UDPN's function Creates an IPX game select dialog window
 	return false;
 }
 
-BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
+static BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
 	return false;
 }
 
-BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
+static BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
 	return true;
 }
 
