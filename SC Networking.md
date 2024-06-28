@@ -8,6 +8,54 @@ Timer | Message Type | Conf Seq | Send Seq |   ?   | From
 xx xx |    0d  00    |  08  00  |  1a  00  | 02 00 | 01 00 
 ```
 
+####UPDATE
+spec from snet.cpp:
+```
+typedef struct _HEADER {
+    WORD checksum; // checksum must be first field
+    WORD bytes;    // bytes including header
+    WORD sequence;
+    WORD acksequence;
+    BYTE type;
+    BYTE subtype;
+    BYTE playerid;
+    BYTE flags;
+} HEADER, *HEADERPTR;
+```
+
+And the types first byte:
+```
+#define  TYPE_SYSTEM                  0
+#define  TYPE_MESSAGE                 1
+#define  TYPE_TURN                    2
+#define  TYPES                        3
+```
+
+And second byte:
+```
+#define  MF_ACK                       0x01
+#define  MF_RESENDREQUEST             0x02
+#define  MF_FORWARDED                 0x04
+
+#define  SYS_UNUSED                   0
+#define  SYS_INITIALCONTACT           1
+#define  SYS_CIRCUITCHECK             2
+#define  SYS_CIRCUITCHECKRESPONSE     3
+#define  SYS_PING                     4
+#define  SYS_PINGRESPONSE             5
+#define  SYS_PLAYERINFO               6
+#define  SYS_PLAYERJOIN               7
+#define  SYS_PLAYERJOIN_ACCEPTSTART   8
+#define  SYS_PLAYERJOIN_ACCEPTDONE    9
+#define  SYS_PLAYERJOIN_REJECT        10
+#define  SYS_PLAYERLEAVE              11
+#define  SYS_DROPPLAYER               12
+#define  SYS_NEWGAMEOWNER             13
+#define  SYSMSGS                      14
+
+```
+
+
 - Timer: appears to be a short int that increments until it overflows and restarts. Because it's only two bytes it overflow and restarts every few seconds but it's enough to detect if you got a packet out of order. I may be misunderstanding this field but that's my best guess
 - Message Type: I've listed the various types I've seen below
 - Send Seq / Conf Seq: Each message has a confirmation of the last message received from the peer followed by a sequence number for this message. Some message types seem to have their own sequence while others are more global.
