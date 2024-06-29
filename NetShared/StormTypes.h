@@ -113,8 +113,8 @@ struct game {
     u32     category_bits;
     char    game_name[128];
     char    game_description[128];
-    game* pNext;
-    void* pExtra;
+    game*   pNext;
+    void*   pExtra;
     u32     extra_bytes;
     u32     program_id;
     u32     version_id;
@@ -169,7 +169,7 @@ enum class GamePacketSubType : u8 {
     PlayerJoinAcceptDone,
     PlayerJoinReject,
     PlayerLeave,
-    DrpPlayer,
+    DropPlayer,
     NewGameOwner,
     Messages
 };
@@ -188,7 +188,7 @@ inline std::string to_string(GamePacketSubType value) {
         EnumStringCase(GamePacketSubType::PlayerJoinAcceptDone);
         EnumStringCase(GamePacketSubType::PlayerJoinReject);
         EnumStringCase(GamePacketSubType::PlayerLeave);
-        EnumStringCase(GamePacketSubType::DrpPlayer);
+        EnumStringCase(GamePacketSubType::DropPlayer);
         EnumStringCase(GamePacketSubType::NewGameOwner);
         EnumStringCase(GamePacketSubType::Messages);
     }
