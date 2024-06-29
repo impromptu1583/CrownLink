@@ -33,7 +33,7 @@ public:
 	juice_state state() const { return m_p2p_state; }
 	bool is_active() const { return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min; }
 	void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };
-	JuiceConnectionType connection_type() { return m_connection_type; };
+	JuiceConnectionType connection_type() const { return m_connection_type; };
 	void mark_last_signal();
 
 private:

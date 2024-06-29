@@ -75,21 +75,21 @@ void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	mark_last_signal();
 
 	switch (packet.message_type) {
-	case SignalMessageType::SignalingPing:{
-		spdlog::trace("Received Ping");
-	} break;
-	case SignalMessageType::JuiceLocalDescription: {
-		spdlog::trace("Received remote description:\n{}", packet.data);
-		juice_set_remote_description(m_agent, packet.data.c_str());
-	} break;
-	case SignalMessageType::JuciceCandidate: {
-		spdlog::trace("Received remote candidate {}", packet.data);
-		juice_add_remote_candidate(m_agent, packet.data.c_str());
-	} break;
-	case SignalMessageType::JuiceDone: {
-		spdlog::trace("Remote gathering done");
-		juice_set_remote_gathering_done(m_agent);
-	} break;
+        case SignalMessageType::SignalingPing:{
+            spdlog::trace("Received Ping");
+        } break;
+        case SignalMessageType::JuiceLocalDescription: {
+            spdlog::trace("Received remote description:\n{}", packet.data);
+            juice_set_remote_description(m_agent, packet.data.c_str());
+        } break;
+        case SignalMessageType::JuciceCandidate: {
+            spdlog::trace("Received remote candidate {}", packet.data);
+            juice_add_remote_candidate(m_agent, packet.data.c_str());
+        } break;
+        case SignalMessageType::JuiceDone: {
+            spdlog::trace("Remote gathering done");
+            juice_set_remote_gathering_done(m_agent);
+        } break;
 	}
 }
 
@@ -97,21 +97,21 @@ void JuiceAgent::send_message(void* data, size_t size) {
 	mark_active();
 
 	switch (m_p2p_state) {
-	case JUICE_STATE_DISCONNECTED:{
-		try_initialize();
-	} break;		
-	case JUICE_STATE_CONNECTED:
-	case JUICE_STATE_COMPLETED: {
-		juice_send(m_agent, (const char*)data, size);
-	} break;
-	case JUICE_STATE_FAILED: {
-		spdlog::dump_backtrace();
-		spdlog::error("Trying to send message but P2P connection failed");
-	} break;
-	default: {
-		spdlog::dump_backtrace();
-		spdlog::error("Trying to send message but P2P connection is in unexpected state");
-	} break;
+        case JUICE_STATE_DISCONNECTED:{
+            try_initialize();
+        } break;		
+        case JUICE_STATE_CONNECTED:
+        case JUICE_STATE_COMPLETED: {
+            juice_send(m_agent, (const char*)data, size);
+        } break;
+        case JUICE_STATE_FAILED: {
+            spdlog::dump_backtrace();
+            spdlog::error("Trying to send message but P2P connection failed");
+        } break;
+        default: {
+            spdlog::dump_backtrace();
+            spdlog::error("Trying to send message but P2P connection is in unexpected state");
+        } break;
 	}
 }
 
@@ -121,33 +121,33 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	parent.m_p2p_state = state;
 	spdlog::debug("Connection changed state, new state: {}", to_string(state));
 	switch (state) {
-	case JUICE_STATE_CONNECTED: {
-		spdlog::info("Initially connected");
-	} break;
-	case JUICE_STATE_COMPLETED: {
-		spdlog::info("Connection negotiation finished");
-		char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
-		char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
-		juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
+        case JUICE_STATE_CONNECTED: {
+            spdlog::info("Initially connected");
+        } break;
+        case JUICE_STATE_COMPLETED: {
+            spdlog::info("Connection negotiation finished");
+            char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
+            char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
+            juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
-		if (std::string{local}.find("typ relay") != std::string::npos) {
-			parent.set_connection_type(JuiceConnectionType::Relay);
-			spdlog::warn("Local connection is relayed, performance may be affected");
-		}
-		if (std::string{remote}.find("typ relay") != std::string::npos) {
-			parent.set_connection_type(JuiceConnectionType::Relay);
-			spdlog::warn("Remote connection is relayed, performance may be affected");
-		}
-		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
-			parent.set_connection_type(JuiceConnectionType::Radmin);
-			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
-		}
-		spdlog::info("Final candidates were local: {} remote: {}", local, remote);
-	} break;
-	case JUICE_STATE_FAILED: {
-		spdlog::dump_backtrace();
-		spdlog::error("Could not connect, gave up");
-	} break;
+            if (std::string{local}.find("typ relay") != std::string::npos) {
+                parent.set_connection_type(JuiceConnectionType::Relay);
+                spdlog::warn("Local connection is relayed, performance may be affected");
+            }
+            if (std::string{remote}.find("typ relay") != std::string::npos) {
+                parent.set_connection_type(JuiceConnectionType::Relay);
+                spdlog::warn("Remote connection is relayed, performance may be affected");
+            }
+            if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
+                parent.set_connection_type(JuiceConnectionType::Radmin);
+                spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
+            }
+            spdlog::info("Final candidates were local: {} remote: {}", local, remote);
+        } break;
+        case JUICE_STATE_FAILED: {
+            spdlog::dump_backtrace();
+            spdlog::error("Could not connect, gave up");
+        } break;
 	}
 }
 
