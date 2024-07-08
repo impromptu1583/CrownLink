@@ -2,6 +2,12 @@
 
 #include "../shared_common.h"
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <iostream>
+
 enum class ProtocolType : u16 {
     ProtocolCrownLink = 1,
     ProtocolP2P = 2,
@@ -20,3 +26,15 @@ struct MessageHeader {
 };
 
 bool temp_test();
+
+
+class CrowServeSocket {
+public:
+    bool try_init();
+    void send();
+    void receive();
+
+private:
+    int m_socket = 0;
+
+};
