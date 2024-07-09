@@ -44,7 +44,7 @@ bool Socket::try_init() {
 bool Socket::receive() {
     u8 iterations = 0;
     while (iterations < 10) {
-        CrowServeHeader main_header{};
+        Header main_header{};
         if (receive_into(main_header) < 1) {
             // TODO: error handling 0 = conn closed, -1 = check errorno
             std::cout << "error";
