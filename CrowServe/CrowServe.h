@@ -56,6 +56,16 @@ void deinit_sockets();
 
 class Socket {
 public:
+    Socket() {
+        init_sockets();
+    };
+    Socket(Socket&) = delete;
+	Socket& operator=(Socket&) = delete;
+    ~Socket() {
+        deinit_sockets();
+    };
+
+
     bool try_init();
     void send();
     bool receive();
