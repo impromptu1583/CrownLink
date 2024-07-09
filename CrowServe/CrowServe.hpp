@@ -15,7 +15,7 @@ enum class ProtocolType : u16 {
 };
 
 struct CrowServeHeader {
-    u8 magic;
+    u8 magic[4];
     u16 version;
     u16 protocol;
     u32 message_count;

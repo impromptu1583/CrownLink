@@ -64,7 +64,23 @@ bool CrowServeSocket::receive() {
             std::cout << "error";
             return false;
         }
-        std::cout << "received main header, protocol: " << main_header.protocol << " count: " << main_header.message_count << "\n";
+        std::cout << "received main header, protocol: " << main_header.protocol << " count: " << main_header.message_count << " magic:" << main_header.magic << "\n";
+        // todo: check magic
+        for (auto i = 0; i < main_header.message_count; i++) {
+            MessageHeader message_header{};
+            if (receive_into(message_header) < 1) {
+                // todo error handling 0 = conn closed, -1 = check errorno
+                std::cout << "error";
+                return false;
+            }
+            std::cout << "received message header, type: " << message_header.message_type << " size: " << message_header.message_size << "\n";
+            // todo - figure out protocol-specific message handling
+            char buffer[1600];
+            auto received = recv(m_socket, &buffer, message_header.message_size, 0);
+            std::cout << "received message of size " << received << "\n";
+            
+        }
+
         iterations++;
         std::cout << iterations;
     }
