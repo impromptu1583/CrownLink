@@ -13,7 +13,7 @@ enum class ProtocolType : u16 {
     ProtocolCrownLink = 1,
     ProtocolP2P = 2,
 };
-
+#pragma pack(push, 1)
 struct CrowServeHeader {
     u8 magic[4];
     u16 version;
@@ -25,6 +25,7 @@ struct MessageHeader {
     u64 message_size;
     u32 message_type;
 };
+#pragma pack(pop)
 
 bool temp_test();
 
