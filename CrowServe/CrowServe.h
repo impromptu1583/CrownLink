@@ -9,12 +9,16 @@
 #include <iostream>
 #include <string.h>
 
-enum class ProtocolType : u16 {
+#pragma pack(push, 1)
+
+namespace CrowServe {
+
+enum class Protocol : u16 {
     ProtocolCrownLink = 1,
     ProtocolP2P = 2,
 };
-#pragma pack(push, 1)
-struct CrowServeHeader {
+
+struct Header {
     u8 magic[4];
     u16 version;
     u16 protocol;
@@ -25,12 +29,10 @@ struct MessageHeader {
     u64 message_size;
     u32 message_type;
 };
+
 #pragma pack(pop)
 
-bool temp_test();
-
-
-class CrowServeSocket {
+class Socket {
 public:
     bool try_init();
     void send();
@@ -46,8 +48,10 @@ private:
         while (bytes_remaining > 0) {
             auto bytes_received = recv(m_socket, &container + offset, bytes_remaining, 0);
             if (bytes_received < 1) {
+                // currently we back-propagate for error handling
+                // TODO: don't expose details of socket implementation to the caller, instead return bool or custom enum,
+                //       maybe log error here (we should probably include spdlog?), and just return bool
                 return bytes_received;
-                // back-propagate for error handling
             }
             bytes_remaining -= bytes_received;
             offset += bytes_received;
@@ -59,3 +63,5 @@ private:
 private:
     u32 m_socket = 0;
 };
+
+}

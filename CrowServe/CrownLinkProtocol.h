@@ -3,7 +3,9 @@
 
 #include "../NetShared/StormTypes.h"
 
-enum class CrownLinkMessageType {
+namespace CrownLink {
+
+enum class MessageType {
     ConnectionRequest = 1,
     KeyExchange,
     ClientProfile,
@@ -16,15 +18,14 @@ enum class CrownLinkMessageType {
     EchoResponse,
 };
 
-enum class CrownLinkMode {
+enum class Mode {
     Default,
     DoubleBrainCells,
 };
 
 struct Header {};
 
-struct ConnectionRequest {
-    Header header;
+struct ConnectionRequest : Header {
     std::string preshared_key;
     bool peer_id_requested;
     NetAddress requested_id;
@@ -34,8 +35,7 @@ struct ConnectionRequest {
     u32 crownlink_version;
 };
 
-struct KeyExchange {
-    Header header;
+struct KeyExchange : Header {
     std::string public_key;
 };
 
@@ -52,20 +52,17 @@ struct IceCredentials {
     TurnServer turn_servers[2];
 };
 
-struct ClientProfile {
-    Header header;
+struct ClientProfile : Header {
     NetAddress peer_id;
     NetAddress request_token;
     IceCredentials ice_credentials;
 };
 
-struct UpdateRequested {
-    Header header;
+struct UpdateRequested : Header {
     u32 minimum_version;
 };
 
-struct AdvertisementRequeste {
-    Header header;
+struct AdvertisementRequest : Header {
 };
 
 // GameInfo and AdFile are defined in StormTypes.h
@@ -75,23 +72,17 @@ struct StartAdvertising {
     AdFile ad_file;
 };
 
-struct StopAdvertising {
-    Header header;
+struct StopAdvertising : Header {
 };
 
-struct AdvertisementsRequest {
-    Header header;
+struct AdvertisementsRequest : Header {
 };
 
-struct AdvertisementsResponse {
-    Header header;
-
+struct AdvertisementsResponse : Header {
     std::vector<AdFile> ads;
 };
 
-struct EchoRequest {
-    Header header;
-
+struct EchoRequest : Header {
     std::string message;
 };
 
@@ -100,3 +91,5 @@ struct EchoResponse {
     
     std::string message;
 };
+
+}
