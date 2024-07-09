@@ -5,26 +5,22 @@
 #include <unistd.h>
 #include <iostream>
 
-#define PlatformWindows  1
-#define PlatformMac      2
-#define PlatformUnix     3
-
 #if defined(_WIN32)
-#define Platform PlatformWindows
+#define Windows
 #elif defined(__APPLE__)
-#define Platform PLATFORM_MAC
+#define Mac
 #else
-#define Platform PlatformUnix
+#define Unix
 #endif
 
 
-#if Platform == PlatformWindows
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-    #include <Winsock2.h>
+#ifdef Windows
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Winsock2.h>
 #else
-    #include <sys/types.h>
-    #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #endif
 
 
@@ -55,18 +51,11 @@ struct MessageHeader {
 
 #pragma pack(pop)
 
-bool initialize_sockets();
-void shutdown_sockets();
+bool init_sockets();
+void deinit_sockets();
 
 class Socket {
 public:
-    Socket() {
-        initialize_sockets();
-    }
-
-    ~Socket() {
-        shutdown_sockets();
-    }
     bool try_init();
     void send();
     bool receive();

@@ -1,24 +1,20 @@
 #include "CrowServe.h"
 
 namespace CrowServe {
-    
-bool initialize_sockets()
-{
-    #if Platform == PlatformWindows
+
+bool init_sockets(){
+#ifdef Windows
     WSADATA WsaData;
-    return WSAStartup( MAKEWORD(2,2), 
-                        &WsaData ) 
-        == NO_ERROR;
-    #else
+    return WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
+#else
     return true;
-    #endif
+#endif
 }
 
-void shutdown_sockets()
-{
-    #if Platform == PlatformWindows
+void deinit_sockets(){
+#ifdef Windows
     WSACleanup();
-    #endif
+#endif
 }
 
 bool Socket::try_init() {  
