@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <iostream>
+#include <string.h>
 
 enum class ProtocolType : u16 {
     ProtocolCrownLink = 1,
@@ -32,9 +33,28 @@ class CrowServeSocket {
 public:
     bool try_init();
     void send();
-    void receive();
+    bool receive();
 
 private:
-    int m_socket = 0;
+    template<typename T>
+    s32 receive_into(T& container) {
+        static_assert(std::is_trivial_v<T>);
+        auto bytes_remaining = sizeof(container);
+        u32 offset = 0;
 
+        while (bytes_remaining > 0) {
+            auto bytes_received = recv(m_socket, &container + offset, bytes_remaining, 0);
+            if (bytes_received < 1) {
+                return bytes_received;
+                // back-propagate for error handling
+            }
+            bytes_remaining -= bytes_received;
+            offset += bytes_received;
+        }
+
+        return 1;
+    }
+    
+private:
+    u32 m_socket = 0;
 };

@@ -86,15 +86,17 @@ struct AdvertisementsRequest {
 struct AdvertisementsResponse {
     Header header;
 
-    AdFile ads[];
+    std::vector<AdFile> ads;
 };
 
 struct EchoRequest {
     Header header;
+
     std::string message;
 };
 
 struct EchoResponse {
     Header header;
+    
     std::string message;
 };
