@@ -1,16 +1,23 @@
 #pragma once
 #include "../shared_common.h"
+#include "../SNP/include/base64.hpp"
+
+#ifndef _WIN32
+u32 GetTickCount() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+#endif
 
 struct NetAddress {
     u8 bytes[16]{};
 
     NetAddress() = default;
-    NetAddress(u8* addr) {
-        memcpy_s(&bytes, sizeof(bytes), addr, sizeof(NetAddress));
+    NetAddress(const u8* addr) {
+        memcpy(&bytes, addr, sizeof(bytes));
     }
 
     NetAddress(const std::string& id) {
-        memcpy_s(&bytes, sizeof(bytes), id.c_str(), sizeof(NetAddress));
+        memcpy(&bytes, id.c_str(), sizeof(NetAddress));
     };
 
     std::string b64() const {
@@ -225,7 +232,7 @@ struct GamePacket {
 
     GamePacket() = default;
     GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
-        : sender{sender_id}, timestamp{GetTickCount()}, size{size} {
-        memcpy_s(data, sizeof(data), recv_data, size);
+        : sender{sender_id}, timestamp{GetTickCount()}, size{(u32)size} {
+        memcpy(data, recv_data, sizeof(data));
     };
 };

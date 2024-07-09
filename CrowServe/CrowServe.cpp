@@ -1,6 +1,25 @@
 #include "CrowServe.h"
 
 namespace CrowServe {
+    
+bool initialize_sockets()
+{
+    #if Platform == PlatformWindows
+    WSADATA WsaData;
+    return WSAStartup( MAKEWORD(2,2), 
+                        &WsaData ) 
+        == NO_ERROR;
+    #else
+    return true;
+    #endif
+}
+
+void shutdown_sockets()
+{
+    #if Platform == PlatformWindows
+    WSACleanup();
+    #endif
+}
 
 bool Socket::try_init() {  
     addrinfo hints = {};
