@@ -2,12 +2,31 @@
 
 #include "../shared_common.h"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
 #include <unistd.h>
 #include <iostream>
-#include <string.h>
+
+#if defined(_WIN32)
+#define Windows
+#elif defined(__APPLE__)
+#define Mac
+#else
+#define Unix
+#endif
+
+
+#ifdef Windows
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <Winsock2.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#endif
+
+
+
+#include <netdb.h>
+
 
 #pragma pack(push, 1)
 
@@ -32,8 +51,21 @@ struct MessageHeader {
 
 #pragma pack(pop)
 
+bool init_sockets();
+void deinit_sockets();
+
 class Socket {
 public:
+    Socket() {
+        init_sockets();
+    };
+    Socket(Socket&) = delete;
+	Socket& operator=(Socket&) = delete;
+    ~Socket() {
+        deinit_sockets();
+    };
+
+
     bool try_init();
     void send();
     bool receive();
@@ -63,5 +95,7 @@ private:
 private:
     u32 m_socket = 0;
 };
+
+
 
 }

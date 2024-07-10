@@ -33,3 +33,8 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
+inline u32 get_tick_count() {
+    using namespace std::literals;
+    return std::chrono::system_clock::now().time_since_epoch() / 1s;
+}
+

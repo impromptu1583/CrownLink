@@ -316,7 +316,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             std::string debug_string{loan->data, loan->size};
             // spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
             spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
-            if (GetTickCount() > loan->timestamp + 10000) {
+            if (get_tick_count > loan->timestamp + 10) {
                 continue;
             }
 

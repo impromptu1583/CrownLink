@@ -2,6 +2,21 @@
 
 namespace CrowServe {
 
+bool init_sockets(){
+#ifdef Windows
+    WSADATA WsaData;
+    return WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
+#else
+    return true;
+#endif
+}
+
+void deinit_sockets(){
+#ifdef Windows
+    WSACleanup();
+#endif
+}
+
 bool Socket::try_init() {  
     addrinfo hints = {};
     addrinfo* result = nullptr;
