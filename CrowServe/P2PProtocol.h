@@ -1,7 +1,8 @@
 #pragma once
-#include "CrowServe.h"
 
 #include "../NetShared/StormTypes.h"
+
+namespace P2P {
 
 enum class P2PMessageType {
     Ping = 1,
@@ -38,3 +39,13 @@ struct JuiceCandidate {
 struct JuiceDone {
     Header header;
 };
+
+class P2PProtocol {
+public:
+    template <typename Handler>
+    void handle(const std::span<char> message, const Handler& handler) {
+        
+    }
+};
+
+}

@@ -1,9 +1,20 @@
 #pragma once
 
 #include "../shared_common.h"
+#include "CrownLinkProtocol.h"
+#include "P2PProtocol.h"
 
 #include <unistd.h>
 #include <iostream>
+#include <iterator>
+
+#include <functional>
+#include <thread>
+#include <variant>
+#include <span>
+
+#include <nlohmann/json.hpp>
+using Json = nlohmann::json;
 
 #if defined(_WIN32)
 #define Windows
@@ -27,15 +38,22 @@
 
 #include <netdb.h>
 
-
-#pragma pack(push, 1)
-
 namespace CrowServe {
 
-enum class Protocol : u16 {
+template <typename... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
+
+enum class ProtocolType : u16 {
     ProtocolCrownLink = 1,
     ProtocolP2P = 2,
 };
+
+enum class MessageSerialization {
+    SerializationCBOR,
+    SerializationBinary,
+};
+
+#pragma pack(push, 1)
 
 struct Header {
     u8 magic[4];
@@ -65,10 +83,53 @@ public:
         deinit_sockets();
     };
 
-
     bool try_init();
-    void send();
+
+    template <typename Handler>
+    void listen(const Handler& handler) { // todo - include cv for cancel
+        m_thread = std::jthread{[this, handler] {
+            while (true) {
+                Header main_header{};
+                if (receive_into(main_header) < 1) {
+                    // TODO: error handling 0 = conn closed, -1 = check errorno
+                    std::cout << "error";
+                    return;
+                }
+                
+                for (u32 i = 0; i < main_header.message_count; i++) {
+                    MessageHeader message_header{};
+                    if (receive_into(message_header) < 1) {
+                        // TODO: error handling
+                        std::cout << "error";
+                        return;
+                    }
+                    char buffer[1500];
+                    // TODO: what if message_size is zero? Can't happen with CBOR but could with binary
+                    
+                    auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
+                    if (bytes_received < 1) {
+                        // TODO: error handling
+                        std::cout << "error";
+                        return;
+                    }
+                    std::span<const char> message{buffer, (u32)bytes_received};
+                    
+                    switch (ProtocolType(main_header.protocol)){
+                    case ProtocolType::ProtocolCrownLink: {
+                        m_crownlink_protocol.handle(message, handler);
+                    } break;
+                    case ProtocolType::ProtocolP2P: {
+                        m_p2p_protocol.handle(message, handler);
+                    } break;
+                    }
+                }
+            }
+        }};
+    }
+
     bool receive();
+
+
 
 private:
     template<typename T>
@@ -94,8 +155,9 @@ private:
     
 private:
     u32 m_socket = 0;
+    std::jthread m_thread;
+    CrownLink::CrownLinkProtocol m_crownlink_protocol;
+    P2P::P2PProtocol m_p2p_protocol;
 };
-
-
 
 }

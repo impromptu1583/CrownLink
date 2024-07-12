@@ -78,8 +78,10 @@ bool Socket::receive() {
             std::cout << "received message header, type: " << message_header.message_type << " size: " << message_header.message_size << "\n";
             // TODO: figure out protocol-specific message handling
             char buffer[1600];
+            auto p = &buffer;
             auto received = recv(m_socket, &buffer, message_header.message_size, 0);
-            std::cout << "received message of size " << received << "\n";
+            Json j = Json::from_cbor(buffer, received-1);
+            std::cout << std::setw(2) << j << std::endl;
         }
 
         iterations++;

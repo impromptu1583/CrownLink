@@ -1,5 +1,4 @@
 #pragma once
-#include "CrowServe.h"
 
 #include "../NetShared/StormTypes.h"
 
@@ -90,6 +89,14 @@ struct EchoResponse {
     Header header;
     
     std::string message;
+};
+
+class CrownLinkProtocol {
+public:
+    template <typename Handler>
+    void handle(const std::span<char> message, const Handler& handler) {
+        
+    }
 };
 
 }
