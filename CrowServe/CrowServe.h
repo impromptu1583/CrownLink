@@ -48,11 +48,6 @@ enum class ProtocolType : u16 {
     ProtocolP2P = 2,
 };
 
-enum class MessageSerialization {
-    SerializationCBOR,
-    SerializationBinary,
-};
-
 #pragma pack(push, 1)
 
 struct Header {
@@ -113,7 +108,7 @@ public:
                         return;
                     }
                     std::span<const char> message{buffer, (u32)bytes_received};
-                    
+
                     switch (ProtocolType(main_header.protocol)){
                     case ProtocolType::ProtocolCrownLink: {
                         m_crownlink_protocol.handle(message, handler);
