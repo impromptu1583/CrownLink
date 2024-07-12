@@ -4,7 +4,7 @@
 
 namespace P2P {
 
-enum class P2PMessageType {
+enum class MessageType {
     Ping = 1,
     Pong,
     JuiceLocalDescription,
@@ -43,7 +43,7 @@ struct JuiceDone {
 class P2PProtocol {
 public:
     template <typename Handler>
-    void handle(const std::span<char> message, const Handler& handler) {
+    void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
         
     }
 };

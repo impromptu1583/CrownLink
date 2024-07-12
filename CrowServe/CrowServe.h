@@ -98,23 +98,26 @@ public:
                         std::cout << "error";
                         return;
                     }
-                    char buffer[1500];
-                    // TODO: what if message_size is zero? Can't happen with CBOR but could with binary
-                    
-                    auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
-                    if (bytes_received < 1) {
-                        // TODO: error handling
-                        std::cout << "error";
-                        return;
+
+                    std::span<const char> message;
+
+                    if (message_header.message_size > 0) {  
+                        char buffer[4096];
+                        auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
+                        if (bytes_received < 1) {
+                            // TODO: error handling
+                            std::cout << "error";
+                            return;
+                        }
+                        std::span<const char> message{buffer, (u32)bytes_received};
                     }
-                    std::span<const char> message{buffer, (u32)bytes_received};
 
                     switch (ProtocolType(main_header.protocol)){
                     case ProtocolType::ProtocolCrownLink: {
-                        m_crownlink_protocol.handle(message, handler);
+                        m_crownlink_protocol.handle(message_header.message_type, message, handler);
                     } break;
                     case ProtocolType::ProtocolP2P: {
-                        m_p2p_protocol.handle(message, handler);
+                        m_p2p_protocol.handle(message_header.message_type, message, handler);
                     } break;
                     }
                 }

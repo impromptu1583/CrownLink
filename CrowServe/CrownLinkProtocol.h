@@ -94,7 +94,7 @@ struct EchoResponse {
 class CrownLinkProtocol {
 public:
     template <typename Handler>
-    void handle(const std::span<char> message, const Handler& handler) {
+    void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
         
     }
 };
