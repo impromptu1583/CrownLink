@@ -86,6 +86,8 @@ bool Socket::receive() {
             std::cout << std::setw(2) << j << std::endl;
             auto teststruct = j.template get<CrownLink::ClientProfile>();
             std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
+            std::cout << "turnserver 1:" << teststruct.ice_credentials.turn_servers[0].host << std::endl;
+            std::cout << "turnserver 2:" << teststruct.ice_credentials.turn_servers[1].host << std::endl;
 
         }
 

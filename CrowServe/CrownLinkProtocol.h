@@ -63,8 +63,11 @@ inline void to_json(Json& j, const IceCredentials& ice_credentials) {
 inline void from_json(const Json& j, IceCredentials& ice_credentials) {
     j.at("stun_host").get_to(ice_credentials.stun_host);
     j.at("stun_port").get_to(ice_credentials.stun_port);
-    if (!j["turn_servers"].is_null()) {
-        // TODO: handle TurnServers
+    if (j["turn_servers"].is_array()) {
+        auto servers = j.at("turn_servers");
+        for (u32 i = 0; i < 2 && i < servers.size(); i++) {
+            ice_credentials.turn_servers[i] = servers[i].template get<TurnServer>();
+        }
     }
 }
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
