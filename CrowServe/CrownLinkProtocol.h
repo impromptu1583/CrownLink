@@ -26,60 +26,60 @@ enum class Mode {
 struct Header {};
 
 struct ConnectionRequest : Header {
-    std::string PreSharedKey;
-    bool PeerIdRequested;
-    NetAddress RequestedId;
-    NetAddress RequestToken;
-    u32 ProductId;
-    u32 VersionId;
-    u32 ClinkVersion;
+    std::string preshared_key;
+    bool peer_id_requested;
+    NetAddress requested_id;
+    NetAddress request_token;
+    u32 product_id;
+    u32 version_id;
+    u32 crownlink_version;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, PreSharedKey, PeerIdRequested, RequestedId, RequestToken, ProductId, VersionId, ClinkVersion)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, preshared_key, peer_id_requested, requested_id, request_token, product_id, version_id, crownlink_version)
 
 struct KeyExchange : Header {
-    std::string PublicKey;
+    std::string public_key;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(KeyExchange, PublicKey)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(KeyExchange, public_key)
 
 struct TurnServer {
-    std::string Host;
-    std::string Port;
-    std::string Username;
-    std::string Password;
+    std::string host;
+    std::string port;
+    std::string username;
+    std::string password;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, Host, Port, Username, Password)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, host, port, username, password)
 
 struct IceCredentials {
-    std::string StunServer;
-    std::string StunPort;
-    TurnServer TurnServers[2];
+    std::string stun_host; 
+    std::string stun_port;
+    TurnServer turn_servers[2];
 };
 inline void to_json(Json& j, const IceCredentials& ice_credentials) {
-    j = Json{{"StunServer", ice_credentials.StunServer},
-            {"StunPort", ice_credentials.StunPort}
+    j = Json{{"stun_host", ice_credentials.stun_host},
+            {"stun_port", ice_credentials.stun_port}
             // TODO: handle TurnServers
     };
 }
 inline void from_json(const Json& j, IceCredentials& ice_credentials) {
-    j.at("StunServer").get_to(ice_credentials.StunServer);
-    j.at("StunPort").get_to(ice_credentials.StunPort);
-    if (!j["TurnServers"].is_null()) {
+    j.at("stun_host").get_to(ice_credentials.stun_host);
+    j.at("stun_port").get_to(ice_credentials.stun_port);
+    if (!j["turn_servers"].is_null()) {
         // TODO: handle TurnServers
     }
 }
 //NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
 
 struct ClientProfile : Header {
-    NetAddress PeerId;
-    NetAddress Token;
-    IceCredentials IceCreds;
+    NetAddress peer_id;
+    NetAddress token;
+    IceCredentials ice_credentials;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientProfile, PeerId, Token, IceCreds)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientProfile, peer_id, token, ice_credentials)
 
 struct UpdateRequested : Header {
-    u32 MinClinkVersion;
+    u32 min_clink_version;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateRequested, MinClinkVersion)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateRequested, min_clink_version)
 
 struct AdvertisementRequest : Header {
 };
@@ -87,7 +87,7 @@ struct AdvertisementRequest : Header {
 // GameInfo and AdFile are defined in StormTypes.h
 
 struct StartAdvertising : Header {
-    AdFile Ad;
+    AdFile ad;
 };
 
 struct StopAdvertising : Header {
@@ -97,18 +97,18 @@ struct AdvertisementsRequest : Header {
 };
 
 struct AdvertisementsResponse : Header {
-    std::vector<AdFile> AdFiles;
+    std::vector<AdFile> ad_files;
 };
 
 struct EchoRequest : Header {
-    std::string Message;
+    std::string message;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoRequest, Message)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoRequest, message)
 
 struct EchoResponse : Header {
-    std::string Message;
+    std::string message;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, Message)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, message)
 
 class CrownLinkProtocol {
 public:

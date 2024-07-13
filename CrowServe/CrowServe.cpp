@@ -58,7 +58,7 @@ bool Socket::try_init() {
 
 bool Socket::receive() {
     u8 iterations = 0;
-    while (iterations < 10) {
+    while (iterations < 2) {
         Header main_header{};
         if (receive_into(main_header) < 1) {
             // TODO: error handling 0 = conn closed, -1 = check errorno
@@ -85,7 +85,7 @@ bool Socket::receive() {
             Json j = Json::from_cbor(sp);
             std::cout << std::setw(2) << j << std::endl;
             auto teststruct = j.template get<CrownLink::ClientProfile>();
-            std::cout << "received StunServer: " << teststruct.IceCreds.StunServer << std::endl;
+            std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
 
         }
 
