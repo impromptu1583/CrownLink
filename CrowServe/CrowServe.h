@@ -7,8 +7,6 @@
 
 #include <unistd.h>
 #include <iostream>
-#include <iterator>
-
 #include <functional>
 #include <thread>
 #include <variant>
@@ -22,7 +20,6 @@
 #define Unix
 #endif
 
-
 #ifdef Windows
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -31,8 +28,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif
-
-
 
 #include <netdb.h>
 
@@ -124,8 +119,6 @@ public:
     }
 
     bool receive();
-
-
 
 private:
     template<typename T>

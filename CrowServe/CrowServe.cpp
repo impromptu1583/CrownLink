@@ -81,7 +81,7 @@ bool Socket::receive() {
             auto p = &buffer;
             auto received = recv(m_socket, &buffer, message_header.message_size, 0);
             auto sp = std::span<const char>{buffer, (u32)received};
-            
+            // Currently assuming incoming message is ClientProfile for testing purposes only
             Json j = Json::from_cbor(sp);
             std::cout << std::setw(2) << j << std::endl;
             auto teststruct = j.template get<CrownLink::ClientProfile>();
