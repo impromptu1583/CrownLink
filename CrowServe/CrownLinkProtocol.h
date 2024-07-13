@@ -54,7 +54,20 @@ struct IceCredentials {
     std::string StunPort;
     TurnServer TurnServers[2];
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
+inline void to_json(Json& j, const IceCredentials& ice_credentials) {
+    j = Json{{"StunServer", ice_credentials.StunServer},
+            {"StunPort", ice_credentials.StunPort}
+            // TODO: handle TurnServers
+    };
+}
+inline void from_json(const Json& j, IceCredentials& ice_credentials) {
+    j.at("StunServer").get_to(ice_credentials.StunServer);
+    j.at("StunPort").get_to(ice_credentials.StunPort);
+    if (!j["TurnServers"].is_null()) {
+        // TODO: handle TurnServers
+    }
+}
+//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
 
 struct ClientProfile : Header {
     NetAddress PeerId;

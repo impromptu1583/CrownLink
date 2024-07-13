@@ -84,8 +84,8 @@ bool Socket::receive() {
             
             Json j = Json::from_cbor(sp);
             std::cout << std::setw(2) << j << std::endl;
-            auto teststruct = j.template get<CrownLink::EchoRequest>();
-            std::cout << "received message " << teststruct.Message << std::endl;
+            auto teststruct = j.template get<CrownLink::ClientProfile>();
+            std::cout << "received StunServer: " << teststruct.IceCreds.StunServer << std::endl;
 
         }
 

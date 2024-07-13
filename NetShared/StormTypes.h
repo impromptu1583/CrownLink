@@ -23,11 +23,12 @@ struct NetAddress {
     bool operator==(const NetAddress&) const = default;
 };
 inline void to_json(Json& j, const NetAddress& address) {
-    j = Json{"Id",address.bytes};
+    j = Json{{"Id",Json::binary_t(std::vector<u8>{address.bytes,address.bytes + sizeof(NetAddress)})}};
 }
 inline void from_json(const Json& j, NetAddress& address) {
-    j["Id"].get_to(address.bytes);
-    // TODO: Error handling
+    // TODO error handling
+    auto id = j["Id"];
+    memcpy(address.bytes,id.get_binary().data(),sizeof(NetAddress));
 }
 
 template <>
