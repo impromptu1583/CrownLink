@@ -80,8 +80,13 @@ bool Socket::receive() {
             char buffer[1600];
             auto p = &buffer;
             auto received = recv(m_socket, &buffer, message_header.message_size, 0);
-            Json j = Json::from_cbor(buffer, received-1);
+            auto sp = std::span<const char>{buffer, (u32)received};
+            
+            Json j = Json::from_cbor(sp);
             std::cout << std::setw(2) << j << std::endl;
+            auto teststruct = j.template get<CrownLink::EchoRequest>();
+            std::cout << "received message " << teststruct.Message << std::endl;
+
         }
 
         iterations++;

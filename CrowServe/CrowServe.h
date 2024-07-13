@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../shared_common.h"
+#include "common.h"
+
 #include "CrownLinkProtocol.h"
 #include "P2PProtocol.h"
 
@@ -12,9 +13,6 @@
 #include <thread>
 #include <variant>
 #include <span>
-
-#include <nlohmann/json.hpp>
-using Json = nlohmann::json;
 
 #if defined(_WIN32)
 #define Windows

@@ -1,6 +1,8 @@
 #pragma once
 #include "../shared_common.h"
 #include "../SNP/include/base64.hpp"
+#include <nlohmann/json.hpp>
+using Json = nlohmann::json;
 
 struct NetAddress {
     u8 bytes[16]{};
@@ -20,6 +22,13 @@ struct NetAddress {
 
     bool operator==(const NetAddress&) const = default;
 };
+inline void to_json(Json& j, const NetAddress& address) {
+    j = Json{"Id",address.bytes};
+}
+inline void from_json(const Json& j, NetAddress& address) {
+    j["Id"].get_to(address.bytes);
+    // TODO: Error handling
+}
 
 template <>
 struct std::hash<NetAddress> {

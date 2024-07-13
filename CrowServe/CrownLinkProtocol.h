@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "../NetShared/StormTypes.h"
 
 namespace CrownLink {
@@ -25,50 +26,55 @@ enum class Mode {
 struct Header {};
 
 struct ConnectionRequest : Header {
-    std::string preshared_key;
-    bool peer_id_requested;
-    NetAddress requested_id;
-    NetAddress request_token;
-    u32 product_id;
-    u32 version_id;
-    u32 crownlink_version;
+    std::string PreSharedKey;
+    bool PeerIdRequested;
+    NetAddress RequestedId;
+    NetAddress RequestToken;
+    u32 ProductId;
+    u32 VersionId;
+    u32 ClinkVersion;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, PreSharedKey, PeerIdRequested, RequestedId, RequestToken, ProductId, VersionId, ClinkVersion)
 
 struct KeyExchange : Header {
-    std::string public_key;
+    std::string PublicKey;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(KeyExchange, PublicKey)
 
 struct TurnServer {
-    std::string host;
-    std::string port;
-    std::string username;
-    std::string password;
+    std::string Host;
+    std::string Port;
+    std::string Username;
+    std::string Password;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, Host, Port, Username, Password)
 
 struct IceCredentials {
-    std::string stun_host;
-    std::string stun_port;
-    TurnServer turn_servers[2];
+    std::string StunServer;
+    std::string StunPort;
+    TurnServer TurnServers[2];
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
 
 struct ClientProfile : Header {
-    NetAddress peer_id;
-    NetAddress request_token;
-    IceCredentials ice_credentials;
+    NetAddress PeerId;
+    NetAddress Token;
+    IceCredentials IceCreds;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientProfile, PeerId, Token, IceCreds)
 
 struct UpdateRequested : Header {
-    u32 minimum_version;
+    u32 MinClinkVersion;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateRequested, MinClinkVersion)
 
 struct AdvertisementRequest : Header {
 };
 
 // GameInfo and AdFile are defined in StormTypes.h
 
-struct StartAdvertising {
-    Header header;
-    AdFile ad_file;
+struct StartAdvertising : Header {
+    AdFile Ad;
 };
 
 struct StopAdvertising : Header {
@@ -78,24 +84,24 @@ struct AdvertisementsRequest : Header {
 };
 
 struct AdvertisementsResponse : Header {
-    std::vector<AdFile> ads;
+    std::vector<AdFile> AdFiles;
 };
 
 struct EchoRequest : Header {
-    std::string message;
+    std::string Message;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoRequest, Message)
 
-struct EchoResponse {
-    Header header;
-    
-    std::string message;
+struct EchoResponse : Header {
+    std::string Message;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, Message)
 
 class CrownLinkProtocol {
 public:
     template <typename Handler>
     void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
-        
+
     }
 };
 
