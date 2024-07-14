@@ -184,6 +184,19 @@ struct AdFile {
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
 };
+inline void to_json(Json& j, const AdFile& ad_file) {
+    j = Json{
+        {"game_info", ad_file.game_info},
+        {"extra_bytes", ad_file.extra_bytes},
+        {"crownlink_mode", ad_file.crownlink_mode}
+    };
+}
+inline void from_json(const Json& j, AdFile& ad_file) {
+    j.at("game_info").get_to(ad_file.game_info);
+    j.at("crownlink_mode").get_to(ad_file.crownlink_mode);
+    auto extra_bytes = j["extra_bytes"].get<std::string>();
+    memcpy(ad_file.extra_bytes, extra_bytes.c_str(), sizeof(ad_file.extra_bytes));
+}
 
 enum class GamePacketType : u8 {
     System,

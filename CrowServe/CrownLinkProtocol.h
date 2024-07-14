@@ -91,6 +91,7 @@ struct AdvertisementRequest : Header {
 struct StartAdvertising : Header {
     AdFile ad;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StartAdvertising, ad)
 
 struct StopAdvertising : Header {
 };
@@ -101,6 +102,7 @@ struct AdvertisementsRequest : Header {
 struct AdvertisementsResponse : Header {
     std::vector<AdFile> ad_files;
 };
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AdvertisementsResponse, ad_files)
 
 struct EchoRequest : Header {
     std::string message;
