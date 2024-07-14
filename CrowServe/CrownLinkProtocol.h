@@ -70,7 +70,6 @@ inline void from_json(const Json& j, IceCredentials& ice_credentials) {
         }
     }
 }
-//NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(IceCredentials, StunServer, StunPort, TurnServers)
 
 struct ClientProfile : Header {
     NetAddress peer_id;

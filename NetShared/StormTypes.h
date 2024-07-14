@@ -130,6 +130,41 @@ struct game {
     u32     program_id;
     u32     version_id;
 };
+inline void to_json(Json& j, const game& g) {
+    j = Json{
+        {"game_index", g.game_index},
+        {"game_state", g.game_state},
+        {"creation_time", g.creation_time},
+        {"host", g.host},
+        {"host_latency", g.host_latency},
+        {"host_last_time", g.host_last_time},
+        {"category_bits", g.category_bits},
+        {"game_name", g.game_name},
+        {"game_description", g.game_description},
+        {"extra_bytes", g.extra_bytes},
+        {"program_id", g.program_id},
+        {"version_id", g.version_id}
+    };
+}
+inline void from_json (const Json& j, game& g) {
+    j.at("game_index").get_to(g.game_index);
+    j.at("game_state").get_to(g.game_state);
+    j.at("creation_time").get_to(g.creation_time);
+    j.at("host_latency").get_to(g.host_latency);
+    j.at("host_last_time").get_to(g.host_last_time);
+    j.at("category_bits").get_to(g.category_bits);
+
+    auto name = j["game_name"].get<std::string>();
+    memcpy(g.game_name, name.c_str(), sizeof(g.game_name));
+    auto description = j["game_description"].get<std::string>();
+    memcpy(g.game_description, description.c_str(), sizeof(g.game_description));
+
+    j.at("extra_bytes").get_to(g.extra_bytes);
+    j.at("program_id").get_to(g.program_id);
+    j.at("version_id").get_to(g.version_id);
+    g.pNext = nullptr;
+    g.pExtra = nullptr;
+}
 
 enum class CrownLinkMode {
     CLNK, // standard version
