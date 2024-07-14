@@ -118,6 +118,61 @@ class CrownLinkProtocol {
 public:
     template <typename Handler>
     void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
+        switch (MessageType(message_type)){
+            case MessageType::ConnectionRequest: {
+                ConnectionRequest deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::KeyExchange: {
+                KeyExchange deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;    
+            case MessageType::ClientProfile: {
+                ClientProfile deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::UpdateAvailable: {
+                UpdateAvailable deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::StartAdvertising: {
+                StartAdvertising deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::StopAdvertising: {
+                StopAdvertising deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::AdvertisementsRequest: {
+                AdvertisementsRequest deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::AdvertisementsResponse: {
+                AdvertisementsResponse deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::EchoRequest: {
+                EchoRequest deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            case MessageType::EchoResponse: {
+                EchoResponse deserialized{};
+                deserialize_cbor_into(deserialized);
+                handler(deserialized);
+            } break;
+            default: {
+                // TODO: log an error
+            }
+        }
 
     }
 };
