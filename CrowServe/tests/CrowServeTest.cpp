@@ -5,9 +5,11 @@
 template<typename T>
 bool test_serialization(T& test_subject) {
     Json first_json = test_subject;
-    auto output = first_json.template get<T>();
-    Json second_json = output;
-    return first_json == second_json;
+    auto cbor = Json::to_cbor(first_json);
+    auto second_json = Json::from_cbor(cbor);
+    auto recreated_test_subject = second_json.template get<T>();
+    Json third_json = recreated_test_subject;
+    return first_json == third_json;
 }
 
 TEST_CASE("CBOR de/serialization") {
