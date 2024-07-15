@@ -58,7 +58,7 @@ bool Socket::try_init() {
 
 bool Socket::receive() {
     u8 iterations = 0;
-    while (iterations < 10) {
+    while (iterations < 2) {
         Header main_header{};
         if (receive_into(main_header) < 1) {
             // TODO: error handling 0 = conn closed, -1 = check errorno
@@ -66,6 +66,12 @@ bool Socket::receive() {
             return false;
         }
         std::cout << "received main header, protocol: " << main_header.protocol << " count: " << main_header.message_count << " magic:" << main_header.magic << "\n";
+        u64 test = (u64)main_header.magic;
+        if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
+            std::cout << "magic didn't match\n";
+        } else {
+            std::cout << "magic matched\n";
+        }
 
         // todo: check magic
         for (auto i = 0; i < main_header.message_count; i++) {
@@ -79,7 +85,15 @@ bool Socket::receive() {
             // TODO: figure out protocol-specific message handling
             char buffer[1600];
             auto received = recv(m_socket, &buffer, message_header.message_size, 0);
-            std::cout << "received message of size " << received << "\n";
+            std::span<const char> sp{buffer, (u32)received};
+            // Currently assuming incoming message is ClientProfile for testing purposes only
+            Json j = Json::from_cbor(sp);
+            std::cout << std::setw(2) << j << std::endl;
+            // auto teststruct = j.template get<CrownLink::ClientProfile>();
+            // std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
+            // std::cout << "turnserver 1:" << teststruct.ice_credentials.turn_servers[0].host << std::endl;
+            // std::cout << "turnserver 2:" << teststruct.ice_credentials.turn_servers[1].host << std::endl;
+
         }
 
         iterations++;

@@ -1,6 +1,8 @@
 #pragma once
 #include "../shared_common.h"
 #include "../SNP/include/base64.hpp"
+#include <nlohmann/json.hpp>
+using Json = nlohmann::json;
 
 struct NetAddress {
     u8 bytes[16]{};
@@ -20,6 +22,14 @@ struct NetAddress {
 
     bool operator==(const NetAddress&) const = default;
 };
+inline void to_json(Json& j, const NetAddress& address) {
+    j = Json{{"Id",Json::binary_t(std::vector<u8>{address.bytes,address.bytes + sizeof(NetAddress)})}};
+}
+inline void from_json(const Json& j, NetAddress& address) {
+    // TODO error handling
+    auto id = j["Id"];
+    memcpy(address.bytes,id.get_binary().data(),sizeof(NetAddress));
+}
 
 template <>
 struct std::hash<NetAddress> {
@@ -121,6 +131,60 @@ struct game {
     u32     version_id;
 };
 
+inline bool operator== (const game& g1, const game& g2) {
+    return (
+        g1.game_index == g2.game_index &&
+        g1.game_state == g2.game_state &&
+        g1.creation_time == g2.creation_time &&
+        g1.host == g2.host &&
+        g1.host_latency == g2.host_latency &&
+        g1.host_last_time == g2.host_last_time &&
+        g1.category_bits == g2.category_bits &&
+        strncmp(g1.game_name, g2.game_name, sizeof(g1.game_name)) == 0 &&
+        strncmp(g1.game_description, g2.game_description, sizeof(g1.game_description)) == 0 &&
+        g1.extra_bytes == g2.extra_bytes &&
+        g1.program_id == g2.program_id &&
+        g1.version_id == g2.version_id
+    );
+}
+
+inline void to_json(Json& j, const game& g) {
+    j = Json{
+        {"game_index", g.game_index},
+        {"game_state", g.game_state},
+        {"creation_time", g.creation_time},
+        {"host", g.host},
+        {"host_latency", g.host_latency},
+        {"host_last_time", g.host_last_time},
+        {"category_bits", g.category_bits},
+        {"game_name", g.game_name},
+        {"game_description", g.game_description},
+        {"extra_bytes", g.extra_bytes},
+        {"program_id", g.program_id},
+        {"version_id", g.version_id}
+    };
+}
+
+inline void from_json (const Json& j, game& g) {
+    j.at("game_index").get_to(g.game_index);
+    j.at("game_state").get_to(g.game_state);
+    j.at("creation_time").get_to(g.creation_time);
+    j.at("host_latency").get_to(g.host_latency);
+    j.at("host_last_time").get_to(g.host_last_time);
+    j.at("category_bits").get_to(g.category_bits);
+
+    auto name = j["game_name"].get<std::string>();
+    memcpy(g.game_name, name.c_str(), sizeof(g.game_name));
+    auto description = j["game_description"].get<std::string>();
+    memcpy(g.game_description, description.c_str(), sizeof(g.game_description));
+
+    j.at("extra_bytes").get_to(g.extra_bytes);
+    j.at("program_id").get_to(g.program_id);
+    j.at("version_id").get_to(g.version_id);
+    g.pNext = nullptr;
+    g.pExtra = nullptr;
+}
+
 enum class CrownLinkMode {
     CLNK, // standard version
     DBCL  // double brain cells version
@@ -139,6 +203,32 @@ struct AdFile {
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
 };
+
+inline bool operator==(const AdFile& a1, const AdFile& a2) {
+    return (
+        a1.game_info == a2.game_info &&
+        memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
+        a1.crownlink_mode == a2.crownlink_mode
+    );
+}
+
+inline void to_json(Json& j, const AdFile& ad_file) {
+    j = Json{
+        {"game_info", ad_file.game_info},
+        {"extra_bytes", Json::binary({ad_file.extra_bytes,ad_file.extra_bytes+32})},
+        {"crownlink_mode", ad_file.crownlink_mode}
+    };
+}
+
+inline void from_json(const Json& j, AdFile& ad_file) {
+    j.at("game_info").get_to(ad_file.game_info);
+    j.at("crownlink_mode").get_to(ad_file.crownlink_mode);
+    auto a = j["extra_bytes"].get_binary();
+    std::copy(a.begin(), a.end(), ad_file.extra_bytes);
+
+    // auto extra_bytes = j["extra_bytes"].get<std::string>();
+    // memcpy(ad_file.extra_bytes, extra_bytes.c_str(), sizeof(ad_file.extra_bytes));
+}
 
 enum class GamePacketType : u8 {
     System,

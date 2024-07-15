@@ -1,6 +1,27 @@
 #include <catch2/catch_all.hpp>
 
 #include "CrowServe.h"
+#include "Cbor.h"
+
+template<typename T>
+bool test_serialization(T& test_subject) {
+    std::vector<u8> serialized{};
+    serialize_cbor(test_subject, serialized);
+    T deserialized{};
+    deserialize_cbor_into(deserialized, serialized);
+    return test_subject == deserialized;
+}
+
+TEST_CASE("CBOR de/serialization") {
+    auto net_address_test = NetAddress{"0123456789abcde"};
+    REQUIRE(test_serialization(net_address_test));
+
+    auto game_test = game{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9};
+    REQUIRE(test_serialization(game_test));
+
+    auto adfile_test = AdFile{game_test, "test extra bytes", CrownLinkMode::CLNK};
+    REQUIRE(test_serialization(adfile_test));
+}
 
 TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;

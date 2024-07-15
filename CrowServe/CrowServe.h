@@ -1,9 +1,16 @@
 #pragma once
 
-#include "../shared_common.h"
+#include "common.h"
+
+#include "CrownLinkProtocol.h"
+#include "P2PProtocol.h"
 
 #include <unistd.h>
 #include <iostream>
+#include <functional>
+#include <thread>
+#include <variant>
+#include <span>
 
 #if defined(_WIN32)
 #define Windows
@@ -12,7 +19,6 @@
 #else
 #define Unix
 #endif
-
 
 #ifdef Windows
 #define WIN32_LEAN_AND_MEAN
@@ -23,19 +29,26 @@
 #include <sys/socket.h>
 #endif
 
-
-
 #include <netdb.h>
-
-
-#pragma pack(push, 1)
 
 namespace CrowServe {
 
-enum class Protocol : u16 {
+template <typename... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
+
+enum class ProtocolType : u16 {
     ProtocolCrownLink = 1,
     ProtocolP2P = 2,
 };
+
+enum class SocketState {
+	Uninitialized,
+	Initialized,
+	Connecting,
+	Ready
+};
+
+#pragma pack(push, 1)
 
 struct Header {
     u8 magic[4];
@@ -65,9 +78,60 @@ public:
         deinit_sockets();
     };
 
-
     bool try_init();
-    void send();
+
+    template <typename Handler>
+    void listen(const Handler& handler) { // todo: pass stop_token to jthread
+        m_thread = std::jthread{[this, handler] {
+            while (true) {
+                Header main_header{};
+                if (receive_into(main_header) < 1) {
+                    // TODO: error handling 0 = conn closed, -1 = check errorno
+                    std::cout << "error";
+                    return;
+                }
+
+                if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
+                    // TODO: probably need to re-init here? Likely connection is in unrecoverable state
+                    // this would only really happen if trying to connect to a non-crownlink server
+                    // or if server is not in an operable state
+                    return;
+                }
+                
+                for (u32 i = 0; i < main_header.message_count; i++) {
+                    MessageHeader message_header{};
+                    if (receive_into(message_header) < 1) {
+                        // TODO: error handling
+                        std::cout << "error";
+                        return;
+                    }
+
+                    std::span<const char> message;
+
+                    if (message_header.message_size > 0) {  
+                        char buffer[4096];
+                        auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
+                        if (bytes_received < 1) {
+                            // TODO: error handling
+                            std::cout << "error";
+                            return;
+                        }
+                        message = std::span<const char>{buffer, (u32)bytes_received};
+                    }
+
+                    switch (ProtocolType(main_header.protocol)){
+                        case ProtocolType::ProtocolCrownLink: {
+                            m_crownlink_protocol.handle(message_header.message_type, message, handler);
+                        } break;
+                        case ProtocolType::ProtocolP2P: {
+                            m_p2p_protocol.handle(message_header.message_type, message, handler);
+                        } break;
+                    }
+                }
+            }
+        }};
+    }
+
     bool receive();
 
 private:
@@ -94,8 +158,10 @@ private:
     
 private:
     u32 m_socket = 0;
+    SocketState m_state = SocketState::Uninitialized;
+    std::jthread m_thread;
+    CrownLink::Protocol m_crownlink_protocol;
+    P2P::Protocol m_p2p_protocol;
 };
-
-
 
 }
