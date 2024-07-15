@@ -41,6 +41,13 @@ enum class ProtocolType : u16 {
     ProtocolP2P = 2,
 };
 
+enum class SocketState {
+	Uninitialized,
+	Initialized,
+	Connecting,
+	Ready
+};
+
 #pragma pack(push, 1)
 
 struct Header {
@@ -81,6 +88,13 @@ public:
                 if (receive_into(main_header) < 1) {
                     // TODO: error handling 0 = conn closed, -1 = check errorno
                     std::cout << "error";
+                    return;
+                }
+
+                if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
+                    // TODO: probably need to re-init here? Likely connection is in unrecoverable state
+                    // this would only really happen if trying to connect to a non-crownlink server
+                    // or if server is not in an operable state
                     return;
                 }
                 
@@ -144,6 +158,7 @@ private:
     
 private:
     u32 m_socket = 0;
+    SocketState m_state = SocketState::Uninitialized;
     std::jthread m_thread;
     CrownLink::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;

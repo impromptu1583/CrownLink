@@ -66,6 +66,12 @@ bool Socket::receive() {
             return false;
         }
         std::cout << "received main header, protocol: " << main_header.protocol << " count: " << main_header.message_count << " magic:" << main_header.magic << "\n";
+        u64 test = (u64)main_header.magic;
+        if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
+            std::cout << "magic didn't match\n";
+        } else {
+            std::cout << "magic matched\n";
+        }
 
         // todo: check magic
         for (auto i = 0; i < main_header.message_count; i++) {
