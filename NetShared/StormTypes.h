@@ -131,6 +131,23 @@ struct game {
     u32     version_id;
 };
 
+inline bool operator== (const game& g1, const game& g2) {
+    return (
+        g1.game_index == g2.game_index &&
+        g1.game_state == g2.game_state &&
+        g1.creation_time == g2.creation_time &&
+        g1.host == g2.host &&
+        g1.host_latency == g2.host_latency &&
+        g1.host_last_time == g2.host_last_time &&
+        g1.category_bits == g2.category_bits &&
+        strncmp(g1.game_name, g2.game_name, sizeof(g1.game_name)) == 0 &&
+        strncmp(g1.game_description, g2.game_description, sizeof(g1.game_description)) == 0 &&
+        g1.extra_bytes == g2.extra_bytes &&
+        g1.program_id == g2.program_id &&
+        g1.version_id == g2.version_id
+    );
+}
+
 inline void to_json(Json& j, const game& g) {
     j = Json{
         {"game_index", g.game_index},
@@ -187,10 +204,18 @@ struct AdFile {
     CrownLinkMode crownlink_mode{};
 };
 
+inline bool operator==(const AdFile& a1, const AdFile& a2) {
+    return (
+        a1.game_info == a2.game_info &&
+        memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
+        a1.crownlink_mode == a2.crownlink_mode
+    );
+}
+
 inline void to_json(Json& j, const AdFile& ad_file) {
     j = Json{
         {"game_info", ad_file.game_info},
-        {"extra_bytes", ad_file.extra_bytes},
+        {"extra_bytes", Json::binary({ad_file.extra_bytes,ad_file.extra_bytes+32})},
         {"crownlink_mode", ad_file.crownlink_mode}
     };
 }
@@ -198,8 +223,11 @@ inline void to_json(Json& j, const AdFile& ad_file) {
 inline void from_json(const Json& j, AdFile& ad_file) {
     j.at("game_info").get_to(ad_file.game_info);
     j.at("crownlink_mode").get_to(ad_file.crownlink_mode);
-    auto extra_bytes = j["extra_bytes"].get<std::string>();
-    memcpy(ad_file.extra_bytes, extra_bytes.c_str(), sizeof(ad_file.extra_bytes));
+    auto a = j["extra_bytes"].get_binary();
+    std::copy(a.begin(), a.end(), ad_file.extra_bytes);
+
+    // auto extra_bytes = j["extra_bytes"].get<std::string>();
+    // memcpy(ad_file.extra_bytes, extra_bytes.c_str(), sizeof(ad_file.extra_bytes));
 }
 
 enum class GamePacketType : u8 {
