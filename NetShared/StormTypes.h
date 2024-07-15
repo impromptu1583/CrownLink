@@ -130,6 +130,7 @@ struct game {
     u32     program_id;
     u32     version_id;
 };
+
 inline void to_json(Json& j, const game& g) {
     j = Json{
         {"game_index", g.game_index},
@@ -146,6 +147,7 @@ inline void to_json(Json& j, const game& g) {
         {"version_id", g.version_id}
     };
 }
+
 inline void from_json (const Json& j, game& g) {
     j.at("game_index").get_to(g.game_index);
     j.at("game_state").get_to(g.game_state);
@@ -184,6 +186,7 @@ struct AdFile {
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
 };
+
 inline void to_json(Json& j, const AdFile& ad_file) {
     j = Json{
         {"game_info", ad_file.game_info},
@@ -191,6 +194,7 @@ inline void to_json(Json& j, const AdFile& ad_file) {
         {"crownlink_mode", ad_file.crownlink_mode}
     };
 }
+
 inline void from_json(const Json& j, AdFile& ad_file) {
     j.at("game_info").get_to(ad_file.game_info);
     j.at("crownlink_mode").get_to(ad_file.crownlink_mode);

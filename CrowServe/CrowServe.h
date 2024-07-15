@@ -74,7 +74,7 @@ public:
     bool try_init();
 
     template <typename Handler>
-    void listen(const Handler& handler) { // todo - include cv for cancel
+    void listen(const Handler& handler) { // todo: pass stop_token to jthread
         m_thread = std::jthread{[this, handler] {
             while (true) {
                 Header main_header{};
@@ -102,16 +102,16 @@ public:
                             std::cout << "error";
                             return;
                         }
-                        std::span<const char> message{buffer, (u32)bytes_received};
+                        message = std::span<const char>{buffer, (u32)bytes_received};
                     }
 
                     switch (ProtocolType(main_header.protocol)){
-                    case ProtocolType::ProtocolCrownLink: {
-                        m_crownlink_protocol.handle(message_header.message_type, message, handler);
-                    } break;
-                    case ProtocolType::ProtocolP2P: {
-                        m_p2p_protocol.handle(message_header.message_type, message, handler);
-                    } break;
+                        case ProtocolType::ProtocolCrownLink: {
+                            m_crownlink_protocol.handle(message_header.message_type, message, handler);
+                        } break;
+                        case ProtocolType::ProtocolP2P: {
+                            m_p2p_protocol.handle(message_header.message_type, message, handler);
+                        } break;
                     }
                 }
             }
@@ -145,8 +145,8 @@ private:
 private:
     u32 m_socket = 0;
     std::jthread m_thread;
-    CrownLink::CrownLinkProtocol m_crownlink_protocol;
-    P2P::P2PProtocol m_p2p_protocol;
+    CrownLink::Protocol m_crownlink_protocol;
+    P2P::Protocol m_p2p_protocol;
 };
 
 }

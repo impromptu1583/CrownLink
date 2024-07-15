@@ -78,10 +78,10 @@ struct ClientProfile : Header {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientProfile, peer_id, token, ice_credentials)
 
-struct UpdateRequested : Header {
+struct UpdateAvailable : Header {
     u32 min_clink_version;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateRequested, min_clink_version)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateAvailable, min_clink_version)
 
 struct AdvertisementRequest : Header {
 };
@@ -114,59 +114,59 @@ struct EchoResponse : Header {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, message)
 
-class CrownLinkProtocol {
+class Protocol {
 public:
     template <typename Handler>
-    void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
+    void handle(const MessageType message_type, std::span<const char> message, const Handler& handler) {
         switch (MessageType(message_type)){
             case MessageType::ConnectionRequest: {
                 ConnectionRequest deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::KeyExchange: {
                 KeyExchange deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;    
             case MessageType::ClientProfile: {
                 ClientProfile deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::UpdateAvailable: {
                 UpdateAvailable deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::StartAdvertising: {
                 StartAdvertising deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::StopAdvertising: {
                 StopAdvertising deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::AdvertisementsRequest: {
                 AdvertisementsRequest deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::AdvertisementsResponse: {
                 AdvertisementsResponse deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::EchoRequest: {
                 EchoRequest deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             case MessageType::EchoResponse: {
                 EchoResponse deserialized{};
-                deserialize_cbor_into(deserialized);
+                deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
             default: {

@@ -78,16 +78,15 @@ bool Socket::receive() {
             std::cout << "received message header, type: " << message_header.message_type << " size: " << message_header.message_size << "\n";
             // TODO: figure out protocol-specific message handling
             char buffer[1600];
-            auto p = &buffer;
             auto received = recv(m_socket, &buffer, message_header.message_size, 0);
-            auto sp = std::span<const char>{buffer, (u32)received};
+            std::span<const char> sp{buffer, (u32)received};
             // Currently assuming incoming message is ClientProfile for testing purposes only
             Json j = Json::from_cbor(sp);
             std::cout << std::setw(2) << j << std::endl;
-            auto teststruct = j.template get<CrownLink::ClientProfile>();
-            std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
-            std::cout << "turnserver 1:" << teststruct.ice_credentials.turn_servers[0].host << std::endl;
-            std::cout << "turnserver 2:" << teststruct.ice_credentials.turn_servers[1].host << std::endl;
+            // auto teststruct = j.template get<CrownLink::ClientProfile>();
+            // std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
+            // std::cout << "turnserver 1:" << teststruct.ice_credentials.turn_servers[0].host << std::endl;
+            // std::cout << "turnserver 2:" << teststruct.ice_credentials.turn_servers[1].host << std::endl;
 
         }
 

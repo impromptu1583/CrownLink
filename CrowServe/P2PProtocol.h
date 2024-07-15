@@ -46,7 +46,7 @@ struct JuiceDone {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceDone, header)
 
-class P2PProtocol {
+class Protocol {
 public:
     template <typename Handler>
     void handle(const MessageType message_type, const std::span<char> message, const Handler& handler) {
