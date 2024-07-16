@@ -51,6 +51,12 @@ enum class SocketState {
 #pragma pack(push, 1)
 
 struct Header {
+    Header() = default;
+    Header (u16 protocol, u32 message_count) 
+    : protocol(protocol), message_count(message_count) {
+        memcpy(magic, "CSRV", 4);
+        version = 1; // TODO - store a global version somewhere
+    };
     u8 magic[4];
     u16 version;
     u16 protocol;
@@ -93,7 +99,6 @@ public:
                 if (receive_into(main_header) < 1) {
                     // TODO: check errorno
                     std::cout << "main header error";
-                    using namespace std::chrono_literals;
                     std::this_thread::sleep_for(1s);
                     continue;
                 }
@@ -139,23 +144,21 @@ public:
         }};
     }
 
-template<typename T>
+template <typename T>
 void send_messages(ProtocolType protocol, T& message) {
     if (m_state != SocketState::Ready) {
         // TODO logging
         return;
     }
 
-    std::lock_guard{m_mutex};
+    std::lock_guard lock{m_mutex};
 
-    Header header{"", 1, (u16)protocol, 1};
-    memcpy(header.magic, "CSRV", 4);
+    Header header{(u16)protocol, 1};
 
     std::vector<u8> message_buffer{};
     serialize_cbor(message, message_buffer);
 
     MessageHeader message_header{(u64)message_buffer.size(), (u32)message.type()};
-
     
     auto bytes_sent = send(m_socket, (void*)&header, sizeof(header), 0);
     bytes_sent = send(m_socket, (void*)&message_header, sizeof(message_header),0);
@@ -164,7 +167,7 @@ void send_messages(ProtocolType protocol, T& message) {
 }
 
 private:
-    template<typename T>
+    template <typename T>
     s32 receive_into(T& container) {
         static_assert(std::is_trivial_v<T>);
         auto bytes_remaining = sizeof(container);

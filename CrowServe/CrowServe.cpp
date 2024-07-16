@@ -18,13 +18,14 @@ void deinit_sockets(){
 }
 
 void Socket::try_init(std::stop_token stop_token) {
-    m_mutex.lock();
-    m_state = SocketState::Connecting;
-    m_mutex.unlock();
+    {
+        std::lock_guard lock{m_mutex};
+        m_state = SocketState::Connecting;
+    }
 
     addrinfo hints = {};
-    addrinfo* result = nullptr;
-    addrinfo* info = nullptr;
+    addrinfo* address_info = nullptr;
+
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
@@ -34,18 +35,19 @@ void Socket::try_init(std::stop_token stop_token) {
 
     while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
         std::cout << "attempting connection\n";
-        if (const auto error = getaddrinfo("127.0.0.1","33377", &hints, &result)) {
+        if (const auto error = getaddrinfo("127.0.0.1","33377", &hints, &address_info)) {
             // TODO check error and log
             std::this_thread::sleep_for(1s);
             continue;
         }
 
-        for (info = result; info; info = info->ai_next) {
-            if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
+        addrinfo* result = nullptr;
+        for (result = address_info; result; result = result->ai_next) {
+            if ((m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol)) == -1) {
                 continue;
             }
 
-            if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
+            if (connect(m_socket, result->ai_addr, result->ai_addrlen) == -1) {
                 std::cout << "conn err\n";
                 close(m_socket);
                 continue;
@@ -54,22 +56,20 @@ void Socket::try_init(std::stop_token stop_token) {
             break;
         }
 
-        if (!info) {
+        if (!result) {
             // TODO log
             std::this_thread::sleep_for(1s);
             continue;
         }
 
         std::cout << "successfully connected\n";
-        freeaddrinfo(result);
+        freeaddrinfo(address_info);
 
         // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
-        struct timeval timeout = {};
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 500000;
-
+        timeval timeout = {1, 500000};
         setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-        std::lock_guard{m_mutex};
+
+        std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
     }
 }
