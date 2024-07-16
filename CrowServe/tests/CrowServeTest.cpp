@@ -25,6 +25,42 @@ TEST_CASE("CBOR de/serialization") {
 
 TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;
-    REQUIRE(crow_serve.try_init());
-    REQUIRE(crow_serve.receive());
+    crow_serve.listen(CrowServe::Overloaded{
+        [](const CrownLink::ConnectionRequest &message) {
+            std::cout << "Received ConnectionRequest\n";
+        },
+        [](const CrownLink::KeyExchange &message) {
+            std::cout << "Received KeyExchange\n";
+        },
+        [](const CrownLink::ClientProfile &message) {
+            std::cout << "Received ClientProfile\n";
+        },
+        [](const CrownLink::UpdateAvailable &message) {
+            std::cout << "Received UpdateAvailable\n";
+        },
+        [](const CrownLink::StartAdvertising &message) {
+            std::cout << "Received StartAdvertising\n";
+        },
+        [](const CrownLink::StopAdvertising &message) {
+            std::cout << "Received StopAdvertising\n";
+        },
+        [](const CrownLink::AdvertisementsRequest &message) {
+            std::cout << "Received AdvertisementsRequest\n";
+        },
+        [](const CrownLink::AdvertisementsResponse &message) {
+            std::cout << "Received AdvertisementsResponse\n";
+        },
+        [](const CrownLink::EchoRequest &message) {
+            std::cout << "Received EchoRequest\n";
+        },
+        [](const CrownLink::EchoResponse &message) {
+            std::cout << "Received EchoResponse\n";
+        }
+    });
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(5s);
+    auto msg = CrownLink::ConnectionRequest{};
+    crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
+    std::this_thread::sleep_for(5s);
+
 }

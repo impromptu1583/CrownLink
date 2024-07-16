@@ -11,6 +11,7 @@
 #include <thread>
 #include <variant>
 #include <span>
+#include <mutex>
 
 #if defined(_WIN32)
 #define Windows
@@ -42,8 +43,7 @@ enum class ProtocolType : u16 {
 };
 
 enum class SocketState {
-	Uninitialized,
-	Initialized,
+	Disconnected,
 	Connecting,
 	Ready
 };
@@ -78,17 +78,21 @@ public:
         deinit_sockets();
     };
 
-    bool try_init();
+    void try_init(std::stop_token stop_token);
 
     template <typename Handler>
     void listen(const Handler& handler) { // todo: pass stop_token to jthread
-        m_thread = std::jthread{[this, handler] {
-            while (true) {
+        m_thread = std::jthread{[this, handler](std::stop_token stop_token) {
+            while (!stop_token.stop_requested()) {
+                if (m_state != SocketState::Ready) {
+                    try_init(stop_token);
+                }
+
                 Header main_header{};
                 if (receive_into(main_header) < 1) {
-                    // TODO: error handling 0 = conn closed, -1 = check errorno
+                    // TODO: check errorno
                     std::cout << "error";
-                    return;
+                    continue;
                 }
 
                 if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
@@ -103,7 +107,7 @@ public:
                     if (receive_into(message_header) < 1) {
                         // TODO: error handling
                         std::cout << "error";
-                        return;
+                        break;
                     }
 
                     std::span<const char> message;
@@ -114,17 +118,17 @@ public:
                         if (bytes_received < 1) {
                             // TODO: error handling
                             std::cout << "error";
-                            return;
+                            break;
                         }
                         message = std::span<const char>{buffer, (u32)bytes_received};
                     }
 
                     switch (ProtocolType(main_header.protocol)){
                         case ProtocolType::ProtocolCrownLink: {
-                            m_crownlink_protocol.handle(message_header.message_type, message, handler);
+                            m_crownlink_protocol.handle(CrownLink::MessageType(message_header.message_type), message, handler);
                         } break;
                         case ProtocolType::ProtocolP2P: {
-                            m_p2p_protocol.handle(message_header.message_type, message, handler);
+                            //m_p2p_protocol.handle(P2P::MessageType(message_header.message_type), message, handler);
                         } break;
                     }
                 }
@@ -132,7 +136,29 @@ public:
         }};
     }
 
-    bool receive();
+template<typename T>
+void send_messages(ProtocolType protocol, T& message) {
+    if (m_state != SocketState::Ready) {
+        // TODO logging
+        return;
+    }
+
+    std::lock_guard{m_mutex};
+
+    Header header{"", 1, (u16)protocol, 1};
+    memcpy(header.magic, "CSRV", 4);
+
+    std::vector<u8> message_buffer{};
+    serialize_cbor(message, message_buffer);
+
+    MessageHeader message_header{(u64)message_buffer.size(), (u32)message.type()};
+
+    
+    auto bytes_sent = send(m_socket, (void*)&header, sizeof(header), 0);
+    bytes_sent = send(m_socket, (void*)&message_header, sizeof(message_header),0);
+    bytes_sent = send(m_socket, message_buffer.data(), message_buffer.size(), 0);
+    // TODO: combine before sending, check bytes_sent for error
+}
 
 private:
     template<typename T>
@@ -158,10 +184,11 @@ private:
     
 private:
     u32 m_socket = 0;
-    SocketState m_state = SocketState::Uninitialized;
+    SocketState m_state = SocketState::Disconnected;
     std::jthread m_thread;
     CrownLink::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
+    std::mutex m_mutex;
 };
 
 }

@@ -17,90 +17,57 @@ void deinit_sockets(){
 #endif
 }
 
-bool Socket::try_init() {  
+void Socket::try_init(std::stop_token stop_token) {
+    m_mutex.lock();
+    m_state = SocketState::Connecting;
+    m_mutex.unlock();
+
     addrinfo hints = {};
     addrinfo* result = nullptr;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
+    using namespace std::chrono_literals;
 
-    std::cout << "attempting connection\n";
-    if (const auto error = getaddrinfo("127.0.0.1","33377", &hints, &result)) {
-        return false;
-    }
+    // TODO implement some kind of max retries or increase sleep value gradually
 
-    for (auto info = result; info; info = info->ai_next) {
-		if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
-			continue;
+    while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
+        std::cout << "attempting connection\n";
+        if (const auto error = getaddrinfo("127.0.0.1","33377", &hints, &result)) {
+            // TODO check error and log
+            std::this_thread::sleep_for(1s);
+            continue;
         }
 
-    	if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
-			close(m_socket);
-			continue;
-		}
-
-		break;
-    }
-
-	if (!result) {
-		return false;
-	}
-	freeaddrinfo(result);
-
-    // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
-    struct timeval timeout = {};
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 500000;
-
-    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    return true;
-}
-
-bool Socket::receive() {
-    u8 iterations = 0;
-    while (iterations < 2) {
-        Header main_header{};
-        if (receive_into(main_header) < 1) {
-            // TODO: error handling 0 = conn closed, -1 = check errorno
-            std::cout << "error";
-            return false;
-        }
-        std::cout << "received main header, protocol: " << main_header.protocol << " count: " << main_header.message_count << " magic:" << main_header.magic << "\n";
-        u64 test = (u64)main_header.magic;
-        if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
-            std::cout << "magic didn't match\n";
-        } else {
-            std::cout << "magic matched\n";
-        }
-
-        // todo: check magic
-        for (auto i = 0; i < main_header.message_count; i++) {
-            MessageHeader message_header{};
-            if (receive_into(message_header) < 1) {
-                // TODO: error handling 0 = conn closed, -1 = check errorno
-                std::cout << "error";
-                return false;
+        for (auto info = result; info; info = info->ai_next) {
+            if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
+                continue;
             }
-            std::cout << "received message header, type: " << message_header.message_type << " size: " << message_header.message_size << "\n";
-            // TODO: figure out protocol-specific message handling
-            char buffer[1600];
-            auto received = recv(m_socket, &buffer, message_header.message_size, 0);
-            std::span<const char> sp{buffer, (u32)received};
-            // Currently assuming incoming message is ClientProfile for testing purposes only
-            Json j = Json::from_cbor(sp);
-            std::cout << std::setw(2) << j << std::endl;
-            // auto teststruct = j.template get<CrownLink::ClientProfile>();
-            // std::cout << "received StunServer: " << teststruct.ice_credentials.stun_host << std::endl;
-            // std::cout << "turnserver 1:" << teststruct.ice_credentials.turn_servers[0].host << std::endl;
-            // std::cout << "turnserver 2:" << teststruct.ice_credentials.turn_servers[1].host << std::endl;
 
+            if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
+                close(m_socket);
+                continue;
+            }
+
+            break;
         }
 
-        iterations++;
-        std::cout << iterations;
-    }
+        if (!result) {
+            // TODO log
+            std::this_thread::sleep_for(1s);
+            continue;
+        }
+        freeaddrinfo(result);
 
-    return true;
+        // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
+        struct timeval timeout = {};
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 500000;
+
+        setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+        std::lock_guard{m_mutex};
+        m_state = SocketState::Ready;
+    }
 }
 
 }
