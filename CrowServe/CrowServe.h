@@ -86,12 +86,15 @@ public:
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
+                    std::cout << "init done";
                 }
 
                 Header main_header{};
                 if (receive_into(main_header) < 1) {
                     // TODO: check errorno
-                    std::cout << "error";
+                    std::cout << "main header error";
+                    using namespace std::chrono_literals;
+                    std::this_thread::sleep_for(1s);
                     continue;
                 }
 

@@ -24,6 +24,7 @@ void Socket::try_init(std::stop_token stop_token) {
 
     addrinfo hints = {};
     addrinfo* result = nullptr;
+    addrinfo* info = nullptr;
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
@@ -39,12 +40,13 @@ void Socket::try_init(std::stop_token stop_token) {
             continue;
         }
 
-        for (auto info = result; info; info = info->ai_next) {
+        for (info = result; info; info = info->ai_next) {
             if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
                 continue;
             }
 
             if (connect(m_socket, info->ai_addr, info->ai_addrlen) == -1) {
+                std::cout << "conn err\n";
                 close(m_socket);
                 continue;
             }
@@ -52,11 +54,13 @@ void Socket::try_init(std::stop_token stop_token) {
             break;
         }
 
-        if (!result) {
+        if (!info) {
             // TODO log
             std::this_thread::sleep_for(1s);
             continue;
         }
+
+        std::cout << "successfully connected\n";
         freeaddrinfo(result);
 
         // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
