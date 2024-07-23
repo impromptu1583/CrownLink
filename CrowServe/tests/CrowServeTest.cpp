@@ -25,7 +25,7 @@ TEST_CASE("CBOR de/serialization") {
 
 TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;
-    crow_serve.listen(CrowServe::Overloaded{
+    crow_serve.listen(
         [](const CrownLink::ConnectionRequest &message) {
             std::cout << "Received ConnectionRequest\n";
         },
@@ -56,7 +56,7 @@ TEST_CASE("CrowServe integration") {
         [](const CrownLink::EchoResponse &message) {
             std::cout << "Received EchoResponse\n";
         }
-    });
+    );
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(2s);
     auto msg = CrownLink::ConnectionRequest{};

@@ -46,8 +46,6 @@ inline s32 WSAGetLastError() {
 }
 #endif
 
-
-
 namespace CrowServe {
 
 template <typename... Ts>
@@ -104,9 +102,9 @@ public:
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
 
-    template <typename Handler>
-    void listen(const Handler& handler) { // todo: pass stop_token to jthread
-        m_thread = std::jthread{[this, handler](std::stop_token stop_token) {
+    template <typename... Handlers>
+    void listen(Handlers&&... handlers) { // todo: pass stop_token to jthread
+        m_thread = std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
