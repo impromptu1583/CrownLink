@@ -34,6 +34,7 @@
 
 using SOCKET = s32;
 #define INVALID_SOCKET -1
+#define SOCKET_ERROR -1
 
 inline s32 closesocket(SOCKET s) {
     return close(s);
@@ -133,7 +134,7 @@ public:
                     if (message_header.message_size > 0) {  
                         char buffer[4096];
                         auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
-                        if (bytes_received < 1) {
+                        if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                             // TODO: error handling
                             std::cout << "error";
                             break;
@@ -185,7 +186,7 @@ private:
 
         while (bytes_remaining > 0) {
             auto bytes_received = recv(m_socket, (char*)&container + offset, bytes_remaining, 0);
-            if (bytes_received < 1) {
+            if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                 // currently we back-propagate for error handling
                 // TODO: don't expose details of socket implementation to the caller, instead return bool or custom enum,
                 //       maybe log error here (we should probably include spdlog?), and just return bool
