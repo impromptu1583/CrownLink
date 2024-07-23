@@ -79,4 +79,22 @@ void Socket::try_init(std::stop_token stop_token) {
     }
 }
 
+void Socket::disconnect() {
+    closesocket(m_socket);
+    m_state = SocketState::Disconnected;
+}
+
+void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
+    if (!bytes_received) {
+        std::cout << message << "Server terminated connection\n";
+        return;
+    }
+#ifdef Windows
+    std::cout << message << "Winsock error code: " << error << " \n";
+#else
+    std::cout << "Socket error received: " << std::strerror(error) << " \n";
+#endif
+    return;
+}
+
 }

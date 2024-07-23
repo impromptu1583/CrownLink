@@ -31,6 +31,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <errno.h>
 
 using SOCKET = s32;
 #define INVALID_SOCKET -1
@@ -38,6 +39,10 @@ using SOCKET = s32;
 
 inline s32 closesocket(SOCKET s) {
     return close(s);
+}
+
+inline s32 WSAGetLastError() {
+    return errno;
 }
 #endif
 
@@ -96,6 +101,8 @@ public:
     };
 
     void try_init(std::stop_token stop_token);
+    void disconnect();
+    void log_socket_error(const char* message, s32 bytes_received, s32 error);
 
     template <typename Handler>
     void listen(const Handler& handler) { // todo: pass stop_token to jthread
@@ -103,29 +110,30 @@ public:
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
-                    std::cout << "init done";
+                    std::cout << "init done\n";
                 }
 
                 Header main_header{};
-                if (receive_into(main_header) < 1) {
-                    // TODO: check errorno
-                    std::cout << "main header error";
-                    std::this_thread::sleep_for(1s);
+
+                auto [bytes, error] = receive_into(main_header);
+                if (!bytes || error) {
+                    log_socket_error("Main header error: ", bytes, error);
+                    disconnect();
                     continue;
                 }
 
                 if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
-                    // TODO: probably need to re-init here? Likely connection is in unrecoverable state
-                    // this would only really happen if trying to connect to a non-crownlink server
-                    // or if server is not in an operable state
-                    return;
+                    std::cout << "Main header magic byte mismatch, received: " << main_header.magic << " resetting connection";
+                    disconnect();
+                    continue;
                 }
                 
                 for (u32 i = 0; i < main_header.message_count; i++) {
                     MessageHeader message_header{};
-                    if (receive_into(message_header) < 1) {
-                        // TODO: error handling
-                        std::cout << "error";
+                    auto [bytes, error] = receive_into(message_header);
+                    if (!bytes || error) {
+                        log_socket_error("Message header error: ", bytes, error);
+                        disconnect();
                         break;
                     }
 
@@ -135,8 +143,8 @@ public:
                         char buffer[4096];
                         auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
                         if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
-                            // TODO: error handling
-                            std::cout << "error";
+                            log_socket_error("Message receive error: ", bytes_received, WSAGetLastError());
+                            disconnect();
                             break;
                         }
                         message = std::span<const char>{buffer, (u32)bytes_received};
@@ -179,24 +187,24 @@ void send_messages(ProtocolType protocol, T& message) {
 
 private:
     template <typename T>
-    s32 receive_into(T& container) {
+    std::pair<s32,s32> receive_into(T& container) {
         static_assert(std::is_trivial_v<T>);
         auto bytes_remaining = sizeof(container);
         u32 offset = 0;
-
+        s32 bytes_received = 0;
         while (bytes_remaining > 0) {
-            auto bytes_received = recv(m_socket, (char*)&container + offset, bytes_remaining, 0);
+            bytes_received = recv(m_socket, (char*)&container + offset, bytes_remaining, 0);
             if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                 // currently we back-propagate for error handling
                 // TODO: don't expose details of socket implementation to the caller, instead return bool or custom enum,
                 //       maybe log error here (we should probably include spdlog?), and just return bool
-                return bytes_received;
+                return {bytes_received, WSAGetLastError()};
             }
             bytes_remaining -= bytes_received;
             offset += bytes_received;
         }
 
-        return 1;
+        return {bytes_received, 0};
     }
     
 private:
