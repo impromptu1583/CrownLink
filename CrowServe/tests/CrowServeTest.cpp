@@ -24,6 +24,9 @@ TEST_CASE("CBOR de/serialization") {
 }
 
 TEST_CASE("CrowServe integration") {
+    auto id = NetAddress{};
+    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", CrownLinkMode::CLNK};
+
     CrowServe::Socket crow_serve;
     crow_serve.listen(
         [](const CrownLink::ConnectionRequest &message) {
@@ -32,8 +35,9 @@ TEST_CASE("CrowServe integration") {
         [](const CrownLink::KeyExchange &message) {
             std::cout << "Received KeyExchange\n";
         },
-        [](const CrownLink::ClientProfile &message) {
+        [&id](const CrownLink::ClientProfile &message) {
             std::cout << "Received ClientProfile\n";
+            id = message.peer_id;
         },
         [](const CrownLink::UpdateAvailable &message) {
             std::cout << "Received UpdateAvailable\n";
@@ -44,8 +48,10 @@ TEST_CASE("CrowServe integration") {
         [](const CrownLink::StopAdvertising &message) {
             std::cout << "Received StopAdvertising\n";
         },
-        [](const CrownLink::AdvertisementsRequest &message) {
+        [&crow_serve, &adfile](const CrownLink::AdvertisementsRequest &message) {
             std::cout << "Received AdvertisementsRequest\n";
+            auto msg = CrownLink::StartAdvertising{{}, adfile};
+            crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },
         [](const CrownLink::AdvertisementsResponse &message) {
             std::cout << "Received AdvertisementsResponse\n";
@@ -55,7 +61,8 @@ TEST_CASE("CrowServe integration") {
         },
         [](const CrownLink::EchoResponse &message) {
             std::cout << "Received EchoResponse\n";
-        }
+        },
+        [](const auto &message) {}
     );
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(2s);
