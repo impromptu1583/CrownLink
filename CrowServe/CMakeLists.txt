@@ -22,6 +22,11 @@ add_library(CrowServe STATIC
     P2PProtocol.cpp
 )
 target_link_libraries(CrowServe PRIVATE nlohmann_json::nlohmann_json)
+
+if(WIN32)
+  target_link_libraries(CrowServe PRIVATE wsock32 ws2_32)
+endif()
+
 include_directories(${json_SOURCE_DIR}/include)
 target_include_directories(CrowServe PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 

@@ -5,7 +5,6 @@
 #include "CrownLinkProtocol.h"
 #include "P2PProtocol.h"
 
-#include <unistd.h>
 #include <iostream>
 #include <functional>
 #include <thread>
@@ -25,12 +24,16 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Winsock2.h>
+#include <ws2tcpip.h>
 #else
+
+#include <unistd.h>
+#include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif
 
-#include <netdb.h>
+
 
 namespace CrowServe {
 
@@ -64,7 +67,7 @@ struct Header {
 };
 
 struct MessageHeader {
-    u64 message_size;
+    u32 message_size;
     u32 message_type;
 };
 
@@ -160,9 +163,9 @@ void send_messages(ProtocolType protocol, T& message) {
 
     MessageHeader message_header{(u64)message_buffer.size(), (u32)message.type()};
     
-    auto bytes_sent = send(m_socket, (void*)&header, sizeof(header), 0);
-    bytes_sent = send(m_socket, (void*)&message_header, sizeof(message_header),0);
-    bytes_sent = send(m_socket, message_buffer.data(), message_buffer.size(), 0);
+    auto bytes_sent = send(m_socket, (const char*)&header, sizeof(header), 0);
+    bytes_sent = send(m_socket, (const char*)&message_header, sizeof(message_header),0);
+    bytes_sent = send(m_socket, (const char*)message_buffer.data(), message_buffer.size(), 0);
     // TODO: combine before sending, check bytes_sent for error
 }
 
@@ -174,7 +177,7 @@ private:
         u32 offset = 0;
 
         while (bytes_remaining > 0) {
-            auto bytes_received = recv(m_socket, &container + offset, bytes_remaining, 0);
+            auto bytes_received = recv(m_socket, (char*)&container + offset, bytes_remaining, 0);
             if (bytes_received < 1) {
                 // currently we back-propagate for error handling
                 // TODO: don't expose details of socket implementation to the caller, instead return bool or custom enum,

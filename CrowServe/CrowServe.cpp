@@ -43,13 +43,17 @@ void Socket::try_init(std::stop_token stop_token) {
 
         addrinfo* result = nullptr;
         for (result = address_info; result; result = result->ai_next) {
-            if ((m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol)) == -1) {
+            if ((m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol)) == INVALID_SOCKET) {
                 continue;
             }
 
             if (connect(m_socket, result->ai_addr, result->ai_addrlen) == -1) {
                 std::cout << "conn err\n";
+#ifdef Windows
+                closesocket(m_socket);
+#else
                 close(m_socket);
+#endif
                 continue;
             }
 
@@ -67,7 +71,12 @@ void Socket::try_init(std::stop_token stop_token) {
 
         // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
         timeval timeout = {1, 500000};
+#ifdef Windows
+        setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+#else
         setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
+#endif
 
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
