@@ -27,6 +27,9 @@
 #include <ws2tcpip.h>
 #else
 
+using SOCKET = s32;
+#define INVALID_SOCKET -1
+
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/types.h>
@@ -161,7 +164,7 @@ void send_messages(ProtocolType protocol, T& message) {
     std::vector<u8> message_buffer{};
     serialize_cbor(message, message_buffer);
 
-    MessageHeader message_header{(u64)message_buffer.size(), (u32)message.type()};
+    MessageHeader message_header{(const u32)message_buffer.size(), (u32)message.type()};
     
     auto bytes_sent = send(m_socket, (const char*)&header, sizeof(header), 0);
     bytes_sent = send(m_socket, (const char*)&message_header, sizeof(message_header),0);
@@ -192,7 +195,7 @@ private:
     }
     
 private:
-    u32 m_socket = 0;
+    SOCKET m_socket = 0;
     SocketState m_state = SocketState::Disconnected;
     std::jthread m_thread;
     CrownLink::Protocol m_crownlink_protocol;
