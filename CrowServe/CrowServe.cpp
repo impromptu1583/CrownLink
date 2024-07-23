@@ -49,11 +49,7 @@ void Socket::try_init(std::stop_token stop_token) {
 
             if (connect(m_socket, result->ai_addr, result->ai_addrlen) == -1) {
                 std::cout << "conn err\n";
-#ifdef Windows
                 closesocket(m_socket);
-#else
-                close(m_socket);
-#endif
                 continue;
             }
 

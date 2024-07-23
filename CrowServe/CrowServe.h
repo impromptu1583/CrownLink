@@ -25,15 +25,19 @@
 #include <windows.h>
 #include <Winsock2.h>
 #include <ws2tcpip.h>
+
 #else
-
-using SOCKET = s32;
-#define INVALID_SOCKET -1
-
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+using SOCKET = s32;
+#define INVALID_SOCKET -1
+
+inline s32 closesocket(SOCKET s) {
+    return close(s);
+}
 #endif
 
 
