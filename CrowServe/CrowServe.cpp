@@ -17,7 +17,7 @@ void deinit_sockets(){
 #endif
 }
 
-void Socket::try_init(std::stop_token stop_token) {
+void Socket::try_init(std::stop_token &stop_token) {
     {
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Connecting;
@@ -65,21 +65,13 @@ void Socket::try_init(std::stop_token stop_token) {
         std::cout << "successfully connected\n";
         freeaddrinfo(address_info);
 
-        // set recv timeout to 1.5s. The server sends a keepalive every second so we should only hit this if disconnected.
-        timeval timeout = {1, 500000};
-#ifdef Windows
-        setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-#else
-        setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-
-#endif
-
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
     }
 }
 
 void Socket::disconnect() {
+    shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
     m_state = SocketState::Disconnected;
 }
@@ -89,10 +81,11 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
         std::cout << message << "Server terminated connection\n";
         return;
     }
+    
 #ifdef Windows
     std::cout << message << "Winsock error code: " << error << " \n";
 #else
-    std::cout << "Socket error received: " << std::strerror(error) << " \n";
+    std::cout << message << "Socket error received: " << std::strerror(error) << error << " \n";
 #endif
     return;
 }

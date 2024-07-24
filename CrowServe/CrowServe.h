@@ -36,6 +36,7 @@
 using SOCKET = s32;
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
+#define SD_RECEIVE SHUT_RDWR
 
 inline s32 closesocket(SOCKET s) {
     return close(s);
@@ -95,10 +96,11 @@ public:
     Socket(Socket&) = delete;
 	Socket& operator=(Socket&) = delete;
     ~Socket() {
+        disconnect();
         deinit_sockets();
     };
 
-    void try_init(std::stop_token stop_token);
+    void try_init(std::stop_token &stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
 
@@ -162,10 +164,10 @@ public:
     }
 
 template <typename T>
-void send_messages(ProtocolType protocol, T& message) {
+bool send_messages(ProtocolType protocol, T& message) {
     if (m_state != SocketState::Ready) {
-        // TODO logging
-        return;
+        std::cout << "socket not ready" << std::endl;
+        return false;
     }
 
     std::lock_guard lock{m_mutex};
@@ -181,6 +183,7 @@ void send_messages(ProtocolType protocol, T& message) {
     bytes_sent = send(m_socket, (const char*)&message_header, sizeof(message_header),0);
     bytes_sent = send(m_socket, (const char*)message_buffer.data(), message_buffer.size(), 0);
     // TODO: combine before sending, check bytes_sent for error
+    return true;
 }
 
 private:
