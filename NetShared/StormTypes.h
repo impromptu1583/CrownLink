@@ -169,6 +169,7 @@ inline void from_json (const Json& j, game& g) {
     j.at("game_index").get_to(g.game_index);
     j.at("game_state").get_to(g.game_state);
     j.at("creation_time").get_to(g.creation_time);
+    j.at("host").get_to(g.host);
     j.at("host_latency").get_to(g.host_latency);
     j.at("host_last_time").get_to(g.host_last_time);
     j.at("category_bits").get_to(g.category_bits);

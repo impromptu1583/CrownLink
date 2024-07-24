@@ -142,7 +142,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, message)
 class Protocol {
 public:
     template <typename Handler>
-    void handle(const MessageType message_type, std::span<const char> message, const Handler& handler) {
+    void handle(const MessageType message_type, std::span<u8> message, const Handler& handler) {
         switch (MessageType(message_type)){
             case MessageType::ConnectionRequest: {
                 ConnectionRequest deserialized{};

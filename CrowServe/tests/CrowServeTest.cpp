@@ -14,14 +14,27 @@ bool test_serialization(T& test_subject) {
 }
 
 TEST_CASE("CBOR de/serialization") {
-    auto net_address_test = NetAddress{"0123456789abcde"};
-    REQUIRE(test_serialization(net_address_test));
+    auto net_addresses = GENERATE(
+        NetAddress{"0123456789abcde"},
+        NetAddress{"3333333"},
+        NetAddress{""},
+        NetAddress{}
+    );
+    REQUIRE(test_serialization(net_addresses));
 
-    auto game_test = game{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9};
-    REQUIRE(test_serialization(game_test));
+    auto games = GENERATE(
+        game{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}
+    );
+    REQUIRE(test_serialization(games));
 
-    auto adfile_test = AdFile{game_test, "test extra bytes", CrownLinkMode::CLNK};
-    REQUIRE(test_serialization(adfile_test));
+    auto adfiles = GENERATE(
+        AdFile{{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
+            "test extra bytes", CrownLinkMode::CLNK},
+        AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
+            "", CrownLinkMode::DBCL},
+        AdFile{}
+    );
+    REQUIRE(test_serialization(adfiles));
 }
 
 TEST_CASE("Advertisement Exchange") {
@@ -58,23 +71,23 @@ TEST_CASE("Advertisement Exchange") {
     );
     
     auto msg = CrownLink::ConnectionRequest{};
-    std::cout << "connecting sender" << std::endl;
+    INFO("connecting sender");
     auto succeeded = false;
     while (!succeeded) {
         succeeded = sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         std::this_thread::sleep_for(1s);
     }
 
-    std::cout << "connecting receiver" << std::endl;
+    INFO("Connecting receiver");
     succeeded = false;
     while (!succeeded) {
         succeeded = receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
     }
 
-    std::cout << "waiting for advertisement to be passed" << std::endl;
+    INFO("Waiting for advertisement to be passed");
     std::unique_lock<std::mutex> lock{ad_mtx};
     ad_cv.wait(lock);
-    std::cout << "comparing adfiles, name1: " << adfile.game_info.game_name << " name2: " << adfile_out.game_info.game_name << std::endl;
+    INFO("comparing adfiles, name1: " << adfile.game_info.game_name << " name2: " << adfile_out.game_info.game_name);
     REQUIRE(adfile == adfile_out);
 }
 
@@ -85,38 +98,37 @@ TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;
     crow_serve.listen(
         [](const CrownLink::ConnectionRequest &message) {
-            std::cout << "Received ConnectionRequest\n";
+            INFO("Received ConnectionRequest");
         },
         [](const CrownLink::KeyExchange &message) {
-            std::cout << "Received KeyExchange\n";
+            INFO("Received KeyExchange");
         },
         [&id](const CrownLink::ClientProfile &message) {
-            std::cout << "Received ClientProfile\n";
+            INFO("Received ClientProfile");
             id = message.peer_id;
-            std::cout << id.b64() << std::endl;
         },
         [](const CrownLink::UpdateAvailable &message) {
-            std::cout << "Received UpdateAvailable\n";
+            INFO("Received UpdateAvailable");
         },
         [](const CrownLink::StartAdvertising &message) {
-            std::cout << "Received StartAdvertising\n";
+            INFO("Received StartAdvertising");
         },
         [](const CrownLink::StopAdvertising &message) {
-            std::cout << "Received StopAdvertising\n";
+            INFO("Received StopAdvertising");
         },
         [&crow_serve, &adfile](const CrownLink::AdvertisementsRequest &message) {
-            std::cout << "Received AdvertisementsRequest\n";
+            INFO("Received AdvertisementsRequest");
             auto msg = CrownLink::StartAdvertising{{}, adfile};
             crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },
         [](const CrownLink::AdvertisementsResponse &message) {
-            std::cout << "Received AdvertisementsResponse\n";
+            INFO("Received AdvertisementsResponse");
         },
         [](const CrownLink::EchoRequest &message) {
-            std::cout << "Received EchoRequest\n";
+            INFO("Received EchoRequest");
         },
         [](const CrownLink::EchoResponse &message) {
-            std::cout << "Received EchoResponse\n";
+            INFO("Received EchoResponse");
         },
         [](const auto &message) {}
     );

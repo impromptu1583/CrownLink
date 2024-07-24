@@ -69,7 +69,7 @@ struct Header {
     Header() = default;
     Header (u16 protocol, u32 message_count) 
     : protocol(protocol), message_count(message_count) {
-        memcpy(magic, "CSRV", 4);
+        memcpy(magic, "CSRV", sizeof(magic));
         version = 1; // TODO - store a global version somewhere
     };
     u8 magic[4];
@@ -137,17 +137,17 @@ public:
                         break;
                     }
 
-                    std::span<const char> message;
+                    std::span<u8> message;
 
                     if (message_header.message_size > 0) {  
-                        char buffer[4096];
+                        u8 buffer[4096];
                         auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
                         if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                             log_socket_error("Message receive error: ", bytes_received, WSAGetLastError());
                             disconnect();
                             break;
                         }
-                        message = std::span<const char>{buffer, (u32)bytes_received};
+                        message = std::span<u8>{buffer, (u32)bytes_received};
                     }
 
                     switch (ProtocolType(main_header.protocol)){
