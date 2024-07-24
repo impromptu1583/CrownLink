@@ -21,34 +21,34 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id)
 struct Ping {
     Header header;
     std::string timestamp;
-    inline MessageType type() { return MessageType::Ping; }
+    inline MessageType type() const { return MessageType::Ping; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Ping, header, timestamp)
 
 struct Pong {
     Header header;
     std::string timestamp;
-    inline MessageType type() { return MessageType::Pong; }
+    inline MessageType type() const { return MessageType::Pong; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Pong, header, timestamp)
 
 struct JuiceLocalDescription {
     Header header;
     std::string sdp;
-    inline MessageType type() { return MessageType::JuiceLocalDescription; }
+    inline MessageType type() const { return MessageType::JuiceLocalDescription; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceLocalDescription, header, sdp)
 
 struct JuiceCandidate {
     Header header;
     std::string candidate;
-    inline MessageType type() { return MessageType::JuiceCandidate; }
+    inline MessageType type() const { return MessageType::JuiceCandidate; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceCandidate, header, candidate)
 
 struct JuiceDone {
     Header header;
-    inline MessageType type() { return MessageType::JuiceDone; }
+    inline MessageType type() const { return MessageType::JuiceDone; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceDone, header)
 

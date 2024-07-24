@@ -79,13 +79,13 @@ struct ClientProfile : Header {
     NetAddress peer_id;
     NetAddress token;
     IceCredentials ice_credentials;
-    inline MessageType type() { return MessageType::ClientProfile; }
+    inline MessageType type() const { return MessageType::ClientProfile; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientProfile, peer_id, token, ice_credentials)
 
 struct UpdateAvailable : Header {
     u32 min_clink_version;
-    inline MessageType type() { return MessageType::UpdateAvailable; }
+    inline MessageType type() const { return MessageType::UpdateAvailable; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateAvailable, min_clink_version)
 
@@ -93,12 +93,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateAvailable, min_clink_version)
 
 struct StartAdvertising : Header {
     AdFile ad;
-    inline MessageType type() { return MessageType::StartAdvertising; }
+    inline MessageType type() const { return MessageType::StartAdvertising; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StartAdvertising, ad)
 
 struct StopAdvertising : Header {
-    inline MessageType type() { return MessageType::StopAdvertising; }
+    inline MessageType type() const { return MessageType::StopAdvertising; }
 };
 
 inline void to_json(Json &j, const StopAdvertising& message) {
@@ -110,7 +110,7 @@ inline void from_json(const Json &j, StopAdvertising& message) {
 }
 
 struct AdvertisementsRequest : Header {
-    inline MessageType type() { return MessageType::AdvertisementsRequest; }
+    inline MessageType type() const { return MessageType::AdvertisementsRequest; }
 };
 
 inline void to_json(Json &j, const AdvertisementsRequest& message) {
@@ -123,19 +123,19 @@ inline void from_json(const Json &j, AdvertisementsRequest& message) {
 
 struct AdvertisementsResponse : Header {
     std::vector<AdFile> ad_files;
-    inline MessageType type() { return MessageType::AdvertisementsResponse; }
+    inline MessageType type() const { return MessageType::AdvertisementsResponse; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AdvertisementsResponse, ad_files)
 
 struct EchoRequest : Header {
     std::string message;
-    inline MessageType type() { return MessageType::EchoRequest; }
+    inline MessageType type() const { return MessageType::EchoRequest; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoRequest, message)
 
 struct EchoResponse : Header {
     std::string message;
-    inline MessageType type() { return MessageType::EchoResponse; }
+    inline MessageType type() const { return MessageType::EchoResponse; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(EchoResponse, message)
 
