@@ -165,12 +165,12 @@ public:
 
 template <typename T>
 bool send_messages(ProtocolType protocol, T& message) {
+    std::lock_guard lock{m_mutex};
+
     if (m_state != SocketState::Ready) {
         std::cout << "socket not ready" << std::endl;
         return false;
     }
-
-    std::lock_guard lock{m_mutex};
 
     Header header{(u16)protocol, 1};
 
