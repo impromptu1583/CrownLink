@@ -138,7 +138,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 			parent.set_connection_type(JuiceConnectionType::Relay);
 			spdlog::warn("Remote connection is relayed, performance may be affected");
 		}
-		if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
+		if (std::regex_match(local, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
 			parent.set_connection_type(JuiceConnectionType::Radmin);
 			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
 		}
