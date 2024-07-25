@@ -13,7 +13,7 @@ struct NetAddress {
     }
 
     NetAddress(const std::string& id) {
-        memcpy(&bytes, id.c_str(), sizeof(NetAddress));
+        memcpy(&bytes, id.c_str(), sizeof(bytes));
     };
 
     std::string b64() const {
@@ -28,7 +28,7 @@ inline void to_json(Json& j, const NetAddress& address) {
 inline void from_json(const Json& j, NetAddress& address) {
     // TODO error handling
     auto id = j["Id"];
-    memcpy(address.bytes,id.get_binary().data(),sizeof(NetAddress));
+    memcpy(address.bytes,id.get_binary().data(),sizeof(address.bytes));
 }
 
 template <>

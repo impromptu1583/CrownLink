@@ -3,10 +3,19 @@
 
 template<typename T>
 bool deserialize_cbor_into(T& container, std::span<u8> input) {
-    // TODO: error handling
-    Json json = Json::from_cbor(input);
-    container = json.template get<T>();
-    return true;
+    try {
+        Json json = Json::from_cbor(input);
+        container = json.template get<T>();
+        return true;
+    }
+    catch (const json::parse_error& e) {    
+        // TODO: improve logging
+        std::cout << "message: " << e.what() << '\n'
+                    << "exception id: " << e.id << '\n'
+                    << "byte position of error: " << e.byte << std::endl;
+        return false;
+    }
+
 };
 
 template<typename T>
