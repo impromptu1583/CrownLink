@@ -18,8 +18,8 @@ using Json = nlohmann::json;
 inline const fs::path g_starcraft_dir = [] {
 	wchar_t buffer[MAX_PATH];
 	GetModuleFileNameW(0, buffer, MAX_PATH);
-	return fs::path{ buffer }.parent_path();
-	}();
+	return fs::path{buffer}.parent_path();
+}();
 
 #include "spdlog/spdlog.h"
 #include "spdlog/async.h"
@@ -27,14 +27,8 @@ inline const fs::path g_starcraft_dir = [] {
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/fmt/bin_to_hex.h"
 
-//#include <Storm/storm.h>
-
 #include "../NetShared/StormTypes.h"
 #include "SNPModule.h"
-
-//#include "ThQueue.h"
-
-
 
 inline std::string to_string(juice_state value) {
 	switch (value) {

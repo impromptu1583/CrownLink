@@ -55,12 +55,12 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {
 	switch (log_level) {
-	case JUICE_LOG_LEVEL_VERBOSE: spdlog::trace("{}", message); break;
-	case JUICE_LOG_LEVEL_DEBUG:   spdlog::trace("{}", message); break;
-	case JUICE_LOG_LEVEL_WARN:    spdlog::warn("{}", message); break;
-	case JUICE_LOG_LEVEL_INFO:    spdlog::info("{}", message); break;
-	case JUICE_LOG_LEVEL_ERROR:   spdlog::info("{}", message); break;
-	case JUICE_LOG_LEVEL_FATAL:   spdlog::error("{}", message); break;
+        case JUICE_LOG_LEVEL_VERBOSE: spdlog::trace("{}", message); break;
+        case JUICE_LOG_LEVEL_DEBUG:   spdlog::trace("{}", message); break;
+        case JUICE_LOG_LEVEL_WARN:    spdlog::warn("{}", message); break;
+        case JUICE_LOG_LEVEL_INFO:    spdlog::info("{}", message); break;
+        case JUICE_LOG_LEVEL_ERROR:   spdlog::info("{}", message); break;
+        case JUICE_LOG_LEVEL_FATAL:   spdlog::error("{}", message); break;
 	}
 }
 
