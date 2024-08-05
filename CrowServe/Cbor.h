@@ -2,19 +2,20 @@
 #include "common.h"
 
 template<typename T>
-bool deserialize_cbor_into(T& container, std::span<const char> input) {
-    // TODO: error handling
-    Json json = Json::from_cbor(input);
-    container = json.template get<T>();
-    return true;
-};
+bool deserialize_cbor_into(T& container, std::span<u8> input) {
+    try {
+        Json json = Json::from_cbor(input);
+        container = json.template get<T>();
+        return true;
+    }
+    catch (const Json::parse_error& e) {    
+        // TODO: improve logging
+        std::cout << "message: " << e.what() << '\n'
+                    << "exception id: " << e.id << '\n'
+                    << "byte position of error: " << e.byte << std::endl;
+        return false;
+    }
 
-template<typename T>
-bool deserialize_cbor_into(T& container, std::vector<u8>& input) {
-    // TODO: error handling
-    Json json = Json::from_cbor(input);
-    container = json.template get<T>();
-    return true;
 };
 
 template<typename T>

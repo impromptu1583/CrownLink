@@ -4,6 +4,17 @@
 #include "Cbor.h"
 #include <condition_variable>
 
+template <typename T>
+struct ReceiveWrapper {
+    T destination;
+    std::mutex mtx;
+    std::condition_variable cv;
+    void wait_until_updated() {
+        std::unique_lock lock{mtx};
+        cv.wait(lock);
+    }
+};
+
 template<typename T>
 bool test_serialization(T& test_subject) {
     std::vector<u8> serialized{};
@@ -14,22 +25,32 @@ bool test_serialization(T& test_subject) {
 }
 
 TEST_CASE("CBOR de/serialization") {
-    auto net_address_test = NetAddress{"0123456789abcde"};
-    REQUIRE(test_serialization(net_address_test));
+    auto net_addresses = GENERATE(
+        NetAddress{"0123456789abcde"},
+        NetAddress{"3333333"},
+        NetAddress{""},
+        NetAddress{}
+    );
+    REQUIRE(test_serialization(net_addresses));
 
-    auto game_test = game{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9};
-    REQUIRE(test_serialization(game_test));
+    auto games = GENERATE(
+        game{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}
+    );
+    REQUIRE(test_serialization(games));
 
-    auto adfile_test = AdFile{game_test, "test extra bytes", CrownLinkMode::CLNK};
-    REQUIRE(test_serialization(adfile_test));
+    auto adfiles = GENERATE(
+        AdFile{{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
+            "test extra bytes", CrownLinkMode::CLNK},
+        AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
+            "", CrownLinkMode::DBCL},
+        AdFile{}
+    );
+    REQUIRE(test_serialization(adfiles));
 }
 
 TEST_CASE("Advertisement Exchange") {
     auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", CrownLinkMode::CLNK};
-    auto adfile_out = AdFile{};
-
-    std::mutex ad_mtx;
-    std::condition_variable ad_cv;
+    ReceiveWrapper<AdFile> adfile_out;
 
     CrowServe::Socket sender_socket;
     CrowServe::Socket receiver_socket;
@@ -43,11 +64,11 @@ TEST_CASE("Advertisement Exchange") {
     );
 
     receiver_socket.listen(
-        [&adfile_out, &ad_mtx, &ad_cv](const CrownLink::AdvertisementsResponse &message) {
+        [&adfile_out](const CrownLink::AdvertisementsResponse &message) {
             if (!message.ad_files.empty()) {
-                std::lock_guard lock{ad_mtx};
-                adfile_out = message.ad_files[0];
-                ad_cv.notify_all();
+                std::lock_guard lock{adfile_out.mtx};
+                adfile_out.destination = message.ad_files[0];
+                adfile_out.cv.notify_all();
             }
         },
         [&receiver_socket](const CrownLink::AdvertisementsRequest &message) {
@@ -58,25 +79,96 @@ TEST_CASE("Advertisement Exchange") {
     );
     
     auto msg = CrownLink::ConnectionRequest{};
-    std::cout << "connecting sender" << std::endl;
+    INFO("connecting sender");
     auto succeeded = false;
     while (!succeeded) {
-        succeeded = sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         std::this_thread::sleep_for(1s);
+        succeeded = sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
     }
 
-    std::cout << "connecting receiver" << std::endl;
+    INFO("Connecting receiver");
     succeeded = false;
     while (!succeeded) {
+        std::this_thread::sleep_for(1s);
         succeeded = receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
     }
 
-    std::cout << "waiting for advertisement to be passed" << std::endl;
-    std::unique_lock<std::mutex> lock{ad_mtx};
-    ad_cv.wait(lock);
-    std::cout << "comparing adfiles, name1: " << adfile.game_info.game_name << " name2: " << adfile_out.game_info.game_name << std::endl;
-    REQUIRE(adfile == adfile_out);
+    INFO("Waiting for advertisement to be passed");
+    adfile_out.wait_until_updated();
+    INFO("comparing adfiles, name1: " << adfile.game_info.game_name << " name2: " << adfile_out.destination.game_info.game_name);
+    REQUIRE(adfile == adfile_out.destination);
 }
+
+TEST_CASE("P2P message exchange") {
+    ReceiveWrapper<P2P::Pong> output;
+    ReceiveWrapper<NetAddress> receiver_id;
+    ReceiveWrapper<NetAddress> sender_id;    
+
+    CrowServe::Socket sender_socket;
+    CrowServe::Socket receiver_socket;
+
+    receiver_socket.listen(
+        [&receiver_id](const CrownLink::ClientProfile &message) {
+            std::lock_guard lock(receiver_id.mtx);
+            receiver_id.destination = message.peer_id;
+            receiver_id.cv.notify_all();
+        },
+        [&receiver_socket](const P2P::Ping &message) {
+            auto msg = P2P::Pong{{message.header.peer_id},message.timestamp};
+            receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, msg);
+        },        
+        [](const auto &message) {}        
+    );
+    sender_socket.listen(
+        [&sender_id](const CrownLink::ClientProfile &message) {
+            std::lock_guard lock{sender_id.mtx};
+            sender_id.destination = message.peer_id;
+            sender_id.cv.notify_all();
+        },
+        [&output](const P2P::Pong &message) {
+            std::lock_guard lock{output.mtx};
+            output.destination = message;
+            output.cv.notify_all();
+        },        
+        [](const auto &message) {}   
+    );
+
+    auto msg = CrownLink::ConnectionRequest{};
+
+    INFO("connecting sender");
+    auto succeeded = false;
+    while (!succeeded) {
+        std::this_thread::sleep_for(1s);
+        succeeded = sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
+    }
+    sender_id.wait_until_updated();
+    INFO("Received sender id " << sender_id.destination);
+
+
+    INFO("Connecting receiver");
+    succeeded = false;
+    while (!succeeded) {
+        std::this_thread::sleep_for(1s);
+        succeeded = receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
+
+    }
+    receiver_id.wait_until_updated();
+    INFO("Received receiver id " << receiver_id.destination);
+
+
+    auto ping = P2P::Ping{{receiver_id.destination},"TestMessage"};
+    INFO("Sending PING to " << ping.header.peer_id.b64());
+    sender_socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
+
+    INFO("Waiting for reply");
+    std::unique_lock<std::mutex> out_lock{output.mtx};
+    output.cv.wait(out_lock);
+
+    INFO("Received reply message:" << output.destination.timestamp);
+
+    REQUIRE(output.destination.timestamp == "TestMessage");
+}
+
 
 TEST_CASE("CrowServe integration") {
     auto id = NetAddress{};
@@ -85,38 +177,31 @@ TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;
     crow_serve.listen(
         [](const CrownLink::ConnectionRequest &message) {
-            std::cout << "Received ConnectionRequest\n";
+            INFO("Received ConnectionRequest");
         },
         [](const CrownLink::KeyExchange &message) {
-            std::cout << "Received KeyExchange\n";
+            INFO("Received KeyExchange");
         },
         [&id](const CrownLink::ClientProfile &message) {
-            std::cout << "Received ClientProfile\n";
+            INFO("Received ClientProfile");
             id = message.peer_id;
-            std::cout << id.b64() << std::endl;
         },
         [](const CrownLink::UpdateAvailable &message) {
-            std::cout << "Received UpdateAvailable\n";
-        },
-        [](const CrownLink::StartAdvertising &message) {
-            std::cout << "Received StartAdvertising\n";
-        },
-        [](const CrownLink::StopAdvertising &message) {
-            std::cout << "Received StopAdvertising\n";
+            INFO("Received UpdateAvailable");
         },
         [&crow_serve, &adfile](const CrownLink::AdvertisementsRequest &message) {
-            std::cout << "Received AdvertisementsRequest\n";
+            INFO("Received AdvertisementsRequest");
             auto msg = CrownLink::StartAdvertising{{}, adfile};
             crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },
         [](const CrownLink::AdvertisementsResponse &message) {
-            std::cout << "Received AdvertisementsResponse\n";
+            INFO("Received AdvertisementsResponse");
         },
         [](const CrownLink::EchoRequest &message) {
-            std::cout << "Received EchoRequest\n";
+            INFO("Received EchoRequest");
         },
         [](const CrownLink::EchoResponse &message) {
-            std::cout << "Received EchoResponse\n";
+            INFO("Received EchoResponse");
         },
         [](const auto &message) {}
     );

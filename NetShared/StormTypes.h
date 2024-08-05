@@ -7,28 +7,35 @@ using Json = nlohmann::json;
 struct NetAddress {
     u8 bytes[16]{};
 
-    NetAddress() = default;
-    NetAddress(const u8* addr) {
-        memcpy(&bytes, addr, sizeof(bytes));
-    }
-
-    NetAddress(const std::string& id) {
-        memcpy(&bytes, id.c_str(), sizeof(NetAddress));
-    };
-
     std::string b64() const {
         return base64::to_base64(std::string((char*) bytes, sizeof(NetAddress)));
     }
 
     bool operator==(const NetAddress&) const = default;
+
+    std::string uuid_string() const {
+        char str[37] = {};
+        sprintf(str, 
+        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        );
+        return str;
+    }
+
+    friend std::ostream& operator<< (std::ostream& out, const NetAddress& address) {
+        return out << address.uuid_string();
+    }
 };
+
 inline void to_json(Json& j, const NetAddress& address) {
     j = Json{{"Id",Json::binary_t(std::vector<u8>{address.bytes,address.bytes + sizeof(NetAddress)})}};
 }
+
 inline void from_json(const Json& j, NetAddress& address) {
     // TODO error handling
     auto id = j["Id"];
-    memcpy(address.bytes,id.get_binary().data(),sizeof(NetAddress));
+    memcpy(address.bytes,id.get_binary().data(),sizeof(address.bytes));
 }
 
 template <>
@@ -169,6 +176,7 @@ inline void from_json (const Json& j, game& g) {
     j.at("game_index").get_to(g.game_index);
     j.at("game_state").get_to(g.game_state);
     j.at("creation_time").get_to(g.creation_time);
+    j.at("host").get_to(g.host);
     j.at("host_latency").get_to(g.host_latency);
     j.at("host_last_time").get_to(g.host_last_time);
     j.at("category_bits").get_to(g.category_bits);
