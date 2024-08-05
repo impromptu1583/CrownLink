@@ -8,7 +8,7 @@ bool deserialize_cbor_into(T& container, std::span<u8> input) {
         container = json.template get<T>();
         return true;
     }
-    catch (const json::parse_error& e) {    
+    catch (const Json::parse_error& e) {    
         // TODO: improve logging
         std::cout << "message: " << e.what() << '\n'
                     << "exception id: " << e.id << '\n'

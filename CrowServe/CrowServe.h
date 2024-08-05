@@ -155,7 +155,7 @@ public:
                             m_crownlink_protocol.handle(CrownLink::MessageType(message_header.message_type), message, handler);
                         } break;
                         case ProtocolType::ProtocolP2P: {
-                            //m_p2p_protocol.handle(P2P::MessageType(message_header.message_type), message, handler);
+                            m_p2p_protocol.handle(P2P::MessageType(message_header.message_type), message, handler);
                         } break;
                     }
                 }
