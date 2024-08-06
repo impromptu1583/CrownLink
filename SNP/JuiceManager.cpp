@@ -30,10 +30,10 @@ void JuiceManager::clear_inactive_agents() {
 	});
 }
 
-void JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
+bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
 	std::lock_guard lock{m_mutex};
 	auto& agent = ensure_agent(address, lock);
-	agent.send_message(data, size);
+	return agent.send_message(data, size);
 }
 
 void JuiceManager::send_signal_ping(const NetAddress& address) {

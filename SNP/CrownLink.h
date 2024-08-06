@@ -12,7 +12,7 @@ inline snp::NetworkInfo g_network_info{
 	'CLNK',
 	(char*)"",
 
-	// CAPS:
+	// CAPS: this is completely overridden by the appended .MPQ but storm tests to see if its here anyway
 	{sizeof(CAPS), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
@@ -25,7 +25,7 @@ public:
 	CrownLink& operator=(const CrownLink&) = delete;
 
 	void request_advertisements();
-	void send(const NetAddress& to, void* data, size_t size);
+	bool send(const NetAddress& to, void* data, size_t size);
 	void start_advertising(AdFile ad_data);
 	void send_advertisement();
 	void stop_advertising();

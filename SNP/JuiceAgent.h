@@ -45,7 +45,7 @@ public:
 		}
 	};
 
-	void send_message(void* data, const size_t size);
+	bool send_message(void* data, const size_t size);
 	void send_signal_ping();
 
 public:

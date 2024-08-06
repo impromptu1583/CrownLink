@@ -68,7 +68,7 @@ void JuiceAgent::send_signal_ping() {
 	}
 }
 
-void JuiceAgent::send_message(void* data, size_t size) {
+bool JuiceAgent::send_message(void* data, size_t size) {
 	mark_active();
 
 	switch (m_p2p_state) {
@@ -77,7 +77,9 @@ void JuiceAgent::send_message(void* data, size_t size) {
         } break;		
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
-            juice_send(m_agent, (const char*)data, size);
+            if (juice_send(m_agent, (const char*)data, size) == 0) {
+				return true;
+			}
         } break;
         case JUICE_STATE_FAILED: {
             spdlog::dump_backtrace();
@@ -87,6 +89,7 @@ void JuiceAgent::send_message(void* data, size_t size) {
             spdlog::dump_backtrace();
             spdlog::error("Trying to send message but P2P connection is in unexpected state");
         } break;
+		return false;
 	}
 }
 
@@ -147,7 +150,6 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
-	//g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
 	g_crown_link->receive_queue().enqueue(GamePacket{ parent.m_address, data, size });
 	SetEvent(g_receive_event);
 }

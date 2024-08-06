@@ -33,8 +33,8 @@ void CrownLink::request_advertisements() {
 	}
 }
 
-void CrownLink::send(const NetAddress& peer, void* data, size_t size) {
-	m_juice_manager.send_p2p(peer, data, size);
+bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
+	return m_juice_manager.send_p2p(peer, data, size);
 }
 
 void CrownLink::init_listener() {

@@ -17,7 +17,6 @@ struct NetworkInfo {
 
 void pass_advertisement(AdFile& ad);
 void remove_advertisement(const NetAddress& host);
-void pass_packet(GamePacket& parket);
 void set_status_ad(const std::string& status);
 void clear_status_ad();
 
@@ -25,7 +24,7 @@ struct NetFunctions {
 	// The size of the vtable
 	DWORD dwSize;
 
-	// Compares two sockaddrs with each other and returns the number of differences in dwResult
+	// Compares two NetAddress with each other and returns the number of differences in dwResult
 	BOOL(__stdcall *spiCompareNetAddresses)(NetAddress* addr1, NetAddress* addr2, DWORD *dwResult);
 
 	// Called when the module is released

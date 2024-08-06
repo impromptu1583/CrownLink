@@ -36,8 +36,8 @@ void pass_advertisement(AdFile& ad) {
         ad.game_info.game_index = adFile->game_info.game_index;
     }
 
-    memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile)); // TODO - is this an ok approach?
-
+    *adFile = ad;
+    
     std::string prefix;
     if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
         spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
@@ -76,19 +76,16 @@ void pass_advertisement(AdFile& ad) {
     }
 
     if (!prefix.empty()) {
-        //prefix += " ";
         prefix += adFile->game_info.game_name;
         if (prefix.size() > 127) { prefix.resize(127); }
         strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
     }
 
-    adFile->game_info.host_last_time = GetTickCount();
+    adFile->game_info.host_last_time = get_tick_count();
     adFile->game_info.pExtra = adFile->extra_bytes;
 }
 
 void remove_advertisement(const NetAddress& host) {}
-
-void pass_packet(GamePacket& packet) {}
 
 static void init_logging() {
     const auto& snp_config = SnpConfig::instance();
@@ -173,7 +170,7 @@ static BOOL __stdcall spi_destroy() {
 static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     std::lock_guard lock{g_advertisement_mutex};
 
-    std::erase_if(g_snp_context.game_list, [now = GetTickCount()](const auto& current_ad) { return now > current_ad.game_info.host_last_time + 2000; });
+    std::erase_if(g_snp_context.game_list, [now = get_tick_count()](const auto& current_ad) { return now > current_ad.game_info.host_last_time + 2000; });
 
     AdFile* last_ad = nullptr;
     for (auto& game : g_snp_context.game_list) {
@@ -277,7 +274,6 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
         }
     }
 
-    // SErrSetLastError(STORM_ERROR_GAME_NOT_FOUND);
     return false;
 }
 
@@ -287,18 +283,12 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
     }
 
     if (address_count > 1) {
-        spdlog::info("multicast attempted");
+        spdlog::info("multicast attempted"); // BW engine doesn't seem to ever use multicast
     }
 
-    try {
-        const NetAddress& peer = out_address_list[0][0];
-        spdlog::trace("spiSend to {}: {:pa}", peer.b64(), spdlog::to_hex(std::string{data, size}));
-        g_crown_link->send(peer, data, size);
-    } catch (const std::exception& e) {
-        spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
-        return false;
-    }
-    return true;
+    const NetAddress& peer = out_address_list[0][0];
+    spdlog::trace("spiSend to {}: {:pa}", peer, spdlog::to_hex(std::string{data, size}));
+    return g_crown_link->send(peer, data, size);
 }
 
 static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) {
@@ -307,36 +297,30 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
     *out_size = 0;
 
     GamePacket* loan = new GamePacket{};
-    try {
-        while (true) {
-            if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
-                return false;
-            }
-            std::string debug_string{loan->data, loan->size};
-            // spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
-            spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
-            if (get_tick_count() > loan->timestamp + 10) {
-                continue;
-            }
 
-            *peer = &loan->sender;
-            *out_data = loan->data;
-            *out_size = loan->size;
-
-            break;
+    while (true) {
+        if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
+            delete loan;
+            return false;
         }
-    } catch (std::exception& e) {
-        delete loan;
-        spdlog::dump_backtrace();
-        spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
-        return false;
+        // TODO replace GamePacket.data with GamePacketHeader + data and improve logging
+        spdlog::trace("spiRecv fr {}: {:pa}", loan->sender, spdlog::to_hex(std::string{ loan->data,loan->size }));
+        if (get_tick_count() > loan->timestamp + 10) {
+            continue;
+        }
+
+        *peer = &loan->sender;
+        *out_data = loan->data;
+        *out_size = loan->size;
+
+        break;
     }
     return true;
 }
 
 static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
     if (loan) {
-        delete loan;
+        delete loan; // TODO does this really free all memory?
     }
     return true;
 }
@@ -346,11 +330,10 @@ static BOOL __stdcall spi_compare_net_addresses(NetAddress* address1, NetAddress
         *out_result = 0;
     }
     if (!address1 || !address2 || !out_result) {
-        // SErrSetLastError(ERROR_INVALID_PARAMETER);
         return false;
     }
 
-    *out_result = (memcmp(address1, address2, sizeof(NetAddress)) == 0);
+    *out_result = (address1 == address2);
     return true;
 }
 
@@ -385,7 +368,6 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
     if (out_size) {
         *out_size = 0;
     }
-    // SErrSetLastError(STORM_ERROR_NO_MESSAGES_WAITING);
     return false;
 }
 
