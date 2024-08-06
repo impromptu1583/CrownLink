@@ -56,29 +56,29 @@ TEST_CASE("Advertisement Exchange") {
     CrowServe::Socket receiver_socket;
 
     sender_socket.listen(
-        [&sender_socket, &adfile](const CrownLink::AdvertisementsRequest &message) {
-            auto msg = CrownLink::StartAdvertising{{}, adfile};
+        [&sender_socket, &adfile](const CrownLinkProtocol::AdvertisementsRequest &message) {
+            auto msg = CrownLinkProtocol::StartAdvertising{{}, adfile};
             sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },        
         [](const auto &message) {}        
     );
 
     receiver_socket.listen(
-        [&adfile_out](const CrownLink::AdvertisementsResponse &message) {
+        [&adfile_out](const CrownLinkProtocol::AdvertisementsResponse &message) {
             if (!message.ad_files.empty()) {
                 std::lock_guard lock{adfile_out.mtx};
                 adfile_out.destination = message.ad_files[0];
                 adfile_out.cv.notify_all();
             }
         },
-        [&receiver_socket](const CrownLink::AdvertisementsRequest &message) {
-            auto msg = CrownLink::AdvertisementsRequest{};
+        [&receiver_socket](const CrownLinkProtocol::AdvertisementsRequest &message) {
+            auto msg = CrownLinkProtocol::AdvertisementsRequest{};
             receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },        
         [](const auto &message) {}
     );
     
-    auto msg = CrownLink::ConnectionRequest{};
+    auto msg = CrownLinkProtocol::ConnectionRequest{};
     INFO("connecting sender");
     auto succeeded = false;
     while (!succeeded) {
@@ -108,7 +108,7 @@ TEST_CASE("P2P message exchange") {
     CrowServe::Socket receiver_socket;
 
     receiver_socket.listen(
-        [&receiver_id](const CrownLink::ClientProfile &message) {
+        [&receiver_id](const CrownLinkProtocol::ClientProfile &message) {
             std::lock_guard lock(receiver_id.mtx);
             receiver_id.destination = message.peer_id;
             receiver_id.cv.notify_all();
@@ -120,7 +120,7 @@ TEST_CASE("P2P message exchange") {
         [](const auto &message) {}        
     );
     sender_socket.listen(
-        [&sender_id](const CrownLink::ClientProfile &message) {
+        [&sender_id](const CrownLinkProtocol::ClientProfile &message) {
             std::lock_guard lock{sender_id.mtx};
             sender_id.destination = message.peer_id;
             sender_id.cv.notify_all();
@@ -133,7 +133,7 @@ TEST_CASE("P2P message exchange") {
         [](const auto &message) {}   
     );
 
-    auto msg = CrownLink::ConnectionRequest{};
+    auto msg = CrownLinkProtocol::ConnectionRequest{};
 
     INFO("connecting sender");
     auto succeeded = false;
@@ -176,38 +176,38 @@ TEST_CASE("CrowServe integration") {
 
     CrowServe::Socket crow_serve;
     crow_serve.listen(
-        [](const CrownLink::ConnectionRequest &message) {
+        [](const CrownLinkProtocol::ConnectionRequest &message) {
             INFO("Received ConnectionRequest");
         },
-        [](const CrownLink::KeyExchange &message) {
+        [](const CrownLinkProtocol::KeyExchange &message) {
             INFO("Received KeyExchange");
         },
-        [&id](const CrownLink::ClientProfile &message) {
+        [&id](const CrownLinkProtocol::ClientProfile &message) {
             INFO("Received ClientProfile");
             id = message.peer_id;
         },
-        [](const CrownLink::UpdateAvailable &message) {
+        [](const CrownLinkProtocol::UpdateAvailable &message) {
             INFO("Received UpdateAvailable");
         },
-        [&crow_serve, &adfile](const CrownLink::AdvertisementsRequest &message) {
+        [&crow_serve, &adfile](const CrownLinkProtocol::AdvertisementsRequest &message) {
             INFO("Received AdvertisementsRequest");
-            auto msg = CrownLink::StartAdvertising{{}, adfile};
+            auto msg = CrownLinkProtocol::StartAdvertising{{}, adfile};
             crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
         },
-        [](const CrownLink::AdvertisementsResponse &message) {
+        [](const CrownLinkProtocol::AdvertisementsResponse &message) {
             INFO("Received AdvertisementsResponse");
         },
-        [](const CrownLink::EchoRequest &message) {
+        [](const CrownLinkProtocol::EchoRequest &message) {
             INFO("Received EchoRequest");
         },
-        [](const CrownLink::EchoResponse &message) {
+        [](const CrownLinkProtocol::EchoResponse &message) {
             INFO("Received EchoResponse");
         },
         [](const auto &message) {}
     );
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(2s);
-    auto msg = CrownLink::ConnectionRequest{};
+    auto msg = CrownLinkProtocol::ConnectionRequest{};
     crow_serve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
     std::this_thread::sleep_for(5s);
 

@@ -1,17 +1,14 @@
 #include "JuiceAgent.h"
-
-#include "Signaling.h"
 #include "JuiceManager.h"
 #include "CrownLink.h"
 #include <regex>
 
-JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message)
+JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
 : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
-	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
 		.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD,
-		.stun_server_host = snp_config.stun_server.c_str(),
-		.stun_server_port = snp_config.stun_port,
+		.stun_server_host = ice_credentials.stun_host.c_str(),
+		.stun_server_port = ice_credentials.stun_port,
 
 		.cb_state_changed = on_state_changed,
 		.cb_candidate = on_candidate,
@@ -19,24 +16,23 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 		.cb_recv = on_recv,
 		.user_ptr = this,
 	};
-	if (!turn_servers.empty()) {
-		juice_turn_server servers[5]{};
-		for (unsigned int i = 0; i < turn_servers.size() && i < 5; i++) {
-			servers[i].host = turn_servers[i].host.c_str();
-			servers[i].username = turn_servers[i].username.c_str();
-			servers[i].password = turn_servers[i].password.c_str();
-			servers[i].port = turn_servers[i].port;
+
+	if (ice_credentials.turn_servers.size()) {
+		juice_turn_server servers[2]{};
+		auto count = std::min((int)ice_credentials.turn_servers.size(), 2);
+		for (int i = 0; i < count; i++) {
+			servers[i].host = ice_credentials.turn_servers[i].host.c_str();
+			servers[i].username = ice_credentials.turn_servers[i].username.c_str();
+			servers[i].password = ice_credentials.turn_servers[i].password.c_str();
+			servers[i].port = ice_credentials.turn_servers[i].port;
 		}
 		config.turn_servers = servers;
-		config.turn_servers_count = (turn_servers.size() < 5) ? turn_servers.size() : 5;
-
+		config.turn_servers_count = count;
 	}
+
 	m_agent = juice_create(&config);
 	mark_active();
 
-	if (!init_message.empty()) {
-		handle_signal_packet(SignalPacket{init_message});
-	}
 	try_initialize();
 }
 
@@ -57,7 +53,8 @@ void JuiceAgent::try_initialize() {
 		char sdp[JUICE_MAX_SDP_STRING_LEN]{};
 		juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
-		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
+		auto sdp_message = P2P::JuiceLocalDescription{{m_address}, sdp};
+		g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
 		spdlog::trace("Init - local SDP {}", sdp);
 		juice_gather_candidates(m_agent);
 	}
@@ -65,31 +62,9 @@ void JuiceAgent::try_initialize() {
 
 void JuiceAgent::send_signal_ping() {
 	if (std::chrono::steady_clock::now() - m_last_ping > 1s) {
-		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::SignalingPing, "");
+		auto ping = P2P::Ping{{m_address}};
+		g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
 		m_last_ping = std::chrono::steady_clock::now();
-	}
-}
-
-void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
-	mark_active();
-	mark_last_signal();
-
-	switch (packet.message_type) {
-        case SignalMessageType::SignalingPing:{
-            spdlog::trace("Received Ping");
-        } break;
-        case SignalMessageType::JuiceLocalDescription: {
-            spdlog::trace("Received remote description:\n{}", packet.data);
-            juice_set_remote_description(m_agent, packet.data.c_str());
-        } break;
-        case SignalMessageType::JuciceCandidate: {
-            spdlog::trace("Received remote candidate {}", packet.data);
-            juice_add_remote_candidate(m_agent, packet.data.c_str());
-        } break;
-        case SignalMessageType::JuiceDone: {
-            spdlog::trace("Remote gathering done");
-            juice_set_remote_gathering_done(m_agent);
-        } break;
 	}
 }
 
@@ -155,7 +130,8 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
 	if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
-		g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
+		auto candidate_message = P2P::JuiceCandidate{{parent.address()},sdp};
+		g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
 	} else {
 		spdlog::info("skipped sending radmin candidate: {}", sdp);
 	}
@@ -164,7 +140,8 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 	auto& parent = *(JuiceAgent*)user_ptr;
 	parent.mark_active();
-	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuiceDone);
+	auto done_message = P2P::JuiceDone{{parent.address()}};
+	g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {

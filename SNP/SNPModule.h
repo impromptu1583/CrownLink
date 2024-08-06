@@ -15,7 +15,7 @@ struct NetworkInfo {
 	CAPS  caps;
 };
 
-void pass_advertisement(const NetAddress& host, AdFile& ad);
+void pass_advertisement(AdFile& ad);
 void remove_advertisement(const NetAddress& host);
 void pass_packet(GamePacket& parket);
 void set_status_ad(const std::string& status);

@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-#include "signaling.h"
+#include "JuiceManager.h"
 
 inline snp::NetworkInfo g_network_info{
 	(char*)"CrownLink",
@@ -27,35 +27,37 @@ public:
 	void request_advertisements();
 	void send(const NetAddress& to, void* data, size_t size);
 	void start_advertising(AdFile ad_data);
+	void send_advertisement();
 	void stop_advertising();
+	void pass_advertisements(const std::vector<AdFile>& advertisements);
 
+	auto& advertising() { return m_is_advertising; };
 	auto& receive_queue() { return m_receive_queue; }
 	auto& juice_manager() { return m_juice_manager; }
-	auto& signaling_socket() { return m_signaling_socket; }
+	auto& crowserve() { return m_crowserve; }
+
+	void set_id(const NetAddress& id) {m_client_id = id; m_client_id_set = true;}
+	void set_token(const NetAddress& token) {m_reconnect_token = token;}
 
 	void set_mode(const CrownLinkMode& v) { m_cl_version = v; }
 	CrownLinkMode mode() const { return m_cl_version; }
 
 private:
-	void receive_signaling();
-	void handle_signal_packets(std::vector<SignalPacket>& packets);
-	void handle_winsock_error(s32 error_code);
-	void update_known_advertisers(const std::string& message);
+	void init_listener();
 
 private:
 	//ThQueue<GamePacket> m_receive_queue;
 	moodycamel::ConcurrentQueue<GamePacket> m_receive_queue;
-	JuiceManager m_juice_manager;
-	SignalingSocket m_signaling_socket;
+	CrowServe::Socket m_crowserve;
 
-	std::jthread m_signaling_thread;
-	std::vector<NetAddress> m_known_advertisers;
+	JuiceManager m_juice_manager;
 	AdFile m_ad_data;
 
 	bool m_is_advertising = false;
 	bool m_is_running = true;
 	bool m_client_id_set = false;
 	NetAddress m_client_id;
+	NetAddress m_reconnect_token;
 
 	u32 m_ellipsis_counter = 3;
 	CrownLinkMode m_cl_version = CrownLinkMode::CLNK;

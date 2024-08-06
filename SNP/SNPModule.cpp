@@ -18,12 +18,12 @@ struct SNPContext {
 
 static SNPContext g_snp_context;
 
-void pass_advertisement(const NetAddress& host, AdFile& ad) {
+void pass_advertisement(AdFile& ad) {
     std::lock_guard lock{g_advertisement_mutex};
 
     AdFile* adFile = nullptr;
     for (auto& game : g_snp_context.game_list) {
-        if (!memcmp(&game.game_info.host, &host, sizeof(NetAddress))) {
+        if (game.game_info.host == ad.game_info.host) {
             adFile = &game;
             break;
         }
@@ -36,7 +36,7 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
         ad.game_info.game_index = adFile->game_info.game_index;
     }
 
-    memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile));
+    memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile)); // TODO - is this an ok approach?
 
     std::string prefix;
     if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
@@ -54,7 +54,7 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
         spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
     }
 
-    switch (g_crown_link->juice_manager().agent_state(host)) {
+    switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
         case JUICE_STATE_CONNECTING: {
             prefix += "[P2P Connecting]";
         } break;
@@ -66,7 +66,7 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
         } break;
     }
 
-    switch (g_crown_link->juice_manager().final_connection_type(host)) {
+    switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
         case JuiceConnectionType::Relay: {
             prefix += "[Relayed]";
         } break;
@@ -83,7 +83,6 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
     }
 
     adFile->game_info.host_last_time = GetTickCount();
-    adFile->game_info.host = *(NetAddress*)&host;
     adFile->game_info.pExtra = adFile->extra_bytes;
 }
 
@@ -316,7 +315,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             std::string debug_string{loan->data, loan->size};
             // spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
             spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
-            if (get_tick_count > loan->timestamp + 10) {
+            if (get_tick_count() > loan->timestamp + 10) {
                 continue;
             }
 

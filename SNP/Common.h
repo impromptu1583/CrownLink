@@ -5,6 +5,7 @@
 #define JSON_DIAGNOSTICS 1
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -12,7 +13,7 @@
 #include <juice.h>
 #include <base64.hpp>
 #include <concurrentqueue.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 using Json = nlohmann::json;
 
 inline const fs::path g_starcraft_dir = [] {
@@ -26,8 +27,23 @@ inline const fs::path g_starcraft_dir = [] {
 #include "spdlog/sinks/daily_file_sink.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/fmt/bin_to_hex.h"
+#include "spdlog/fmt/ostr.h"
+
+#include "../CrowServe/CrowServe.h"
 
 #include "../NetShared/StormTypes.h"
+
+#include "config.h"
+
+template <>
+struct fmt::formatter<NetAddress> : ostream_formatter {};
+
+template <>
+struct fmt::formatter<P2P::MessageType> : ostream_formatter {};
+
+template <>
+struct fmt::formatter<CrownLinkProtocol::MessageType> : ostream_formatter {};
+
 #include "SNPModule.h"
 
 inline std::string to_string(juice_state value) {

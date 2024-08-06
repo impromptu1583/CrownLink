@@ -1,5 +1,4 @@
 #include "JuiceManager.h"
-#include "Signaling.h"
 #include "JuiceAgent.h"
 
 JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
@@ -14,12 +13,12 @@ JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::loc
 	auto it = m_agents.find(address);
 	if (it != m_agents.end()) {
 		if (!it->second->is_active()) {
-			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers);
+			it->second = std::make_unique<JuiceAgent>(address, m_ice_credentials);
 		}
 		return *it->second;
 	}
 
-	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_turn_servers));
+	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_ice_credentials));
 	return *new_it->second;
 }
 
@@ -49,29 +48,9 @@ void JuiceManager::mark_last_signal(const NetAddress& address) {
 	agent.mark_last_signal();
 }
 
-void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
-	const auto& peer = packet.peer_address;
-	spdlog::trace("Received message for {}: {}", peer.b64(), packet.data);
-
+void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials) {
 	std::lock_guard lock{m_mutex};
-	if (packet.message_type == SignalMessageType::JuiceTurnCredentials) {
-		try {
-			auto json = Json::parse(packet.data);
-			const auto host = json["server"].get<std::string>();
-			const auto username = json["username"].get<std::string>();
-			const auto password = json["password"].get<std::string>();
-			const auto port = json["port"].get<uint16_t>();
-
-			m_turn_servers.emplace_back(TurnServer{ host,username,password,port });
-			spdlog::debug("TURN server info received: {}",packet.data);
-		} catch (std::exception& e) {
-			spdlog::dump_backtrace();
-			spdlog::error("error loading turn server {}",e.what());
-		}
-	} else {
-		auto& peer_agent = ensure_agent(peer, lock);
-		peer_agent.handle_signal_packet(packet);
-	}
+	m_ice_credentials = ice_credentials;
 }
 
 void JuiceManager::send_all(void* data, const size_t size) {

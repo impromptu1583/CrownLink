@@ -136,9 +136,11 @@ private:
 		try {
 			json.at(key).get_to(out_value);
 		} catch (const Json::out_of_range& ex) {
-			spdlog::warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			//spdlog::warn("Value for \"{}\" not found (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" not found (using default), exception: {}", key, ex.what());
 		} catch (const Json::type_error& ex) {
-			spdlog::warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			//spdlog::warn("Value for \"{}\" is of wrong type (using default: {}), exception: {}", key, as_string(out_value), ex.what());
+			spdlog::warn("Value for \"{}\" is of wrong type (using default), exception: {}", key, ex.what());
 		}
 	}
 

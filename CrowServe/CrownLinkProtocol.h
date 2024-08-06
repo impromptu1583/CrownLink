@@ -3,7 +3,7 @@
 #include "common.h"
 #include "../NetShared/StormTypes.h"
 
-namespace CrownLink {
+namespace CrownLinkProtocol {
 
 enum class MessageType {
     ConnectionRequest = 1,
@@ -17,6 +17,23 @@ enum class MessageType {
     EchoRequest,
     EchoResponse,
 };
+
+std::ostream& operator<<(std::ostream& out, const MessageType& message_type){
+    switch (message_type)
+    {
+        case MessageType::ConnectionRequest: return out << "ConnectionRequest";
+        case MessageType::KeyExchange: return out << "KeyExchange";
+        case MessageType::ClientProfile: return out << "ClientProfile";
+        case MessageType::UpdateAvailable: return out << "UpdateAvailable";
+        case MessageType::StartAdvertising: return out << "StartAdvertising";
+        case MessageType::StopAdvertising: return out << "StopAdvertising";
+        case MessageType::AdvertisementsRequest: return out << "AdvertisementsRequest";
+        case MessageType::AdvertisementsResponse: return out << "AdvertisementsResponse";
+        case MessageType::EchoRequest: return out << "EchoRequest";
+        case MessageType::EchoResponse: return out << "EchoResponse";
+    }
+    return out;
+}
 
 enum class Mode {
     Default,
@@ -45,7 +62,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(KeyExchange, public_key)
 
 struct TurnServer {
     std::string host;
-    std::string port;
+    u16 port;
     std::string username;
     std::string password;
 };
@@ -53,14 +70,13 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, host, port, username, password)
 
 struct IceCredentials {
     std::string stun_host; 
-    std::string stun_port;
-    TurnServer turn_servers[2];
+    u16 stun_port;
+    std::vector<TurnServer> turn_servers;
 };
 
 inline void to_json(Json& j, const IceCredentials& ice_credentials) {
     j = Json{{"stun_host", ice_credentials.stun_host},
             {"stun_port", ice_credentials.stun_port}
-            // TODO: handle TurnServers
     };
 }
 
@@ -68,10 +84,7 @@ inline void from_json(const Json& j, IceCredentials& ice_credentials) {
     j.at("stun_host").get_to(ice_credentials.stun_host);
     j.at("stun_port").get_to(ice_credentials.stun_port);
     if (j["turn_servers"].is_array()) {
-        auto servers = j.at("turn_servers");
-        for (u32 i = 0; i < 2 && i < servers.size(); i++) {
-            ice_credentials.turn_servers[i] = servers[i].template get<TurnServer>();
-        }
+        j["turn_servers"].get_to(ice_credentials.turn_servers);
     }
 }
 

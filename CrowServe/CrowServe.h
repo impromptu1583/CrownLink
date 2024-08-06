@@ -103,6 +103,7 @@ public:
     void try_init(std::stop_token &stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
+    SocketState state() { return m_state; }
 
     template <typename... Handlers>
     void listen(Handlers&&... handlers) { // todo: pass stop_token to jthread
@@ -141,7 +142,7 @@ public:
 
                     if (message_header.message_size > 0) {  
                         u8 buffer[4096];
-                        auto bytes_received = recv(m_socket, buffer, message_header.message_size,0);
+                        auto bytes_received = recv(m_socket, (char*)buffer, message_header.message_size,0);
                         if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                             log_socket_error("Message receive error: ", bytes_received, WSAGetLastError());
                             disconnect();
@@ -152,7 +153,7 @@ public:
 
                     switch (ProtocolType(main_header.protocol)){
                         case ProtocolType::ProtocolCrownLink: {
-                            m_crownlink_protocol.handle(CrownLink::MessageType(message_header.message_type), message, handler);
+                            m_crownlink_protocol.handle(CrownLinkProtocol::MessageType(message_header.message_type), message, handler);
                         } break;
                         case ProtocolType::ProtocolP2P: {
                             m_p2p_protocol.handle(P2P::MessageType(message_header.message_type), message, handler);
@@ -212,7 +213,7 @@ private:
     SOCKET m_socket = 0;
     SocketState m_state = SocketState::Disconnected;
     std::jthread m_thread;
-    CrownLink::Protocol m_crownlink_protocol;
+    CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::mutex m_mutex;
 };

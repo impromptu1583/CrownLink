@@ -18,13 +18,33 @@ enum class JuiceConnectionType {
 
 class JuiceAgent {
 public:
-	JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message = "");
+	JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials);
 	~JuiceAgent();
 
 	JuiceAgent(const JuiceAgent&) = delete;
 	JuiceAgent& operator=(const JuiceAgent&) = delete;
 
-	void handle_signal_packet(const SignalPacket& packet);
+	template <typename T>
+	void handle_crownlink_message(const T& message) {
+		mark_active();
+		mark_last_signal();
+
+		if constexpr (std::is_same_v<T, P2P::Ping>) {
+			spdlog::trace("Received Ping");
+		} else if constexpr (std::is_same_v<T, P2P::Pong>) {
+			spdlog::trace("Received Pong"); // TODO: Remove this type - unused
+		} else if constexpr (std::is_same_v<T, P2P::JuiceLocalDescription>) {
+			spdlog::trace("Received remote description:\n{}", message.sdp);
+			juice_set_remote_description(m_agent, message.sdp.c_str());
+		} else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
+			spdlog::trace("Received candidate:\n{}", message.candidate);
+			juice_add_remote_candidate(m_agent, message.candidate.c_str());
+		} else if constexpr (std::is_same_v<T, P2P::JuiceDone>) {
+			spdlog::trace("Remote gathering done");
+			juice_set_remote_gathering_done(m_agent);
+		}
+	};
+
 	void send_message(void* data, const size_t size);
 	void send_signal_ping();
 

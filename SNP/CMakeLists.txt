@@ -2,7 +2,6 @@
 
 set(MODULE_FILES
 	"include/base64.hpp"
-	"include/json.hpp"
 	
 	"SNPModule.cpp"
 	"SNPModule.h"
@@ -10,8 +9,6 @@ set(MODULE_FILES
 	"CrownLink.cpp"
 	"CrownLink.h"
 	"DLLMain.cpp"
-	"Signaling.h"
-	"Signaling.cpp"
 	"JuiceManager.h"
 	"JuiceManager.cpp"
 	"JuiceAgent.h"
@@ -26,6 +23,10 @@ add_library(SNP SHARED ${MODULE_FILES})
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
 
 set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 
@@ -61,6 +62,10 @@ target_link_libraries(SNP
 	PUBLIC ws2_32
 	PRIVATE juice-static
 )
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
