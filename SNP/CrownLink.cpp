@@ -1,8 +1,5 @@
 #include "CrownLink.h"
 
-#define BUFFER_SIZE 4096
-constexpr auto ADDRESS_SIZE = 16;
-
 CrownLink::CrownLink() {
 	spdlog::info("Initializing, version {}", CL_VERSION);
 	m_is_running = true;

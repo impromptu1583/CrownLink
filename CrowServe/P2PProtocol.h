@@ -13,17 +13,7 @@ enum class MessageType {
     JuiceDone,
 };
 
-std::ostream& operator<<(std::ostream& out, const MessageType& message_type){
-    switch (message_type)
-    {
-        case MessageType::Ping: return out << "Ping";
-        case MessageType::Pong: return out << "Pong";
-        case MessageType::JuiceLocalDescription: return out << "Juice Local Description";
-        case MessageType::JuiceCandidate: return out << "Juice Candidate";
-        case MessageType::JuiceDone: return out << "Juice Done";
-    }
-    return out;
-}
+std::ostream& operator<<(std::ostream& out, const MessageType& message_type);
 
 struct Header {
     NetAddress peer_id;    
