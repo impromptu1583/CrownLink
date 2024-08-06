@@ -1,16 +1,16 @@
 #include "SNPModule.h"
 
-#include "CrownLink.h"
 #include <list>
+
+#include "CrownLink.h"
 
 namespace snp {
 
 struct SNPContext {
-    client_info game_app_info;
-
+    client_info       game_app_info;
     std::list<AdFile> game_list;
-    s32 next_game_ad_id = 1;
 
+    s32    next_game_ad_id = 1;
     AdFile hosted_game;
     AdFile status_ad;
     bool   status_ad_used = false;
@@ -37,10 +37,13 @@ void pass_advertisement(AdFile& ad) {
     }
 
     *adFile = ad;
-    
+
     std::string prefix;
     if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
-        spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
+        spdlog::info(
+            "Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id,
+            adFile->game_info.version_id
+        );
         prefix += "[!Ver]";
     }
     try {
@@ -48,9 +51,9 @@ void pass_advertisement(AdFile& ad) {
             prefix += "[DBC]";
         }
         if (adFile->crownlink_mode != g_crown_link->mode()) {
-            adFile->game_info.version_id = 0; // should ensure we can't join the game
+            adFile->game_info.version_id = 0;  // should ensure we can't join the game
         }
-    } catch (const std::exception& e){
+    } catch (const std::exception& e) {
         spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
     }
 
@@ -77,8 +80,13 @@ void pass_advertisement(AdFile& ad) {
 
     if (!prefix.empty()) {
         prefix += adFile->game_info.game_name;
-        if (prefix.size() > 127) { prefix.resize(127); }
-        strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
+        if (prefix.size() > 127) {
+            prefix.resize(127);
+        }
+        strncpy_s(
+            adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(),
+            sizeof(adFile->game_info.game_name)
+        );
     }
 
     adFile->game_info.host_last_time = get_tick_count();
@@ -92,14 +100,17 @@ static void init_logging() {
     spdlog::init_thread_pool(8192, 1);
 
     const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
-    auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
+    auto       standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
     standard_sink->set_level(spdlog::level::debug);
 
     const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
-    auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024*1024*10, 3);
+    auto       trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024 * 1024 * 10, 3);
     trace_sink->set_level(spdlog::level::trace);
 
-    auto logger = std::make_shared<spdlog::async_logger>("Crownlink", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)}, spdlog::thread_pool(), spdlog::async_overflow_policy::block);
+    auto logger = std::make_shared<spdlog::async_logger>(
+        "Crownlink", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)},
+        spdlog::thread_pool(), spdlog::async_overflow_policy::block
+    );
     spdlog::register_logger(logger);
     logger->flush_on(spdlog::level::debug);
     spdlog::set_default_logger(logger);
@@ -132,16 +143,21 @@ static void init_logging() {
             spdlog::enable_backtrace(32);
         } break;
     }
-    spdlog::set_level(spdlog::level::trace); // For fraudarchy debug
+    spdlog::set_level(spdlog::level::trace);  // For fraudarchy debug
 }
 
-static BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event) {
+static BOOL __stdcall spi_initialize(
+    client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event
+) {
     g_snp_context.game_app_info = *client_info;
     g_receive_event = event;
     init_logging();
 
     set_status_ad("Crownlink Initializing");
-    spdlog::info("Crownlink Initializing, mode: {}, game version: {}",to_string(g_crown_link->mode()),g_snp_context.game_app_info.version_id);
+    spdlog::info(
+        "Crownlink Initializing, mode: {}, game version: {}", to_string(g_crown_link->mode()),
+        g_snp_context.game_app_info.version_id
+    );
 
     auto mode = g_crown_link->mode();
     try {
@@ -170,7 +186,9 @@ static BOOL __stdcall spi_destroy() {
 static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     std::lock_guard lock{g_advertisement_mutex};
 
-    std::erase_if(g_snp_context.game_list, [now = get_tick_count()](const auto& current_ad) { return now > current_ad.game_info.host_last_time + 2000; });
+    std::erase_if(g_snp_context.game_list, [now = get_tick_count()](const auto& current_ad) {
+        return now > current_ad.game_info.host_last_time + 2000;
+    });
 
     AdFile* last_ad = nullptr;
     for (auto& game : g_snp_context.game_list) {
@@ -193,10 +211,8 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     try {
         *out_game_list = nullptr;
         if (!g_snp_context.game_list.empty()) {
-            
             *out_game_list = &g_snp_context.game_list.begin()->game_info;
-        }
-        else if(g_snp_context.status_ad_used) {
+        } else if (g_snp_context.status_ad_used) {
             *out_game_list = &g_snp_context.status_ad.game_info;
         }
     } catch (const std::exception& e) {
@@ -219,7 +235,10 @@ static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
     return true;
 }
 
-static void create_ad(AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size) {
+static void create_ad(
+    AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
+    DWORD user_data_size
+) {
     memset(&ad_file, 0, sizeof(ad_file));
     ad_file.crownlink_mode = g_crown_link->mode();
     auto& game_info = ad_file.game_info;
@@ -238,10 +257,9 @@ static void create_ad(AdFile& ad_file, const char* game_name, const char* game_s
 
 void set_status_ad(const std::string& status) {
     std::lock_guard lock{g_advertisement_mutex};
-    auto statstr = std::string{",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r"};
-    char user_data[32] = {
-        12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+    auto            statstr = std::string{",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r"};
+    char            user_data[32] = {12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                     0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     create_ad(g_snp_context.status_ad, status.c_str(), statstr.c_str(), 0, &user_data, 32);
     g_snp_context.status_ad.game_info.pNext = nullptr;
     g_snp_context.status_ad_used = true;
@@ -251,7 +269,10 @@ void clear_status_ad() {
     g_snp_context.status_ad_used = false;
 }
 
-static BOOL __stdcall spi_start_advertising_ladder_game(char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type, int, int, void* user_data, DWORD user_data_size) {
+static BOOL __stdcall spi_start_advertising_ladder_game(
+    char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
+    int, int, void* user_data, DWORD user_data_size
+) {
     std::lock_guard lock{g_advertisement_mutex};
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
     g_crown_link->start_advertising(g_snp_context.hosted_game);
@@ -283,7 +304,7 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
     }
 
     if (address_count > 1) {
-        spdlog::info("multicast attempted"); // BW engine doesn't seem to ever use multicast
+        spdlog::info("multicast attempted");  // BW engine doesn't seem to ever use multicast
     }
 
     const NetAddress& peer = out_address_list[0][0];
@@ -304,7 +325,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             return false;
         }
         // TODO replace GamePacket.data with GamePacketHeader + data and improve logging
-        spdlog::trace("spiRecv fr {}: {:pa}", loan->sender, spdlog::to_hex(std::string{ loan->data,loan->size }));
+        spdlog::trace("spiRecv fr {}: {:pa}", loan->sender, spdlog::to_hex(std::string{loan->data, loan->size}));
         if (get_tick_count() > loan->timestamp + 10) {
             continue;
         }
@@ -320,7 +341,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
 
 static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
     if (loan) {
-        delete loan; // TODO does this really free all memory?
+        delete loan;  // TODO does this really free all memory?
     }
     return true;
 }
@@ -371,7 +392,9 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
     return false;
 }
 
-static BOOL __stdcall spi_select_game(int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int) {
+static BOOL __stdcall spi_select_game(
+    int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int
+) {
     // Looks like an old function and doesn't seem like it's used anymore
     // UDPN's function Creates an IPX game select dialog window
     return false;
@@ -386,34 +409,34 @@ static BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
 }
 
 snp::NetFunctions g_spi_functions = {
-      sizeof(snp::NetFunctions),
-/*n*/ &snp::spi_compare_net_addresses,
-      &snp::spi_destroy,
-      &snp::spi_free,
-/*e*/ &snp::spi_free_external_message,
-      &snp::spi_get_game_info,
-/*n*/ &snp::spi_get_performance_data,
-      &snp::spi_initialize,
-/*e*/ &snp::spi_initialize_device,
-/*e*/ &snp::spi_lock_device_list,
-      &snp::spi_lock_game_list,
-      &snp::spi_receive,
-/*n*/ &snp::spi_receive_external_message,
-/*e*/ &snp::spi_select_game,
-      &snp::spi_send,
-/*e*/ &snp::spi_send_external_message,
-/*n*/ &snp::spi_start_advertising_ladder_game,
-/*n*/ &snp::spi_stop_advertising_game,
-/*e*/ &snp::spi_unlock_device_list,
-      &snp::spi_unlock_game_list,
-      nullptr,
-      nullptr,
-      nullptr,
-      nullptr,
-      nullptr,
-      nullptr,
-      nullptr,
-/*n*/ &snp::spi_league_get_name
+    sizeof(snp::NetFunctions),
+    &snp::spi_compare_net_addresses,
+    &snp::spi_destroy,
+    &snp::spi_free,
+    &snp::spi_free_external_message,
+    &snp::spi_get_game_info,
+    &snp::spi_get_performance_data,
+    &snp::spi_initialize,
+    &snp::spi_initialize_device,
+    &snp::spi_lock_device_list,
+    &snp::spi_lock_game_list,
+    &snp::spi_receive,
+    &snp::spi_receive_external_message,
+    &snp::spi_select_game,
+    &snp::spi_send,
+    &snp::spi_send_external_message,
+    &snp::spi_start_advertising_ladder_game,
+    &snp::spi_stop_advertising_game,
+    &snp::spi_unlock_device_list,
+    &snp::spi_unlock_game_list,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    &snp::spi_league_get_name
 };
 
-}
+}  // namespace snp

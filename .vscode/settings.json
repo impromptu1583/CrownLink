@@ -87,5 +87,7 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp"
-    }
+    },
+    "clang-format.fallbackStyle": "Google",
+    "editor.formatOnSave": true
 }

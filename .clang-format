@@ -1,0 +1,12 @@
+BasedOnStyle: Google
+ColumnLimit: 120
+IndentWidth: 4
+AlignAfterOpenBracket: BlockIndent
+BreakBeforeBraces: Attach
+AccessModifierOffset: -4
+IndentAccessModifiers: false
+AllowShortEnumsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: Empty
+AlignConsecutiveDeclarations: Consecutive
