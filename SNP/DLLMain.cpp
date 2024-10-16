@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <winsock2.h>
 
 #include "SNPModule.h"

@@ -75,13 +75,36 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
         } break;
 	}
 
-	if (!prefix.empty()) {
-		//prefix += " ";
-		prefix += adFile->game_info.game_name;
-		if (prefix.size() > 127) { prefix.resize(127); }
-		strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
+	prefix += adFile->game_info.game_name;
+	if (prefix.size() > 23) { prefix.resize(23); }
+
+
+	// todo - make this optional via config file
+	// map name is in description after carriage return character
+	std::string description(adFile->game_info.game_description);
+	std::string map_name;
+	auto pos = description.find('\r');
+	if (pos != std::string::npos) {
+		map_name = description.substr(pos);
+		map_name.erase(map_name.find_last_not_of("\t\n\v\f\r ") + 1);
 	}
 
+	auto total_length = prefix.size() + map_name.size();
+	if (total_length > 22) {
+		auto to_trim = total_length - 22;
+		if (map_name.size() > 8) {
+			auto map_trim = (std::min)(to_trim, map_name.size() - 8);
+			map_name.resize(map_name.size() - map_trim);
+			to_trim -= map_trim;
+		}
+		if (to_trim > 0) {
+			prefix.resize(prefix.size() - to_trim);
+		}
+	}
+	prefix += "-" + map_name;
+
+	strncpy_s(adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(), sizeof(adFile->game_info.game_name));
+	
 	adFile->game_info.host_last_time = GetTickCount();
 	adFile->game_info.host = *(NetAddress*)&host;
 	adFile->game_info.pExtra = adFile->extra_bytes;
@@ -317,6 +340,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
 			// spdlog::trace("spiReceive: {} :: {}", loan->timestamp, debug_string);
 			spdlog::trace("spiRecv fr {}: {:pa}", loan->sender.b64(), spdlog::to_hex(std::string{ loan->data,loan->size }));
 			if (GetTickCount() > loan->timestamp + 10000) {
+				spdlog::trace("discarding old packet");
 				continue;
 			}
 
