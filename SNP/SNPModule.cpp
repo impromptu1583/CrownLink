@@ -183,6 +183,7 @@ static BOOL __stdcall spi_initialize(client_info* client_info, user_info* user_i
 }
 
 static BOOL __stdcall spi_destroy() {
+	spdlog::debug("spi_destroy called");
 	try {
 		g_crown_link.reset();
 	} catch (const std::exception& e) {
