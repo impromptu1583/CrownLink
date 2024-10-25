@@ -15,13 +15,13 @@ JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::loc
 	if (it != m_agents.end()) {
 		if (!it->second->is_active()) {
 			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers);
-			spdlog::debug("ensure_agent: agent inactive, new agent created for address {}", address);
+			spdlog::debug("ensure_agent: agent inactive, new agent created for address {}", address.b64());
 		}
 		return *it->second;
 	}
 
 	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_turn_servers));
-	spdlog::debug("ensure_agent: no agent existed for address {}, new agent created", address);
+	spdlog::debug("ensure_agent: no agent existed for address {}, new agent created", address.b64());
 	return *new_it->second;
 }
 

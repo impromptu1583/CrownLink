@@ -44,7 +44,7 @@ bool SignalingSocket::try_init() {
 
 	for (auto info = result; info; info = info->ai_next) {
 		if ((m_socket = socket(info->ai_family, info->ai_socktype, info->ai_protocol)) == -1) {
-			spdlog::debug("Client: Socket failed with error: {}", std::strerror(errno));
+			spdlog::error("Client: Socket failed with error: {}", std::strerror(errno));
 			continue;
 		}
 
@@ -95,7 +95,7 @@ void SignalingSocket::send_packet(const SignalPacket& packet) {
 	Json json = packet;
 	auto send_buffer = json.dump();
 	send_buffer += Delimiter;
-	spdlog::debug("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
+	spdlog::trace("Sending to server, buffer size: {}, contents: {}", send_buffer.size(), send_buffer);
 
 	int bytes = send(m_socket, send_buffer.c_str(), send_buffer.size(), 0);
 	if (bytes == -1) {

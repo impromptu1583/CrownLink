@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr const char* CL_VERSION = "0.3.94";
+constexpr const char* CL_VERSION = "0.3.95";
 
 #include <string>
 #include <concepts>
