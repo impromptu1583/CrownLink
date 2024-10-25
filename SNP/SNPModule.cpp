@@ -308,6 +308,7 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
 
 static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
 	if (!address_count) {
+		spdlog::error("spisend with no address listed");
 		return true;
 	}
 
