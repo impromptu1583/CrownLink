@@ -53,6 +53,9 @@ void JuiceAgent::mark_last_signal() {
 
 void JuiceAgent::try_initialize() {
 	send_signal_ping();
+	if (m_p2p_state == JUICE_STATE_COMPLETED || m_p2p_state == JUICE_STATE_CONNECTED) {
+		return;
+	}
 	if (m_p2p_state != JUICE_STATE_DISCONNECTED) {
 		spdlog::error("Juice agent init attempted but not in disconnected state. State was: {}", to_string(m_p2p_state));
 		return;
