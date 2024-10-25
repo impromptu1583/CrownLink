@@ -192,3 +192,7 @@ void CrownLink::stop_advertising() {
 	m_signaling_socket.stop_advertising();
 	spdlog::info("Stopped advertising lobby");
 }
+
+void CrownLink::clear_inactive() {
+	m_juice_manager.clear_inactive_agents();
+}

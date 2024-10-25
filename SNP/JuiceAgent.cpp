@@ -53,14 +53,20 @@ void JuiceAgent::mark_last_signal() {
 
 void JuiceAgent::try_initialize() {
 	send_signal_ping();
-	if (m_p2p_state == JUICE_STATE_DISCONNECTED && std::chrono::steady_clock::now() - m_last_signal < 10s) {
-		char sdp[JUICE_MAX_SDP_STRING_LEN]{};
-		juice_get_local_description(m_agent, sdp, sizeof(sdp));
-
-		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
-		spdlog::trace("Init - local SDP {}", sdp);
-		juice_gather_candidates(m_agent);
+	if (m_p2p_state != JUICE_STATE_DISCONNECTED) {
+		spdlog::error("Juice agent init attempted but not in disconnected state. State was: {}", to_string(m_p2p_state));
+		return;
 	}
+	if (std::chrono::steady_clock::now() - m_last_signal > 10s) {
+		spdlog::error("Juice agent init attempted but last signal was received over 10s ago from peer");
+		return;
+	}
+	char sdp[JUICE_MAX_SDP_STRING_LEN]{};
+	juice_get_local_description(m_agent, sdp, sizeof(sdp));
+
+	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
+	spdlog::trace("Init - local SDP {}", sdp);
+	juice_gather_candidates(m_agent);
 }
 
 void JuiceAgent::send_signal_ping() {
@@ -108,9 +114,15 @@ void JuiceAgent::send_message(void* data, size_t size) {
             spdlog::dump_backtrace();
             spdlog::error("Trying to send message but P2P connection failed");
         } break;
+		case JUICE_STATE_CONNECTING: {
+			spdlog::error("Trying to send message but P2P connecting state");
+		} break;
+		case JUICE_STATE_GATHERING: {
+			spdlog::error("Trying to send message but P2P gathering state");
+		} break;
         default: {
             spdlog::dump_backtrace();
-            spdlog::error("Trying to send message but P2P connection is in unexpected state");
+            spdlog::error("Trying to send message but P2P connection is in unexpected state:");
         } break;
 	}
 }
@@ -138,7 +150,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 			parent.set_connection_type(JuiceConnectionType::Relay);
 			spdlog::warn("Remote connection is relayed, performance may be affected");
 		}
-		if (std::regex_match(local, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
+		if (std::regex_match(local, std::regex(".*26\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*"))) {
 			parent.set_connection_type(JuiceConnectionType::Radmin);
 			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
 		}
@@ -147,6 +159,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();
 		spdlog::error("Could not connect, gave up");
+		g_crown_link->clear_inactive();
 	} break;
 	}
 }

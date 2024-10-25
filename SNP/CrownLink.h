@@ -28,6 +28,7 @@ public:
 	void send(const NetAddress& to, void* data, size_t size);
 	void start_advertising(AdFile ad_data);
 	void stop_advertising();
+	void clear_inactive();
 
 	auto& receive_queue() { return m_receive_queue; }
 	auto& juice_manager() { return m_juice_manager; }
