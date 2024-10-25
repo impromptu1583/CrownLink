@@ -162,7 +162,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();
 		spdlog::error("Could not connect, gave up");
-		g_crown_link->clear_inactive();
+		//g_crown_link->clear_inactive();
 	} break;
 	}
 }
