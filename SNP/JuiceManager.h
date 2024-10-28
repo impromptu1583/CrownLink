@@ -9,14 +9,13 @@ public:
 	JuiceManager() = default;
 
 	JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&); 
-	JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
+	JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&, const std::string& init_message = "");
 
 	void clear_inactive_agents();
 	void handle_signal_packet(const SignalPacket& packet);
 	void send_p2p(const NetAddress& address, void* data, size_t size);
 	void send_all(void* data, size_t size);
 	void send_signal_ping(const NetAddress& address);
-	void mark_last_signal(const NetAddress& address);
 
 	juice_state agent_state(const NetAddress& address);
 	JuiceConnectionType final_connection_type(const NetAddress& address);

@@ -10,18 +10,20 @@ JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::
 	return nullptr;
 }
 
-JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
+JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&, const std::string& init_message) {
 	auto it = m_agents.find(address);
 	if (it != m_agents.end()) {
 		if (!it->second->is_active()) {
-			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers);
+			it->second = std::make_unique<JuiceAgent>(address, m_turn_servers, init_message);
 			spdlog::debug("ensure_agent: agent inactive, new agent created for address {}", address.b64());
+		} else if (!init_message.empty()) {
+			it->second->handle_signal_packet(SignalPacket{init_message});
 		}
 		return *it->second;
 	}
 
-	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_turn_servers));
 	spdlog::debug("ensure_agent: no agent existed for address {}, new agent created", address.b64());
+	const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_turn_servers, init_message));
 	return *new_it->second;
 }
 
@@ -45,12 +47,6 @@ void JuiceManager::send_signal_ping(const NetAddress& address) {
 	agent.send_signal_ping();
 }
 
-void JuiceManager::mark_last_signal(const NetAddress& address) {
-	std::lock_guard lock{ m_mutex };
-	auto& agent = ensure_agent(address, lock);
-	agent.mark_last_signal();
-}
-
 void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 	const auto& peer = packet.peer_address;
 	spdlog::trace("Received message for {}: {}", peer.b64(), packet.data);
@@ -72,6 +68,16 @@ void JuiceManager::handle_signal_packet(const SignalPacket& packet) {
 		}
 	} else {
 		auto& peer_agent = ensure_agent(peer, lock);
+		auto peer_state = peer_agent.state();
+		if (packet.message_type == SignalMessageType::JuiceLocalDescription &&
+				(peer_state == JUICE_STATE_FAILED ||
+					peer_state == JUICE_STATE_CONNECTED ||
+					peer_state == JUICE_STATE_COMPLETED)) {
+			auto num_erased = m_agents.erase(peer);
+			spdlog::info("New connection requested for {} but existing connection already existed in state {}. Erased {}.",
+				peer.b64(), to_string(peer_state), num_erased);
+			ensure_agent(peer, lock);
+		}
 		peer_agent.handle_signal_packet(packet);
 	}
 }

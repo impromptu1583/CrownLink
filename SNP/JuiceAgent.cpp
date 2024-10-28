@@ -37,7 +37,8 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 	if (!init_message.empty()) {
 		handle_signal_packet(SignalPacket{init_message});
 	}
-	try_initialize();
+	send_signal_ping();
+	//try_initialize();
 }
 
 JuiceAgent::~JuiceAgent() {
@@ -45,58 +46,63 @@ JuiceAgent::~JuiceAgent() {
     juice_destroy(m_agent);
 }
 
-void JuiceAgent::mark_last_signal() {
-	mark_active();
-	m_last_signal = std::chrono::steady_clock::now();
-	try_initialize();
-}
-
 void JuiceAgent::try_initialize() {
-	send_signal_ping();
-	if (m_p2p_state == JUICE_STATE_COMPLETED || m_p2p_state == JUICE_STATE_CONNECTED) {
-		return;
-	}
-	if (m_p2p_state != JUICE_STATE_DISCONNECTED) {
-		spdlog::error("Juice agent init attempted but not in disconnected state. State was: {}", to_string(m_p2p_state));
-		return;
-	}
-	if (std::chrono::steady_clock::now() - m_last_signal > 10s) {
-		spdlog::error("Juice agent init attempted but last signal was received over 10s ago from peer");
-		return;
-	}
-	char sdp[JUICE_MAX_SDP_STRING_LEN]{};
-	juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
-	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
-	spdlog::trace("Init - local SDP {}", sdp);
-	juice_gather_candidates(m_agent);
+	switch (m_p2p_state) {
+		case JUICE_STATE_COMPLETED:
+		case JUICE_STATE_CONNECTED: {
+		} break;
+
+		case JUICE_STATE_GATHERING:
+		case JUICE_STATE_CONNECTING: {
+			spdlog::debug("P2P agent init. State: {}", to_string(m_p2p_state));
+		} break;
+
+		case JUICE_STATE_FAILED: {
+			spdlog::error("P2P agent init attempted but agent in failed state");
+		} break;
+
+		case JUICE_STATE_DISCONNECTED: {
+			//if (std::chrono::steady_clock::now() - m_last_signal > 10s) {
+			//	spdlog::debug("P2P agent init waiting for signal ping to confirm connectivity with peer");
+			//	return;
+			//}
+			char sdp[JUICE_MAX_SDP_STRING_LEN]{};
+			juice_get_local_description(m_agent, sdp, sizeof(sdp));
+
+			g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::JuiceLocalDescription, sdp);
+			spdlog::trace("P2P agent init - local SDP {}", sdp);
+			juice_gather_candidates(m_agent);
+		}
+	}
 }
 
 void JuiceAgent::send_signal_ping() {
-	if (std::chrono::steady_clock::now() - m_last_ping > 1s) {
-		g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::SignalingPing, "");
-		m_last_ping = std::chrono::steady_clock::now();
-	}
+	spdlog::info("sending signal ping to {}", m_address.b64());
+	//if (std::chrono::steady_clock::now() - m_last_ping > 1s) {
+	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::SignalingPing, "");
+		//m_last_ping = std::chrono::steady_clock::now();
+	//}
 }
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
 	mark_active();
-	mark_last_signal();
 
 	switch (packet.message_type) {
         case SignalMessageType::SignalingPing:{
             spdlog::trace("Received Ping");
+			try_initialize();
         } break;
         case SignalMessageType::JuiceLocalDescription: {
-            spdlog::trace("Received remote description:\n{}", packet.data);
+            spdlog::debug("Received remote description:\n{}", packet.data);
             juice_set_remote_description(m_agent, packet.data.c_str());
         } break;
         case SignalMessageType::JuciceCandidate: {
-            spdlog::trace("Received remote candidate {}", packet.data);
+            spdlog::debug("Received remote candidate {}", packet.data);
             juice_add_remote_candidate(m_agent, packet.data.c_str());
         } break;
         case SignalMessageType::JuiceDone: {
-            spdlog::trace("Remote gathering done");
+            spdlog::info("Remote gathering done");
             juice_set_remote_gathering_done(m_agent);
         } break;
 	}
@@ -107,14 +113,14 @@ void JuiceAgent::send_message(void* data, size_t size) {
 
 	switch (m_p2p_state) {
         case JUICE_STATE_DISCONNECTED:{
-            try_initialize();
+            //try_initialize();
+			send_signal_ping();
         } break;		
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
             juice_send(m_agent, (const char*)data, size);
         } break;
         case JUICE_STATE_FAILED: {
-            spdlog::dump_backtrace();
             spdlog::error("Trying to send message but P2P connection failed");
         } break;
 		case JUICE_STATE_CONNECTING: {
@@ -162,7 +168,6 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 	case JUICE_STATE_FAILED: {
 		spdlog::dump_backtrace();
 		spdlog::error("Could not connect, gave up");
-		//g_crown_link->clear_inactive();
 	} break;
 	}
 }

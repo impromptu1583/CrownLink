@@ -34,7 +34,6 @@ public:
 	bool is_active() const { return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min; }
 	void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };
 	JuiceConnectionType connection_type() const { return m_connection_type; };
-	void mark_last_signal();
 
 private:
 	void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
@@ -49,9 +48,7 @@ private:
 	bool m_is_relayed = false;
 	bool m_is_radmin = false;
 	JuiceConnectionType m_connection_type = JuiceConnectionType::Standard;
-	std::chrono::steady_clock::time_point m_last_active;
-	std::chrono::steady_clock::time_point m_last_signal;
-	std::chrono::steady_clock::time_point m_last_ping = std::chrono::steady_clock::now() - 1s;
+	std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 	juice_state m_p2p_state = JUICE_STATE_DISCONNECTED;
 	NetAddress m_address;
 	juice_agent_t* m_agent;

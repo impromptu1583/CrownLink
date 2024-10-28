@@ -102,11 +102,8 @@ void CrownLink::handle_signal_packets(std::vector<SignalPacket>& packets) {
 			memcpy_s(&ad, sizeof(ad), decoded_data.c_str(), sizeof(ad));
 			snp::pass_advertisement(packet.peer_address, ad);
 
-			if (ad.game_info.game_state != 12) { // 12 = game in progress
-				m_juice_manager.mark_last_signal(packet.peer_address);
-			} else {
-				spdlog::debug("skipped updating signal because game is in progress");
-			}
+			//if (ad.game_info.game_state != 12) { // 12 = game in progress
+			//}
 
 			NetAddress& netaddress = (NetAddress&)ad.game_info.host;
 			spdlog::debug("Game Info Received:\n"
