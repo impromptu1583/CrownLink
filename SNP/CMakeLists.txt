@@ -58,7 +58,7 @@ set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-	GIT_TAG v1.4.1
+	GIT_TAG v1.5.7
 )
 FetchContent_MakeAvailable(Juice)
 
