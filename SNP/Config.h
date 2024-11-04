@@ -12,16 +12,8 @@ enum class LogLevel {
 };
 
 struct SnpConfig {
-    std::string server = "crownlink.platypus.coffee";
-    u16         port = 9988;
-
-    std::string stun_server = "stun.l.google.com";
-    u16         stun_port = 19302;
-
-    std::string turn_server = "global.relay.metered.ca";
-    u16         turn_port = 80;
-    std::string turn_username = "";
-    std::string turn_password = "";
+    std::string server = "127.0.0.1";
+    std::string port = "33377";
 
     LogLevel log_level = LogLevel::Debug;
 
@@ -55,18 +47,6 @@ public:
         SnpConfig config{};
         load_field(json, "server", config.server);
         load_field(json, "port", config.port);
-
-        if (auto stun = section(json, "stun")) {
-            load_field(*stun, "server", config.stun_server);
-            load_field(*stun, "port", config.stun_port);
-        }
-
-        if (auto turn = section(json, "turn")) {
-            load_field(*turn, "server", config.turn_server);
-            load_field(*turn, "port", config.turn_port);
-            load_field(*turn, "username", config.turn_username);
-            load_field(*turn, "password", config.turn_password);
-        }
 
         load_field(json, "log-level", config.log_level);
         switch (config.log_level) {
@@ -105,18 +85,6 @@ public:
         const auto json = Json{
             {"server", config.server},
             {"port", config.port},
-            {"stun",
-             {
-                 {"server", config.stun_server},
-                 {"port", config.stun_port},
-             }},
-            {"turn",
-             {
-                 {"server", config.turn_server},
-                 {"port", config.turn_port},
-                 {"username", config.turn_username},
-                 {"password", config.turn_password},
-             }},
             {"log-level", config.log_level},
         };
 

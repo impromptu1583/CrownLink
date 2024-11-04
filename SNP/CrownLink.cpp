@@ -38,7 +38,10 @@ bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
 }
 
 void CrownLink::init_listener() {
+    const auto& snp_config = SnpConfig::instance();
     m_crowserve.listen(
+        snp_config.server,
+        snp_config.port,
         [&](const CrownLinkProtocol::ClientProfile& message) {
             spdlog::info("received client ID from server: {}", message.peer_id);
             set_id(message.peer_id);

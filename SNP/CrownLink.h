@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include "JuiceManager.h"
+#include "Config.h"
 
 inline snp::NetworkInfo g_network_info{
     (char*)"CrownLink",

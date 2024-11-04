@@ -100,13 +100,15 @@ public:
         deinit_sockets();
     };
 
-    void try_init(std::stop_token &stop_token);
+    void try_init(std::stop_token& stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     SocketState state() { return m_state; }
 
     template <typename... Handlers>
-    void listen(Handlers&&... handlers) { // todo: pass stop_token to jthread
+    void listen(const std::string &host, const std::string& port, Handlers&&... handlers) {
+        m_host = host;
+        m_port = port;
         m_thread = std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
@@ -211,6 +213,8 @@ private:
     
 private:
     SOCKET m_socket = 0;
+    std::string m_host = "127.0.0.1";
+    std::string m_port = "33377";
     SocketState m_state = SocketState::Disconnected;
     std::jthread m_thread;
     CrownLinkProtocol::Protocol m_crownlink_protocol;

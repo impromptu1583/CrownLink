@@ -35,7 +35,7 @@ void Socket::try_init(std::stop_token &stop_token) {
 
     while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
         std::cout << "attempting connection\n";
-        if (const auto error = getaddrinfo("127.0.0.1","33377", &hints, &address_info)) {
+        if (const auto error = getaddrinfo(m_host.c_str(), m_port.c_str(), &hints, &address_info)) {
             // TODO check error and log
             std::this_thread::sleep_for(1s);
             continue;

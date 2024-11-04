@@ -20,7 +20,7 @@ static SNPContext g_snp_context;
 
 void pass_advertisement(AdFile& ad) {
     if (ad.game_info.game_state == 12) {
-        spdlog::debug("received in-progress lobby from {}, ignoring",ad.game_info.host);
+        spdlog::debug("received in-progress lobby from {}, ignoring", ad.game_info.host);
         return;
     }
 
