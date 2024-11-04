@@ -18,7 +18,9 @@ enum class JuiceConnectionType {
 
 class JuiceAgent {
 public:
-    JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials);
+    JuiceAgent(
+        const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials
+    );
     ~JuiceAgent();
 
     JuiceAgent(const JuiceAgent&) = delete;
@@ -27,20 +29,30 @@ public:
     template <typename T>
     void handle_crownlink_message(const T& message) {
         mark_active();
-        mark_last_signal();
 
         if constexpr (std::is_same_v<T, P2P::Ping>) {
-            spdlog::trace("Received Ping");
+            spdlog::trace("[{}] Received Ping", m_address);
+            try_initialize();
         } else if constexpr (std::is_same_v<T, P2P::Pong>) {
-            spdlog::trace("Received Pong");  // TODO: Remove this type - unused
+            spdlog::trace("[{}] Received Pong", m_address);  // TODO: Remove this type - unused
         } else if constexpr (std::is_same_v<T, P2P::JuiceLocalDescription>) {
-            spdlog::trace("Received remote description:\n{}", message.sdp);
+            spdlog::debug("[{}] Received remote description:\n{}", m_address, message.sdp);
+
+            if (m_p2p_state == JUICE_STATE_FAILED ||
+                m_p2p_state == JUICE_STATE_CONNECTED ||
+                m_p2p_state == JUICE_STATE_COMPLETED) {
+                // peer is requesting reconnect, need to reset agent
+                spdlog::debug("[{}] Agent was in {} state, reset agent.",m_address, to_string(m_p2p_state));
+                reset_agent();
+            }
+
             juice_set_remote_description(m_agent, message.sdp.c_str());
+            try_initialize();
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
-            spdlog::trace("Received candidate:\n{}", message.candidate);
+            spdlog::trace("[{}] Received candidate:\n{}", m_address, message.candidate);
             juice_add_remote_candidate(m_agent, message.candidate.c_str());
         } else if constexpr (std::is_same_v<T, P2P::JuiceDone>) {
-            spdlog::trace("Remote gathering done");
+            spdlog::trace("[{}] Remote gathering done", m_address);
             juice_set_remote_gathering_done(m_agent);
         }
     };
@@ -54,15 +66,15 @@ public:
     JuiceConnectionType connection_type() const { return m_connection_type; };
 
     bool is_active() const {
-        return state() != JUICE_STATE_FAILED && std::chrono::steady_clock::now() - m_last_active < 5min;
+        return std::chrono::steady_clock::now() - m_last_active < 5min;
     }
 
     void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };
-    void mark_last_signal();
 
 private:
     void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
     void try_initialize();
+    void reset_agent();
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
@@ -75,9 +87,8 @@ private:
     JuiceConnectionType m_connection_type = JuiceConnectionType::Standard;
     juice_state         m_p2p_state = JUICE_STATE_DISCONNECTED;
     NetAddress          m_address;
+    juice_config_t      m_config;
     juice_agent_t*      m_agent;
 
-    std::chrono::steady_clock::time_point m_last_active;
-    std::chrono::steady_clock::time_point m_last_signal;
-    std::chrono::steady_clock::time_point m_last_ping = std::chrono::steady_clock::now() - 1s;
+    std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

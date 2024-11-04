@@ -19,6 +19,11 @@ struct SNPContext {
 static SNPContext g_snp_context;
 
 void pass_advertisement(AdFile& ad) {
+    if (ad.game_info.game_state == 12) {
+        spdlog::debug("received in-progress lobby from {}, ignoring",ad.game_info.host);
+        return;
+    }
+
     std::lock_guard lock{g_advertisement_mutex};
 
     AdFile* adFile = nullptr;
@@ -38,6 +43,8 @@ void pass_advertisement(AdFile& ad) {
 
     *adFile = ad;
 
+    bool joinable = true;
+
     std::string prefix;
     if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
         spdlog::info(
@@ -45,6 +52,7 @@ void pass_advertisement(AdFile& ad) {
             adFile->game_info.version_id
         );
         prefix += "[!Ver]";
+        joinable = false;
     }
     try {
         if (adFile->crownlink_mode == CrownLinkMode::DBCL) {
@@ -52,30 +60,34 @@ void pass_advertisement(AdFile& ad) {
         }
         if (adFile->crownlink_mode != g_crown_link->mode()) {
             adFile->game_info.version_id = 0;  // should ensure we can't join the game
+            joinable = false;
         }
     } catch (const std::exception& e) {
         spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
+        joinable = false;
     }
 
-    switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
-        case JUICE_STATE_CONNECTING: {
-            prefix += "[P2P Connecting]";
-        } break;
-        case JUICE_STATE_FAILED: {
-            prefix += "[P2P Failed]";
-        } break;
-        case JUICE_STATE_DISCONNECTED: {
-            prefix += "[P2P Not Connected]";
-        } break;
-    }
+    if (joinable) {
+        switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
+            case JUICE_STATE_CONNECTING: {
+                prefix += "[P2P Connecting]";
+            } break;
+            case JUICE_STATE_FAILED: {
+                prefix += "[P2P Failed]";
+            } break;
+            case JUICE_STATE_DISCONNECTED: {
+                prefix += "[P2P Not Connected]";
+            } break;
+        }
 
-    switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
-        case JuiceConnectionType::Relay: {
-            prefix += "[Relayed]";
-        } break;
-        case JuiceConnectionType::Radmin: {
-            prefix += "[Radmin]";
-        } break;
+        switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
+            case JuiceConnectionType::Relay: {
+                prefix += "[Relayed]";
+            } break;
+            case JuiceConnectionType::Radmin: {
+                prefix += "[Radmin]";
+            } break;
+        }    
     }
 
     if (!prefix.empty()) {

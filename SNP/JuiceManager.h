@@ -15,7 +15,6 @@ public:
     bool send_p2p(const NetAddress& address, void* data, size_t size);
     void send_all(void* data, size_t size);
     void send_signal_ping(const NetAddress& address);
-    void mark_last_signal(const NetAddress& address);
     void set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials);
 
     template <typename T>
