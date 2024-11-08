@@ -3,6 +3,7 @@
 CrownLink::CrownLink() {
     spdlog::info("Initializing, version {}", CL_VERSION);
     m_is_running = true;
+    init_listener();
 }
 
 CrownLink::~CrownLink() {
@@ -39,6 +40,9 @@ bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
 
 void CrownLink::init_listener() {
     const auto& snp_config = SnpConfig::instance();
+    m_crowserve.external_logger = [](const std::string message) {
+        spdlog::info("Crowserve: {}", message);
+    };
     m_crowserve.listen(
         snp_config.server,
         snp_config.port,
@@ -47,17 +51,20 @@ void CrownLink::init_listener() {
             set_id(message.peer_id);
             set_token(message.token);
             juice_manager().set_ice_credentials(message.ice_credentials);
+            // TODO clean this up
+            crowserve().set_profile(message.peer_id, message.token);
         },
         [&](const CrownLinkProtocol::UpdateAvailable& message) {
             // TODO display status string
         },
         [&](const CrownLinkProtocol::AdvertisementsRequest& message) {
+            spdlog::trace("Received Ad request from server");
             if (advertising()) {
                 send_advertisement();
             }
         },
-        [&](const CrownLinkProtocol::AdvertisementsResponse& message) {
-            pass_advertisements(message.ad_files);
+        [&](CrownLinkProtocol::AdvertisementsResponse& message) {
+            snp::update_lobbies(message.ad_files);
         },
         [&](const CrownLinkProtocol::EchoRequest& message) {
             auto reply = CrownLinkProtocol::EchoResponse{{}, message.message};
@@ -105,10 +112,4 @@ void CrownLink::stop_advertising() {
     auto message = CrownLinkProtocol::StopAdvertising{};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
     spdlog::info("Stopped advertising lobby");
-}
-
-void CrownLink::pass_advertisements(const std::vector<AdFile>& advertisements) {
-    for (auto ad : advertisements) {
-        snp::pass_advertisement(ad);
-    }
 }

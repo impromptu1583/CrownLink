@@ -9,6 +9,8 @@ namespace snp {
 struct SNPContext {
     client_info       game_app_info;
     std::list<AdFile> game_list;
+    
+    std::vector<AdFile> lobbies;
 
     s32    next_game_ad_id = 1;
     AdFile hosted_game;
@@ -17,95 +19,6 @@ struct SNPContext {
 };
 
 static SNPContext g_snp_context;
-
-void pass_advertisement(AdFile& ad) {
-    if (ad.game_info.game_state == 12) {
-        spdlog::debug("received in-progress lobby from {}, ignoring", ad.game_info.host);
-        return;
-    }
-
-    std::lock_guard lock{g_advertisement_mutex};
-
-    AdFile* adFile = nullptr;
-    for (auto& game : g_snp_context.game_list) {
-        if (game.game_info.host == ad.game_info.host) {
-            adFile = &game;
-            break;
-        }
-    }
-
-    if (!adFile) {
-        adFile = &g_snp_context.game_list.emplace_back();
-        ad.game_info.game_index = ++g_snp_context.next_game_ad_id;
-    } else {
-        ad.game_info.game_index = adFile->game_info.game_index;
-    }
-
-    *adFile = ad;
-
-    bool joinable = true;
-
-    std::string prefix;
-    if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
-        spdlog::info(
-            "Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id,
-            adFile->game_info.version_id
-        );
-        prefix += "[!Ver]";
-        joinable = false;
-    }
-    try {
-        if (adFile->crownlink_mode == CrownLinkMode::DBCL) {
-            prefix += "[DBC]";
-        }
-        if (adFile->crownlink_mode != g_crown_link->mode()) {
-            adFile->game_info.version_id = 0;  // should ensure we can't join the game
-            joinable = false;
-        }
-    } catch (const std::exception& e) {
-        spdlog::error("error comparing crownlink versions, peer may be on an old version. Exception: {}", e.what());
-        joinable = false;
-    }
-
-    if (joinable) {
-        switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
-            case JUICE_STATE_CONNECTING: {
-                prefix += "[P2P Connecting]";
-            } break;
-            case JUICE_STATE_FAILED: {
-                prefix += "[P2P Failed]";
-            } break;
-            case JUICE_STATE_DISCONNECTED: {
-                prefix += "[P2P Not Connected]";
-            } break;
-        }
-
-        switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
-            case JuiceConnectionType::Relay: {
-                prefix += "[Relayed]";
-            } break;
-            case JuiceConnectionType::Radmin: {
-                prefix += "[Radmin]";
-            } break;
-        }    
-    }
-
-    if (!prefix.empty()) {
-        prefix += adFile->game_info.game_name;
-        if (prefix.size() > 127) {
-            prefix.resize(127);
-        }
-        strncpy_s(
-            adFile->game_info.game_name, sizeof(adFile->game_info.game_name), prefix.c_str(),
-            sizeof(adFile->game_info.game_name)
-        );
-    }
-
-    adFile->game_info.host_last_time = get_tick_count();
-    adFile->game_info.pExtra = adFile->extra_bytes;
-}
-
-void remove_advertisement(const NetAddress& host) {}
 
 static void init_logging() {
     const auto& snp_config = SnpConfig::instance();
@@ -195,57 +108,151 @@ static BOOL __stdcall spi_destroy() {
     return true;
 }
 
-static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+//===========================================================================
+//
+// Lobbies & Advertisements
+// 
+//===========================================================================
+
+void update_lobbies(std::vector<AdFile>& updated_list) {
     std::lock_guard lock{g_advertisement_mutex};
 
-    std::erase_if(g_snp_context.game_list, [now = get_tick_count()](const auto& current_ad) {
-        return now > current_ad.game_info.host_last_time + 2000;
+    for (AdFile& known_lobby : g_snp_context.lobbies) {
+        auto it = std::ranges::find_if(updated_list.begin(), updated_list.end(), [&known_lobby](AdFile incoming_ad) {
+            return known_lobby.is_same_owner(incoming_ad);
+        });
+        if (it != updated_list.end()) {
+            known_lobby = *it;
+            it->mark_for_removal = true;
+        } else {
+            // todo: lobby disappeared, unlink P2P unless we're already in game
+            known_lobby.mark_for_removal = true;
+        }
+    }
+    g_snp_context.lobbies.erase(
+        std::remove_if(
+            g_snp_context.lobbies.begin(), g_snp_context.lobbies.end(),
+            [](AdFile ad) {
+                return ad.mark_for_removal;
+            }
+        ),
+        g_snp_context.lobbies.end()
+    );
+
+    std::ranges::copy_if(updated_list, std::back_inserter(g_snp_context.lobbies), [](AdFile incoming_ad) {
+        return !incoming_ad.mark_for_removal;
     });
 
+    auto last_updated = get_tick_count();
+    for (AdFile& known_lobby : g_snp_context.lobbies) {
+        known_lobby.game_info.host_last_time = last_updated;
+    }
+}
+
+void update_lobby_name(AdFile& ad, std::string& prefixes) {
+    // todo - add map name to lobby name if config option is set
+    if (!prefixes.empty()) {
+        prefixes += ad.game_info.game_name;
+        if (prefixes.size() > 127) {
+            prefixes.resize(127);
+        }
+        strncpy_s(
+            ad.game_info.game_name, sizeof(ad.game_info.game_name), prefixes.c_str(), sizeof(ad.game_info.game_name)
+        );
+    }
+}
+
+static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+    g_advertisement_mutex.lock();
+
+    s32     game_index = 0;
     AdFile* last_ad = nullptr;
-    for (auto& game : g_snp_context.game_list) {
-        game.game_info.pExtra = game.extra_bytes;
-        if (last_ad) {
-            last_ad->game_info.pNext = &game.game_info;
+    if (g_snp_context.status_ad_used) {
+        game_index = 1;
+        last_ad = &g_snp_context.status_ad;
+    }
+
+    bool        joinable;
+    std::string prefixes;
+    for (AdFile& ad : g_snp_context.lobbies) {
+        ad.game_info.game_index = ++game_index;
+        ad.game_info.pExtra = ad.extra_bytes;
+
+        joinable = true;
+        prefixes = "";
+
+        if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
+            joinable = false;
+            prefixes += "[!Ver]";
         }
 
-        last_ad = &game;
+        if (g_crown_link->mode() != ad.crownlink_mode) {
+            ad.game_info.version_id = 0;
+            joinable = false;
+            if (ad.crownlink_mode == CrownLinkMode::CLNK) {
+                prefixes += "[not DBC]";
+            } else {
+                prefixes += "[DBC]";
+            }
+        }
+
+        // agent_state calls ensure_agent so one will be created if needed
+        // this kicks off the p2p connection process
+        joinable = false;
+        if (joinable) {
+            switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
+                case JUICE_STATE_CONNECTING: {
+                    prefixes += "[P2P Connecting]";
+                } break;
+                case JUICE_STATE_FAILED: {
+                    prefixes += "[P2P Failed]";
+                } break;
+                case JUICE_STATE_DISCONNECTED: {
+                    prefixes += "[P2P Not Connected]";
+                } break;
+                case JUICE_STATE_CONNECTED:
+                case JUICE_STATE_COMPLETED: {
+                    switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
+                        case JuiceConnectionType::Relay: {
+                            prefixes += "[Relayed]";
+                        } break;
+                        case JuiceConnectionType::Radmin: {
+                            prefixes += "[Radmin]";
+                        } break;
+                    }
+                }
+            }
+        }
+
+        update_lobby_name(ad, prefixes);
+
+        if (last_ad) {
+            last_ad->game_info.pNext = &ad.game_info;
+        }
+        last_ad = &ad;
     }
+
     if (last_ad) {
         last_ad->game_info.pNext = nullptr;
     }
 
-    if (last_ad && g_snp_context.status_ad_used) {
-        last_ad->game_info.pNext = &g_snp_context.status_ad.game_info;
-        g_snp_context.status_ad.game_info.game_index = last_ad->game_info.game_index + 1;
-    }
-
-    try {
-        *out_game_list = nullptr;
-        if (!g_snp_context.game_list.empty()) {
-            *out_game_list = &g_snp_context.game_list.begin()->game_info;
-        } else if (g_snp_context.status_ad_used) {
-            *out_game_list = &g_snp_context.status_ad.game_info;
-        }
-    } catch (const std::exception& e) {
-        spdlog::dump_backtrace();
-        spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
-        return false;
+    *out_game_list = nullptr;
+    if (g_snp_context.status_ad_used) {
+        *out_game_list = &g_snp_context.status_ad.game_info;
+    } else if (!g_snp_context.lobbies.empty()) {
+        *out_game_list = &g_snp_context.lobbies.begin()->game_info;
     }
     return true;
 }
 
 static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
-    try {
-        g_crown_link->request_advertisements();
-    } catch (const std::exception& e) {
-        spdlog::dump_backtrace();
-        spdlog::error("unhandled error {} in {}", e.what(), __FUNCSIG__);
-        return false;
-    }
+    g_advertisement_mutex.unlock();
 
+    g_crown_link->request_advertisements();
     return true;
 }
+
+void remove_advertisement(const NetAddress& host) {}
 
 static void create_ad(
     AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
@@ -273,6 +280,7 @@ void set_status_ad(const std::string& status) {
     char            user_data[32] = {12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                      0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     create_ad(g_snp_context.status_ad, status.c_str(), statstr.c_str(), 0, &user_data, 32);
+    g_snp_context.status_ad.game_info.game_index = 1;
     g_snp_context.status_ad.game_info.pNext = nullptr;
     g_snp_context.status_ad_used = true;
 }
@@ -300,15 +308,21 @@ static BOOL __stdcall spi_stop_advertising_game() {
 static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
     std::lock_guard lock{g_advertisement_mutex};
 
-    for (auto& game : g_snp_context.game_list) {
-        if (game.game_info.game_index == index) {
-            *out_game = game.game_info;
+    for (auto& ad : g_snp_context.lobbies) {
+        if (ad.game_info.game_index == index) {
+            *out_game = ad.game_info;
             return true;
         }
     }
 
     return false;
 }
+
+//===========================================================================
+//
+// P2P Messaging
+//
+//===========================================================================
 
 static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
     if (!address_count) {

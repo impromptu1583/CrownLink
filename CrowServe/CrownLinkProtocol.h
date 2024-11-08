@@ -29,7 +29,7 @@ struct Header {};
 
 struct ConnectionRequest : Header {
     std::string preshared_key;
-    bool peer_id_requested;
+    bool peer_id_requested = false;
     NetAddress requested_id;
     NetAddress request_token;
     u32 product_id;
@@ -47,21 +47,23 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(KeyExchange, public_key)
 
 struct TurnServer {
     std::string host;
-    u16 port;
+    std::string port;
     std::string username;
     std::string password;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, host, port, username, password)
 
 struct IceCredentials {
-    std::string stun_host; 
-    u16 stun_port;
-    std::vector<TurnServer> turn_servers;
+    std::string stun_host;
+    std::string stun_port;
+    u8          turn_servers_count;
+    TurnServer  turn_servers[2];
 };
 
 inline void to_json(Json& j, const IceCredentials& ice_credentials) {
-    j = Json{{"stun_host", ice_credentials.stun_host},
-            {"stun_port", ice_credentials.stun_port}
+    j = Json{
+        {"stun_host", ice_credentials.stun_host}, {"stun_port", ice_credentials.stun_port}
+        // TODO: handle TurnServers
     };
 }
 
@@ -69,9 +71,17 @@ inline void from_json(const Json& j, IceCredentials& ice_credentials) {
     j.at("stun_host").get_to(ice_credentials.stun_host);
     j.at("stun_port").get_to(ice_credentials.stun_port);
     if (j["turn_servers"].is_array()) {
-        j["turn_servers"].get_to(ice_credentials.turn_servers);
+        auto servers = j.at("turn_servers");
+        for (u32 i = 0; i < 2 && i < servers.size(); i++) {
+            ice_credentials.turn_servers[i] = servers[i].template get<TurnServer>();
+        }
+        ice_credentials.turn_servers_count = servers.size();
+        if (ice_credentials.turn_servers_count > 2) {
+            ice_credentials.turn_servers_count = 2;
+        }
     }
 }
+
 
 struct ClientProfile : Header {
     NetAddress peer_id;
@@ -155,6 +165,7 @@ public:
             case MessageType::ClientProfile: {
                 ClientProfile deserialized{};
                 deserialize_cbor_into(deserialized, message);
+                // here
                 handler(deserialized);
             } break;
             case MessageType::UpdateAvailable: {

@@ -10,24 +10,38 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
     
     m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
     m_config.stun_server_host = ice_credentials.stun_host.c_str();
-    m_config.stun_server_port = ice_credentials.stun_port;
+    const auto res = std::from_chars(ice_credentials.stun_port.data(), ice_credentials.stun_port.data() + ice_credentials.stun_port.size(),
+        m_config.stun_server_port);
+    if (res.ec == std::errc::invalid_argument or res.ec == std::errc::result_out_of_range) {
+        spdlog::error("Invalid stun port received: {}", ice_credentials.stun_port);
+    }
+
+
+    //m_config.stun_server_port = ice_credentials.stun_port;
     m_config.cb_state_changed = on_state_changed;
     m_config.cb_candidate = on_candidate;
     m_config.cb_gathering_done = on_gathering_done;
     m_config.cb_recv = on_recv;
 
-    if (ice_credentials.turn_servers.size()) {
-        auto count = std::min((int)ice_credentials.turn_servers.size(), 2);
+    if (ice_credentials.turn_servers_count) {
 
         juice_turn_server servers[2]{};
-        for (int i = 0; i < count; i++) {
+        for (int i = 0; i < ice_credentials.turn_servers_count; i++) {
             servers[i].host = ice_credentials.turn_servers[i].host.c_str();
             servers[i].username = ice_credentials.turn_servers[i].username.c_str();
             servers[i].password = ice_credentials.turn_servers[i].password.c_str();
-            servers[i].port = ice_credentials.turn_servers[i].port;
+            //servers[i].port = ice_credentials.turn_servers[i].port;
+            const auto res = std::from_chars(
+                ice_credentials.turn_servers[i].port.data(),
+                ice_credentials.turn_servers[i].port.data() + ice_credentials.turn_servers[i].port.size(),
+                servers[i].port
+            );
+            if (res.ec == std::errc::invalid_argument or res.ec == std::errc::result_out_of_range) {
+                spdlog::error("Invalid turn port received: {}", ice_credentials.turn_servers[i].port);
+            }
         }
         m_config.turn_servers = servers;
-        m_config.turn_servers_count = count;
+        m_config.turn_servers_count = ice_credentials.turn_servers_count;
     }
 
     m_agent = juice_create(&m_config);

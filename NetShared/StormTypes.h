@@ -210,6 +210,8 @@ struct AdFile {
     game game_info{};
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
+    bool          mark_for_removal = false;
+    bool          is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host;}
 };
 
 inline bool operator==(const AdFile& a1, const AdFile& a2) {

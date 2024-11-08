@@ -103,17 +103,53 @@ public:
     void try_init(std::stop_token& stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
+    void        set_profile(const NetAddress ID, const NetAddress Token);
     SocketState state() { return m_state; }
+
+    bool       profile_received = false;
+    bool       id_received = false;
+    NetAddress id;
+    NetAddress reconnect_token;
+
+    std::function<void(const std::string&)> external_logger;
+
+    template <typename... Ts>
+    void try_log(const std::string& message, Ts&&... args) const {
+        if (external_logger) {
+            external_logger(std::vformat(message, std::make_format_args(args...)));
+        } else {
+            std::cout << std::vformat(message, std::make_format_args(args...)) << std::endl;
+        }
+    }
 
     template <typename... Handlers>
     void listen(const std::string &host, const std::string& port, Handlers&&... handlers) {
         m_host = host;
         m_port = port;
-        m_thread = std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
+        m_thread = std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...
+                                       }](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
+                    try_log("init done");
                     std::cout << "init done\n";
+                }
+
+                if (!profile_received) {
+                    auto request = CrownLinkProtocol::ConnectionRequest{};
+                    request.preshared_key = "";
+                    request.peer_id_requested = false;
+                    request.requested_id = NetAddress{0};
+                    request.request_token = NetAddress{0};
+                    request.product_id = 0;
+                    request.version_id = 0;
+                    request.crownlink_version = 0;
+                    if (id_received) {
+                        request.peer_id_requested = true;
+                        request.requested_id = id;
+                        request.request_token = reconnect_token;
+                    }
+                    send_messages(ProtocolType::ProtocolCrownLink, request);
                 }
 
                 Header main_header{};
@@ -126,6 +162,7 @@ public:
                 }
 
                 if (strncmp((const char*)main_header.magic, "CSRV", 4) != 0) {
+                    try_log("Error: Main header mismatched magic byte received, resetting connection");
                     std::cout << "Main header magic byte mismatch, received: " << main_header.magic << " resetting connection";
                     disconnect();
                     continue;
@@ -171,6 +208,7 @@ bool send_messages(ProtocolType protocol, T& message) {
     std::lock_guard lock{m_mutex};
 
     if (m_state != SocketState::Ready) {
+        try_log("Error: attempting to send to server but connection isn't ready");
         std::cout << "socket not ready" << std::endl;
         return false;
     }

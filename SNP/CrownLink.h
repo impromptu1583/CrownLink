@@ -26,7 +26,6 @@ public:
     void start_advertising(AdFile ad_data);
     void send_advertisement();
     void stop_advertising();
-    void pass_advertisements(const std::vector<AdFile>& advertisements);
 
     auto& advertising() { return m_is_advertising; };
     auto& receive_queue() { return m_receive_queue; }

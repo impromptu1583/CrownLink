@@ -20,8 +20,7 @@ set(MODULE_FILES
 	"../CrowServe/CrowServe.cpp"
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
-	
-	)
+)
 
 add_library(SNP SHARED ${MODULE_FILES})
 
