@@ -144,8 +144,11 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
     });
 
     auto last_updated = get_tick_count();
+    u32  index = 1;
     for (AdFile& known_lobby : g_snp_context.lobbies) {
         known_lobby.game_info.host_last_time = last_updated;
+        known_lobby.game_info.game_index = ++index;
+        known_lobby.game_info.pExtra = known_lobby.extra_bytes;
     }
 }
 
@@ -175,8 +178,6 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     bool        joinable;
     std::string prefixes;
     for (AdFile& ad : g_snp_context.lobbies) {
-        ad.game_info.game_index = ++game_index;
-        ad.game_info.pExtra = ad.extra_bytes;
 
         joinable = true;
         prefixes = "";
@@ -196,9 +197,12 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
             }
         }
 
+        if (ad == g_snp_context.status_ad) {
+            joinable = false;
+        }
+
         // agent_state calls ensure_agent so one will be created if needed
         // this kicks off the p2p connection process
-        joinable = false;
         if (joinable) {
             switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
                 case JUICE_STATE_CONNECTING: {
@@ -212,6 +216,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
+                    prefixes += "[P2P OK]";
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
                             prefixes += "[Relayed]";
@@ -307,10 +312,13 @@ static BOOL __stdcall spi_stop_advertising_game() {
 
 static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
     std::lock_guard lock{g_advertisement_mutex};
+    spdlog::trace("getting game info for index {}", index);
 
     for (auto& ad : g_snp_context.lobbies) {
+        spdlog::trace("checking game: {} with index {}", ad.game_info.game_description, ad.game_info.game_index);
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
+            spdlog::trace("found game with description {}", ad.game_info.game_description);
             return true;
         }
     }
@@ -326,6 +334,7 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
 
 static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
     if (!address_count) {
+        spdlog::trace("spiSend called with no addresses");
         return true;
     }
 

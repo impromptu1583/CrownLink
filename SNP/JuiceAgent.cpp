@@ -8,6 +8,8 @@
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
     
+    memset(&m_config, 0, sizeof(m_config));
+
     m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
     m_config.stun_server_host = ice_credentials.stun_host.c_str();
     const auto res = std::from_chars(ice_credentials.stun_port.data(), ice_credentials.stun_port.data() + ice_credentials.stun_port.size(),
@@ -16,12 +18,11 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
         spdlog::error("Invalid stun port received: {}", ice_credentials.stun_port);
     }
 
-
-    //m_config.stun_server_port = ice_credentials.stun_port;
     m_config.cb_state_changed = on_state_changed;
     m_config.cb_candidate = on_candidate;
     m_config.cb_gathering_done = on_gathering_done;
     m_config.cb_recv = on_recv;
+    m_config.user_ptr = this;
 
     if (ice_credentials.turn_servers_count) {
 
@@ -119,7 +120,7 @@ bool JuiceAgent::send_message(void* data, size_t size) {
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-    JuiceAgent& parent = *(JuiceAgent*)user_ptr;
+    auto& parent = *(JuiceAgent*)user_ptr;
     parent.mark_active();
     parent.m_p2p_state = state;
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
