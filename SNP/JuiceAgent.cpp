@@ -46,7 +46,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
     }
 
     m_agent = juice_create(&m_config);
-    mark_active();
 
     send_signal_ping();
 }
@@ -85,6 +84,8 @@ void JuiceAgent::try_initialize() {
 }
 
 void JuiceAgent::reset_agent() {
+    std::lock_guard lock{m_mutex};
+
     juice_destroy(m_agent);
     m_agent = juice_create(&m_config);
 }
@@ -96,6 +97,7 @@ void JuiceAgent::send_signal_ping() {
 }
 
 bool JuiceAgent::send_message(void* data, size_t size) {
+    std::lock_guard lock{m_mutex};
     mark_active();
 
     switch (m_p2p_state) {
@@ -121,7 +123,6 @@ bool JuiceAgent::send_message(void* data, size_t size) {
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    parent.mark_active();
     parent.m_p2p_state = state;
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
     switch (state) {
@@ -151,14 +152,14 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
             spdlog::info("[{}] Final candidates were local: {} remote: {}", parent.address(), local, remote);
         } break;
         case JUICE_STATE_FAILED: {
-            spdlog::error("[{}] Could not connect, gave up", parent.address());
+            spdlog::error("[{}] Could not establish P2P connection", parent.address());
+            parent.reset_agent(); // might be a bad idea
         } break;
     }
 }
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    parent.mark_active();
     if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
         auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
         g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
@@ -169,14 +170,12 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    parent.mark_active();
     auto done_message = P2P::JuiceDone{{parent.address()}};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    parent.mark_active();
     g_crown_link->receive_queue().enqueue(GamePacket{parent.m_address, data, size});
     SetEvent(g_receive_event);
 }

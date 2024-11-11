@@ -28,7 +28,6 @@ public:
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
-        mark_active();
 
         if constexpr (std::is_same_v<T, P2P::Ping>) {
             spdlog::trace("[{}] Received Ping", m_address);
@@ -43,7 +42,7 @@ public:
                 m_p2p_state == JUICE_STATE_COMPLETED) {
                 // peer is requesting reconnect, need to reset agent
                 spdlog::debug("[{}] Agent was in {} state, reset agent.",m_address, to_string(m_p2p_state));
-                reset_agent();
+                reset_agent(); // NEED MUTEX?
             }
 
             juice_set_remote_description(m_agent, message.sdp.c_str());
@@ -89,6 +88,7 @@ private:
     NetAddress          m_address;
     juice_config_t      m_config;
     juice_agent_t*      m_agent;
+    std::mutex          m_mutex;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

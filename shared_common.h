@@ -12,6 +12,8 @@ constexpr const char* CL_VERSION = "0.5.0";
 #include <fstream>
 #include <chrono>
 #include <mutex>
+#include <shared_mutex>
+#include <optional>
 
 #include <filesystem>
 namespace fs = std::filesystem;

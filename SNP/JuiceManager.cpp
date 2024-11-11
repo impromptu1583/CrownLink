@@ -13,9 +13,6 @@ JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
     auto it = m_agents.find(address);
     if (it != m_agents.end()) {
-        if (!it->second->is_active()) {
-            it->second = std::make_unique<JuiceAgent>(address, m_ice_credentials);
-        }
         return *it->second;
     }
 
