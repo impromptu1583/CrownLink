@@ -125,8 +125,8 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
             known_lobby = *it;
             it->mark_for_removal = true;
         } else {
-            // todo: lobby disappeared, unlink P2P unless we're already in game
             known_lobby.mark_for_removal = true;
+            g_crown_link->juice_manager().disconnect_if_inactive(known_lobby.game_info.host);
         }
     }
     g_snp_context.lobbies.erase(

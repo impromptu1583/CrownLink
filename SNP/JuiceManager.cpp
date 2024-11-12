@@ -28,6 +28,17 @@ void JuiceManager::clear_inactive_agents() {
     });
 }
 
+void JuiceManager::disconnect_if_inactive(const NetAddress& address) {
+    std::lock_guard lock{m_mutex};
+    auto count = std::erase_if(m_agents, [&address](const auto& pair) {
+        const auto& [addr, agent] = pair;
+        return !agent->is_active() && addr == address;
+    });
+    if (count) {
+        spdlog::debug("disconnected {} inactive agent with ID {}", count, address);
+    }
+}
+
 bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
     std::lock_guard lock{m_mutex};
     auto&           agent = ensure_agent(address, lock);

@@ -26,8 +26,9 @@ public:
     void start_advertising(AdFile ad_data);
     void send_advertisement();
     void stop_advertising();
+    bool in_games_list() const; 
 
-    auto& advertising() { return m_is_advertising; };
+    auto& advertising();
     auto& receive_queue() { return m_receive_queue; }
     auto& juice_manager() { return m_juice_manager; }
     auto& crowserve() { return m_crowserve; }
@@ -54,6 +55,9 @@ private:
     bool m_is_advertising = false;
     bool m_is_running = true;
     bool m_client_id_set = false;
+
+    std::chrono::steady_clock::time_point m_last_solicitation = std::chrono::steady_clock::now();
+    mutable std::shared_mutex             m_ad_mutex;
 
     NetAddress m_client_id;
     NetAddress m_reconnect_token;

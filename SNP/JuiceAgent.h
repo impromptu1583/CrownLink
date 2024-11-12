@@ -42,7 +42,7 @@ public:
                 m_p2p_state == JUICE_STATE_COMPLETED) {
                 // peer is requesting reconnect, need to reset agent
                 spdlog::debug("[{}] Agent was in {} state, reset agent.",m_address, to_string(m_p2p_state));
-                reset_agent(); // NEED MUTEX?
+                reset_agent();
             }
 
             juice_set_remote_description(m_agent, message.sdp.c_str());
@@ -65,7 +65,7 @@ public:
     JuiceConnectionType connection_type() const { return m_connection_type; };
 
     bool is_active() const {
-        return std::chrono::steady_clock::now() - m_last_active < 5min;
+        return std::chrono::steady_clock::now() - m_last_active < 5s;
     }
 
     void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };

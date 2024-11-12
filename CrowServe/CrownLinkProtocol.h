@@ -118,6 +118,7 @@ inline void from_json(const Json &j, StopAdvertising& message) {
 }
 
 struct AdvertisementsRequest : Header {
+    // todo rename this Heartbeat
     inline MessageType type() const { return MessageType::AdvertisementsRequest; }
 };
 

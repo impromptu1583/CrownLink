@@ -1,7 +1,7 @@
 #include "CrownLink.h"
 
 CrownLink::CrownLink() {
-    spdlog::info("Initializing, version {}", CL_VERSION);
+    spdlog::info("Crownlink loaded, version {}", CL_VERSION);
     m_is_running = true;
     init_listener();
 }
@@ -9,9 +9,17 @@ CrownLink::CrownLink() {
 CrownLink::~CrownLink() {
     spdlog::info("Shutting down");
     m_is_running = false;
-    // TODO: how to clean up crowserve properly?
+}
 
-    spdlog::debug("Receive thread closed");
+bool CrownLink::in_games_list() const {
+    std::shared_lock lock{m_ad_mutex};
+
+    return (m_is_advertising && m_ad_data.game_info.game_state == 0) || std::chrono::steady_clock::now() - m_last_solicitation < 2s;
+}
+
+auto& CrownLink::advertising() {
+    std::shared_lock lock{m_ad_mutex};
+    return m_is_advertising;
 }
 
 void CrownLink::request_advertisements() {
@@ -32,6 +40,9 @@ void CrownLink::request_advertisements() {
             snp::set_status_ad(status_string);
         } break;
     }
+
+    std::unique_lock lock{m_ad_mutex};
+    m_last_solicitation = std::chrono::steady_clock::now();
 }
 
 bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
@@ -58,13 +69,13 @@ void CrownLink::init_listener() {
             // TODO display status string
         },
         [&](const CrownLinkProtocol::AdvertisementsRequest& message) {
-            spdlog::trace("Received Ad request from server");
+            spdlog::trace("Received server heartbeat");
+            if (!in_games_list()) {
+                juice_manager().clear_inactive_agents();
+            }
             if (advertising()) {
                 send_advertisement();
             }
-        },
-        [&](CrownLinkProtocol::AdvertisementsResponse& message) {
-            snp::update_lobbies(message.ad_files);
         },
         [&](const CrownLinkProtocol::EchoRequest& message) {
             auto reply = CrownLinkProtocol::EchoResponse{{}, message.message};
@@ -90,26 +101,28 @@ void CrownLink::init_listener() {
 }
 
 void CrownLink::start_advertising(AdFile ad_data) {
+    std::unique_lock lock{m_ad_mutex};
     m_ad_data = ad_data;
+
     m_is_advertising = true;
-    send_advertisement();
 }
 
 void CrownLink::send_advertisement() {
-    if (!m_client_id_set) {
-        return;
-    }
+    std::unique_lock lock{m_ad_mutex};
+
     if (m_ad_data.game_info.host != m_client_id) {
         m_ad_data.game_info.host = m_client_id;
     }
+
     auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
-    spdlog::debug("sending advertisement");
 }
 
 void CrownLink::stop_advertising() {
-    m_is_advertising = false;
     auto message = CrownLinkProtocol::StopAdvertising{};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
     spdlog::info("Stopped advertising lobby");
+
+    std::unique_lock lock{m_ad_mutex};
+    m_is_advertising = false;
 }

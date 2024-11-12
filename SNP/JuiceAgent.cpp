@@ -31,7 +31,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
             servers[i].host = ice_credentials.turn_servers[i].host.c_str();
             servers[i].username = ice_credentials.turn_servers[i].username.c_str();
             servers[i].password = ice_credentials.turn_servers[i].password.c_str();
-            //servers[i].port = ice_credentials.turn_servers[i].port;
             const auto res = std::from_chars(
                 ice_credentials.turn_servers[i].port.data(),
                 ice_credentials.turn_servers[i].port.data() + ice_credentials.turn_servers[i].port.size(),
@@ -127,10 +126,8 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
     switch (state) {
         case JUICE_STATE_CONNECTED: {
-            //spdlog::info("Initially connected");
         } break;
         case JUICE_STATE_COMPLETED: {
-            //spdlog::info("Connection negotiation finished");
             char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
             char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
             juice_get_selected_candidates(
@@ -153,7 +150,9 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
         } break;
         case JUICE_STATE_FAILED: {
             spdlog::error("[{}] Could not establish P2P connection", parent.address());
-            parent.reset_agent(); // might be a bad idea
+            if (parent.is_active() or g_crown_link->in_games_list()) {
+                parent.reset_agent();
+            }
         } break;
     }
 }
