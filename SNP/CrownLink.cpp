@@ -9,6 +9,8 @@ CrownLink::CrownLink() {
 CrownLink::~CrownLink() {
     spdlog::info("Shutting down");
     m_is_running = false;
+    auto echo = CrownLinkProtocol::EchoRequest{};
+    m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, echo);
 }
 
 bool CrownLink::in_games_list() const {
@@ -76,6 +78,9 @@ void CrownLink::init_listener() {
             if (advertising()) {
                 send_advertisement();
             }
+        },
+        [&](CrownLinkProtocol::AdvertisementsResponse& message) {
+            snp::update_lobbies(message.ad_files);
         },
         [&](const CrownLinkProtocol::EchoRequest& message) {
             auto reply = CrownLinkProtocol::EchoResponse{{}, message.message};

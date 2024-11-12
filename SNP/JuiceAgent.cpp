@@ -95,6 +95,14 @@ void JuiceAgent::send_signal_ping() {
     spdlog::debug("[{}] Sent signal ping", m_address);
 }
 
+void JuiceAgent::set_player_name(std::string& name) {
+    m_player_name = name;
+}
+
+std::string& JuiceAgent::player_name() {
+    return m_player_name;
+}
+
 bool JuiceAgent::send_message(void* data, size_t size) {
     std::lock_guard lock{m_mutex};
     mark_active();
@@ -175,6 +183,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    g_crown_link->receive_queue().enqueue(GamePacket{parent.m_address, data, size});
+    auto  packet = GamePacket{parent.m_address, data, size};
+    g_crown_link->receive_queue().enqueue(packet);
     SetEvent(g_receive_event);
 }

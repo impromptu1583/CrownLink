@@ -63,6 +63,8 @@ public:
     const NetAddress&   address() const { return m_address; }
     juice_state         state() const { return m_p2p_state; }
     JuiceConnectionType connection_type() const { return m_connection_type; };
+    void                set_player_name(std::string& name);
+    std::string&        player_name();
 
     bool is_active() const {
         return std::chrono::steady_clock::now() - m_last_active < 5s;
@@ -88,6 +90,7 @@ private:
     NetAddress          m_address;
     juice_config_t      m_config;
     juice_agent_t*      m_agent;
+    std::string         m_player_name;
     std::mutex          m_mutex;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();

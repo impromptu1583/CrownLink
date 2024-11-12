@@ -343,7 +343,15 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
     }
 
     const NetAddress& peer = out_address_list[0][0];
-    spdlog::trace("spiSend to {}: {:pa}", peer, spdlog::to_hex(std::string{data, size}));
+    GamePacketData*   packet = reinterpret_cast<GamePacketData*>(data);
+    spdlog::trace(
+        "send {}: {} {:pa}", peer, to_string(packet->header),
+        spdlog::to_hex(
+            std::begin(packet->payload),
+            std::begin(packet->payload) + packet->header.size - sizeof(GamePacketHeader)
+        )
+    );
+
     return g_crown_link->send(peer, data, size);
 }
 
@@ -359,14 +367,15 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             delete loan;
             return false;
         }
-        // TODO replace GamePacket.data with GamePacketHeader + data and improve logging
-        spdlog::trace("spiRecv fr {}: {:pa}", loan->sender, spdlog::to_hex(std::string{loan->data, loan->size}));
+        spdlog::trace("Recv {}: {} {:pa}", loan->sender, to_string(loan->data.header),
+                      spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + loan->data.header.size - sizeof(GamePacketHeader))
+        );
         if (get_tick_count() > loan->timestamp + 10) {
             continue;
         }
 
         *peer = &loan->sender;
-        *out_data = loan->data;
+        *out_data = (char*)&loan->data;
         *out_size = loan->size;
 
         break;

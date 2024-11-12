@@ -248,11 +248,15 @@ enum class GamePacketType : u8 {
 };
 
 inline std::string to_string(GamePacketType value) {
-    switch (value) {
-        EnumStringCase(GamePacketType::System);
-        EnumStringCase(GamePacketType::Message);
-        EnumStringCase(GamePacketType::Turn);
-        EnumStringCase(GamePacketType::Types);
+    switch (value) { 
+        case GamePacketType::System:
+            return {"Sys"};
+        case GamePacketType::Message:
+            return {"Msg"};
+        case GamePacketType::Turn:
+            return {"Turn"};
+        case GamePacketType::Types:
+            return {"Types"};
     }
     return std::to_string((u8) value);
 }
@@ -277,21 +281,36 @@ enum class GamePacketSubType : u8 {
 
 inline std::string to_string(GamePacketSubType value) {
     switch (value) {
-        EnumStringCase(GamePacketSubType::Unused);
-        EnumStringCase(GamePacketSubType::InitialContact);
-        EnumStringCase(GamePacketSubType::CircuitCheck);
-        EnumStringCase(GamePacketSubType::CircuiteCheckResponse);
-        EnumStringCase(GamePacketSubType::Ping);
-        EnumStringCase(GamePacketSubType::PingResponse);
-        EnumStringCase(GamePacketSubType::PlayerInfo);
-        EnumStringCase(GamePacketSubType::PlayerJoin);
-        EnumStringCase(GamePacketSubType::PlayerJoinAcceptStart);
-        EnumStringCase(GamePacketSubType::PlayerJoinAcceptDone);
-        EnumStringCase(GamePacketSubType::PlayerJoinReject);
-        EnumStringCase(GamePacketSubType::PlayerLeave);
-        EnumStringCase(GamePacketSubType::DropPlayer);
-        EnumStringCase(GamePacketSubType::NewGameOwner);
-        EnumStringCase(GamePacketSubType::Messages);
+        case GamePacketSubType::Unused:
+            return {""};
+        case GamePacketSubType::InitialContact:
+            return {"InitialContact"};
+        case GamePacketSubType::CircuitCheck:
+            return {"CircuitCheck"};
+        case GamePacketSubType::CircuiteCheckResponse:
+            return {"CircuiteCheckResponse"};
+        case GamePacketSubType::Ping:
+            return {"Ping"};
+        case GamePacketSubType::PingResponse:
+            return {"PingResponse"};
+        case GamePacketSubType::PlayerInfo:
+            return {"PlayerInfo"};
+        case GamePacketSubType::PlayerJoin:
+            return {"PlayerJoin"};
+        case GamePacketSubType::PlayerJoinAcceptStart:
+            return {"PlayerJoinAcceptStart"};
+        case GamePacketSubType::PlayerJoinAcceptDone:
+            return {"PlayerJoinAcceptDone"};
+        case GamePacketSubType::PlayerJoinReject:
+            return {"PlayerJoinReject"};
+        case GamePacketSubType::PlayerLeave:
+            return {"PlayerLeave"};
+        case GamePacketSubType::DropPlayer:
+            return {"DropPlayer"};
+        case GamePacketSubType::NewGameOwner:
+            return {"NewGameOwner"};
+        case GamePacketSubType::Messages:
+            return {"Messages"};
     }
     return std::to_string((u8) value);
 }
@@ -302,16 +321,32 @@ enum class GamePacketFlags : u8 {
     Forwareded = 0x04
 };
 
+inline std::string to_string(GamePacketFlags value) {
+    std::string out;
+    if ((u8)value & (u8)GamePacketFlags::Acknowledgement) {out += "Ack";}
+    if ((u8)value & (u8)GamePacketFlags::ResendRequest) {out += "Resend";}
+    if ((u8)value & (u8)GamePacketFlags::Forwareded) {out += "Fwd";}
+    return out;
+}
+
 struct GamePacketHeader { // TODO: Constructor & to_string / print method
-    u32 checksum;
-    u32 size;
-    u32 sequence;
-    u32 ack_sequence;
+    u16 checksum;
+    u16 size;
+    u16 sequence;
+    u16 ack_sequence;
     GamePacketType type;
     GamePacketSubType sub_type;
     u8 player_id;
     GamePacketFlags flags;
 };
+
+inline std::string to_string(GamePacketHeader& header) {
+    return std::format(
+        "sz:{} seq:{} ack:{} tp:{} st:{} pid:{} flags:{}", header.size,
+        header.sequence, header.ack_sequence, to_string(header.type), to_string(header.sub_type), header.player_id,
+        to_string(header.flags)
+    );
+}
 
 struct GamePacketData { // TODO: Constructor & to_string / print method
     GamePacketHeader header;
@@ -322,11 +357,11 @@ struct GamePacket {
     NetAddress sender{};
     u32 size = 0;
     u32 timestamp = 0;
-    char data[512]{}; // TODO: replace with GamePackateData
+    GamePacketData data;
 
     GamePacket() = default;
     GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
         : sender{sender_id}, timestamp{get_tick_count()}, size{(u32)size} {
-        memcpy(data, recv_data, sizeof(data));
+        memcpy(&data, recv_data, size < 500 ? size : 500);
     };
 };
