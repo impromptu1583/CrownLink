@@ -33,7 +33,7 @@ static void init_logging() {
     trace_sink->set_level(spdlog::level::trace);
 
     auto logger = std::make_shared<spdlog::async_logger>(
-        "Crownlink", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)},
+        "CL", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)},
         spdlog::thread_pool(), spdlog::async_overflow_policy::block
     );
     spdlog::register_logger(logger);
@@ -68,7 +68,6 @@ static void init_logging() {
             spdlog::enable_backtrace(32);
         } break;
     }
-    spdlog::set_level(spdlog::level::trace);  // For fraudarchy debug
 }
 
 static BOOL __stdcall spi_initialize(
@@ -175,6 +174,10 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         last_ad = &g_snp_context.status_ad;
     }
 
+    std::erase_if(g_snp_context.lobbies, [](AdFile lobby) {
+        return get_tick_count() - lobby.game_info.host_last_time > 3;
+    });
+
     bool        joinable;
     std::string prefixes;
     for (AdFile& ad : g_snp_context.lobbies) {
@@ -188,7 +191,6 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         }
 
         if (g_crown_link->mode() != ad.crownlink_mode) {
-            ad.game_info.version_id = 0;
             joinable = false;
             if (ad.crownlink_mode == CrownLinkMode::CLNK) {
                 prefixes += "[not DBC]";
@@ -216,7 +218,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
-                    prefixes += "[P2P OK]";
+                    //prefixes += "";
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
                             prefixes += "[Relayed]";
@@ -314,12 +316,16 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
     std::lock_guard lock{g_advertisement_mutex};
     spdlog::trace("getting game info for index {}", index);
 
+
+
     for (auto& ad : g_snp_context.lobbies) {
-        spdlog::trace("checking game: {} with index {}", ad.game_info.game_description, ad.game_info.game_index);
+        spdlog::trace("checking game: {} with index {}, version {}", ad.game_info.game_description, ad.game_info.game_index, ad.game_info.version_id);
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
             spdlog::trace("found game with description {}", ad.game_info.game_description);
-            return true;
+            if (g_crown_link->mode() == ad.crownlink_mode) {
+                return true;
+            }
         }
     }
 
@@ -370,7 +376,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
         spdlog::trace("Recv {}: {} {:pa}", loan->sender, to_string(loan->data.header),
                       spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + loan->data.header.size - sizeof(GamePacketHeader))
         );
-        if (get_tick_count() > loan->timestamp + 10) {
+        if (get_tick_count() > loan->timestamp + 2 ) {
             continue;
         }
 
@@ -385,7 +391,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
 
 static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
     if (loan) {
-        delete loan;  // TODO does this really free all memory?
+        delete loan;
     }
     return true;
 }

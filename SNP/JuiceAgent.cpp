@@ -87,6 +87,7 @@ void JuiceAgent::reset_agent() {
 
     juice_destroy(m_agent);
     m_agent = juice_create(&m_config);
+    m_p2p_state = JUICE_STATE_DISCONNECTED;
 }
 
 void JuiceAgent::send_signal_ping() {
@@ -158,9 +159,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
         } break;
         case JUICE_STATE_FAILED: {
             spdlog::error("[{}] Could not establish P2P connection", parent.address());
-            if (parent.is_active() or g_crown_link->in_games_list()) {
-                parent.reset_agent();
-            }
+            parent.reset_agent();
         } break;
     }
 }

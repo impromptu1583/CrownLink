@@ -123,10 +123,10 @@ public:
     }
 
     template <typename... Handlers>
-    void listen(const std::string &host, const std::string& port, Handlers&&... handlers) {
+    std::jthread listen(const std::string &host, const std::string& port, Handlers&&... handlers) {
         m_host = host;
         m_port = port;
-        m_thread = std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...
+        return std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...
                                        }](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
@@ -254,7 +254,7 @@ private:
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";
     SocketState m_state = SocketState::Disconnected;
-    std::jthread m_thread;
+    //std::jthread m_thread;
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::mutex m_mutex;

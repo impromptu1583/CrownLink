@@ -9,6 +9,7 @@ CrownLink::CrownLink() {
 CrownLink::~CrownLink() {
     spdlog::info("Shutting down");
     m_is_running = false;
+    m_listener_thread.request_stop();
     auto echo = CrownLinkProtocol::EchoRequest{};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, echo);
 }
@@ -56,7 +57,7 @@ void CrownLink::init_listener() {
     m_crowserve.external_logger = [](const std::string message) {
         spdlog::info("Crowserve: {}", message);
     };
-    m_crowserve.listen(
+    m_listener_thread = m_crowserve.listen(
         snp_config.server,
         snp_config.port,
         [&](const CrownLinkProtocol::ClientProfile& message) {

@@ -49,6 +49,7 @@ private:
     moodycamel::ConcurrentQueue<GamePacket> m_receive_queue;
 
     CrowServe::Socket m_crowserve;
+    std::jthread      m_listener_thread;
     JuiceManager      m_juice_manager;
     AdFile            m_ad_data;
 
