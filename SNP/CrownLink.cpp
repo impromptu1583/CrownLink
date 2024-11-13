@@ -32,8 +32,9 @@ auto& CrownLink::advertising() {
 }
 
 void CrownLink::request_advertisements() {
+    const auto& snp_config = SnpConfig::instance();
     spdlog::debug("Requesting lobbies");
-    auto request = CrownLinkProtocol::AdvertisementsRequest{};
+    auto request = CrownLinkProtocol::AdvertisementsRequest{{}, snp_config.lobby_password};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, request);
 
     switch (m_crowserve.state()) {
@@ -120,13 +121,14 @@ void CrownLink::start_advertising(AdFile ad_data) {
 }
 
 void CrownLink::send_advertisement() {
+    const auto&      snp_config = SnpConfig::instance();
     std::unique_lock lock{m_ad_mutex};
 
     if (m_ad_data.game_info.host != m_client_id) {
         m_ad_data.game_info.host = m_client_id;
     }
 
-    auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data};
+    auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data, snp_config.lobby_password};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
 }
 

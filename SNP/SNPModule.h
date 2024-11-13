@@ -19,6 +19,7 @@ void update_lobby_name(AdFile &ad, std::string &prefixes);
 void remove_advertisement(const NetAddress &host);
 void set_status_ad(const std::string &status);
 void clear_status_ad();
+void packet_parser(const GamePacket* game_packet);
 
 struct NetFunctions {
     // The size of the vtable

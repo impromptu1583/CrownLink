@@ -16,6 +16,8 @@ struct SNPContext {
     AdFile hosted_game;
     AdFile status_ad;
     bool   status_ad_used = false;
+    
+    std::string permanent_status{}; // status that shows when status ad is off TODO: figure out better way to dothis
 };
 
 static SNPContext g_snp_context;
@@ -266,10 +268,15 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 
 static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
     // called by storm after it is done reading the games list to unlock the mutex
-
     g_advertisement_mutex.unlock();
 
+    const auto& snp_config = SnpConfig::instance();
+    if (!snp_config.lobby_password.empty()) {
+        g_snp_context.permanent_status = "Private Lobby Mode";
+        set_status_ad("Private Lobby Mode");
+    }
     g_crown_link->request_advertisements();
+
     return true;
 }
 
@@ -307,6 +314,10 @@ void set_status_ad(const std::string& status) {
 }
 
 void clear_status_ad() {
+    if (!g_snp_context.permanent_status.empty()) {
+        set_status_ad(g_snp_context.permanent_status);
+        return;
+    }
     g_snp_context.status_ad_used = false;
 }
 
@@ -396,9 +407,11 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             delete loan;
             return false;
         }
+        auto payload_size = loan->data.header.size - sizeof(GamePacketHeader);
         spdlog::trace("Recv {}: {} {:pa}", loan->sender, to_string(loan->data.header),
-                      spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + loan->data.header.size - sizeof(GamePacketHeader))
+                      spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + payload_size)
         );
+
         if (get_tick_count() > loan->timestamp + 2 ) {
             continue;
         }
@@ -410,6 +423,25 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
         break;
     }
     return true;
+}
+// TODO - template this out, helper functions, use a queue to send to a separate thread
+void packet_parser(const GamePacket* game_packet) {
+    auto payload_size = game_packet->data.header.size - sizeof(GamePacketHeader);
+    switch (game_packet->data.header.sub_type) {
+        case GamePacketSubType::PlayerInfo: {
+            SystemPlayerJoin_PlayerInfo player_info{};
+            memcpy(
+                &player_info, game_packet->data.payload,
+                payload_size < sizeof(SystemPlayerJoin_PlayerInfo) ? payload_size
+                                                                    : sizeof(SystemPlayerJoin_PlayerInfo)
+            );
+            if (player_info.address.is_zero()) {
+                player_info.address = game_packet->sender;
+                spdlog::trace("address was zero, copying from game info");
+            }
+            spdlog::trace("Player introduction received, address: {}, player id: {}, host: {}, name {}", player_info.address, player_info.player_id, player_info.gameowner, player_info.name_description);            
+        }
+    }
 }
 
 static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {

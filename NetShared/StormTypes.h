@@ -4,6 +4,8 @@
 #include <nlohmann/json.hpp>
 using Json = nlohmann::json;
 
+#include <numeric>
+
 struct NetAddress {
     u8 bytes[16]{};
 
@@ -18,6 +20,10 @@ struct NetAddress {
         }
         return false;
     };
+
+    bool is_zero() const {
+        return std::accumulate(std::begin(bytes), std::end(bytes), 0) == 0;
+    }
 
     std::string uuid_string() const {
         char str[37] = {};
@@ -353,6 +359,16 @@ inline std::string to_string(GamePacketHeader& header) {
         to_string(header.flags)
     );
 }
+
+struct SystemPlayerJoin_PlayerInfo {
+    u32  bytes;
+    u32  player_id;
+    bool gameowner;
+    u32  flags;
+    u32  starting_turn;
+    NetAddress address;
+    char       name_description[256];
+};
 
 struct GamePacketData { // TODO: Constructor & to_string / print method
     GamePacketHeader header;

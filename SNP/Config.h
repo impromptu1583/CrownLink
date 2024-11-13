@@ -14,6 +14,7 @@ enum class LogLevel {
 struct SnpConfig {
     std::string server = "127.0.0.1";
     std::string port = "33377";
+    std::string lobby_password = "";
 
     LogLevel log_level = LogLevel::Debug;
 
@@ -47,8 +48,9 @@ public:
         SnpConfig config{};
         load_field(json, "server", config.server);
         load_field(json, "port", config.port);
+        load_field(json, "lobby_password", config.lobby_password);
 
-        load_field(json, "log-level", config.log_level);
+        load_field(json, "log_level", config.log_level);
         switch (config.log_level) {
             case LogLevel::Trace: {
                 spdlog::set_level(spdlog::level::trace);
@@ -85,7 +87,8 @@ public:
         const auto json = Json{
             {"server", config.server},
             {"port", config.port},
-            {"log-level", config.log_level},
+            {"lobby_password", config.lobby_password},
+            {"log_level", config.log_level},
         };
 
         if (m_config_existed) {
