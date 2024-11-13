@@ -70,10 +70,10 @@ struct Header {
     Header (u16 protocol, u32 message_count) 
     : protocol(protocol), message_count(message_count) {
         memcpy(magic, "CSRV", sizeof(magic));
-        version = 1; // TODO - store a global version somewhere
+        version = CL_VERSION_NUMBER();
     };
     u8 magic[4];
-    u16 version;
+    u32 version;
     u16 protocol;
     u32 message_count;
 };
@@ -105,11 +105,10 @@ public:
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void        set_profile(const NetAddress ID, const NetAddress Token);
     SocketState state() { return m_state; }
+    NetAddress& id() { return m_id; }
+    
 
     bool       profile_received = false;
-    bool       id_received = false;
-    NetAddress id;
-    NetAddress reconnect_token;
 
     std::function<void(const std::string&)> external_logger;
 
@@ -144,10 +143,10 @@ public:
                     request.product_id = 0;
                     request.version_id = 0;
                     request.crownlink_version = 0;
-                    if (id_received) {
+                    if (m_id_received) {
                         request.peer_id_requested = true;
-                        request.requested_id = id;
-                        request.request_token = reconnect_token;
+                        request.requested_id = m_id;
+                        request.request_token = m_reconnect_token;
                     }
                     send_messages(ProtocolType::ProtocolCrownLink, request);
                 }
@@ -162,7 +161,7 @@ public:
                 } else if (!poll_ready_count && profile_received) {
                     auto time_since_message = std::chrono::steady_clock::now() - m_last_message;
                     if (time_since_message > 1.5s) {
-                        u16 missed = time_since_message / 1s;
+                        auto missed = time_since_message / 1s;
                         if (missed != m_missed_heartbeats) {
                             m_missed_heartbeats = missed;
                             try_log("Missed {} server heartbeats", m_missed_heartbeats);
@@ -292,6 +291,10 @@ private:
     WSAPOLLFD                             m_poll_fd[1] = {0};
     u16                                   m_missed_heartbeats = 0;
     std::chrono::steady_clock::time_point m_last_message = std::chrono::steady_clock::now();
+
+    NetAddress m_id;
+    NetAddress m_reconnect_token;
+    bool       m_id_received = false;
 
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";

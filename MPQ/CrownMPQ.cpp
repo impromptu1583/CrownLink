@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
     DAT CLNK{
         "CNLK",
         "CrownLink",
-        std::string("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: ")+CL_VERSION,
+        std::string("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: ") + CL_VERSION_STRING(),
         CAPS{
             36,
             SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE,
@@ -57,7 +57,9 @@ int main(int argc, char* argv[]) {
     DAT CLDB{
         "CLDB",
         "CrownLink Double Brain Cells",
-        std::string("A new connection method for Cosmonarchy!\n\nUse this version for extreme latency situations.\n\n\n\nVersion: ")+CL_VERSION,
+        std::string("A new connection method for Cosmonarchy!\n\nUse this version for extreme latency "
+                    "situations.\n\n\n\nVersion: ") +
+            CL_VERSION_STRING(),
         CAPS{
             36,
             SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE,

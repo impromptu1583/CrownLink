@@ -1,7 +1,7 @@
 #include "CrownLink.h"
 
 CrownLink::CrownLink() {
-    spdlog::info("Crownlink loaded, version {}", CL_VERSION);
+    spdlog::info("Crownlink loaded, version {}", CL_VERSION_STRING());
     m_is_running = true;
     init_listener();
 }
@@ -93,7 +93,7 @@ void CrownLink::init_listener() {
             auto reply = CrownLinkProtocol::EchoResponse{{}, message.message};
             crowserve().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, reply);
         },
-        [&](const P2P::Ping& message) {
+        [&](const P2P::ConnectionRequest& message) {
             juice_manager().handle_crownlink_message(message);
         },
         [&](const P2P::Pong& message) {

@@ -211,14 +211,14 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         }
 
         if (ad.game_info.game_state == 12) {
-            // in progress - these won't be shown anyway but don't want to initiate p2p
+            // game in progress - these won't be shown anyway but we don't want to initiate p2p
             joinable = false;
         }
 
         // agent_state calls ensure_agent so one will be created if needed
         // this kicks off the p2p connection process
         if (joinable) {
-            switch (g_crown_link->juice_manager().agent_state(ad.game_info.host)) {
+            switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
                     prefixes += "[P2P Connecting]";
                 } break;
@@ -227,7 +227,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
                     prefixes += "[P2P Not Connected]";
-                    g_crown_link->juice_manager().send_signal_ping(ad.game_info.host);
+                    g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {

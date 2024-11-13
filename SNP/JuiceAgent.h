@@ -28,13 +28,16 @@ public:
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
-        spdlog::trace("handle_crownlink_message locking mtx");
         std::unique_lock lock{m_mutex};
 
-        if constexpr (std::is_same_v<T, P2P::Ping>) {
-            spdlog::trace("[{}] Received Ping", m_address);
+        if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
+            spdlog::trace("[{}] Received Connection Request", m_address);
             if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
                 reset_agent(lock);
+            }
+            if (!m_controlling) {
+                send_connection_request(); // no u
+                return;
             }
             try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceLocalDescription>) {
@@ -52,17 +55,17 @@ public:
             spdlog::trace("[{}] Remote gathering done", m_address);
             juice_set_remote_gathering_done(m_agent);
         }
-        spdlog::trace("handle_crownlink_message unlocking mtx");
     };
 
     bool send_message(void* data, const size_t size);
-    void send_signal_ping();
+    void send_connection_request();
 
 public:
     const NetAddress&   address() const { return m_address; }
     juice_state         state();
     JuiceConnectionType connection_type() { return m_connection_type.load(); }
-    void                set_player_name(std::string& name);
+    void                set_player_name(const std::string& name);
+    void                set_player_name(const char game_name[128]);
     std::string&        player_name();
 
 
@@ -86,6 +89,7 @@ private:
     bool m_is_relayed = false;
     bool m_is_radmin = false;
     bool m_remote_description_set = false;
+    bool m_controlling = true;
 
     std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
 

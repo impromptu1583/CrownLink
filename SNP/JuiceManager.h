@@ -15,7 +15,7 @@ public:
     void disconnect_if_inactive(const NetAddress& address);
     bool send_p2p(const NetAddress& address, void* data, size_t size);
     void send_all(void* data, size_t size);
-    void send_signal_ping(const NetAddress& address);
+    void send_connection_request(const NetAddress& address);
     void set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials);
 
     template <typename T>
@@ -27,7 +27,7 @@ public:
         peer_agent.handle_crownlink_message(message);
     };
 
-    juice_state         agent_state(const NetAddress& address);
+    juice_state         lobby_agent_state(const AdFile& ad);
     JuiceConnectionType final_connection_type(const NetAddress& address);
 
     std::mutex& mutex() { return m_mutex; }

@@ -45,10 +45,10 @@ bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) 
     return agent.send_message(data, size);
 }
 
-void JuiceManager::send_signal_ping(const NetAddress& address) {
+void JuiceManager::send_connection_request(const NetAddress& address) {
     std::lock_guard lock{m_mutex};
     auto&           agent = ensure_agent(address, lock);
-    agent.send_signal_ping();
+    agent.send_connection_request();
 }
 
 void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials) {
@@ -64,9 +64,10 @@ void JuiceManager::send_all(void* data, const size_t size) {
     }
 }
 
-juice_state JuiceManager::agent_state(const NetAddress& address) {
+juice_state JuiceManager::lobby_agent_state(const AdFile& ad) {
     std::lock_guard lock{m_mutex};
-    auto&  agent = ensure_agent(address, lock);
+    auto&           agent = ensure_agent(ad.game_info.host, lock);
+    agent.set_player_name(ad.game_info.game_name);
     return agent.state();
 
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-constexpr const char* CL_VERSION = "0.5.0";
 
 #include <string>
 #include <concepts>
@@ -34,6 +33,17 @@ using s64 = signed long long;
 
 using f32 = float;
 using f64 = double;
+
+
+constexpr const u8    MAJOR_VERSION = 0;
+constexpr const u8    MINOR_VERSION = 9;
+constexpr const u8    BUILD_VERSION = 0;
+inline std::string CL_VERSION_STRING() {
+    return std::format("{}.{}.{}", MAJOR_VERSION, MINOR_VERSION, BUILD_VERSION);
+}
+inline u32 CL_VERSION_NUMBER() {
+    return MAJOR_VERSION * 256 * 256 + MINOR_VERSION * 256 + BUILD_VERSION;
+}
 
 inline u32 get_tick_count() {
     using namespace std::literals;

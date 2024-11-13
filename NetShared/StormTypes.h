@@ -12,6 +12,12 @@ struct NetAddress {
     }
 
     bool operator==(const NetAddress&) const = default;
+    bool operator<(const NetAddress& other) const {
+        if (memcmp(bytes, other.bytes, sizeof(NetAddress)) < 0) {
+            return true;
+        }
+        return false;
+    };
 
     std::string uuid_string() const {
         char str[37] = {};

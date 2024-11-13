@@ -6,7 +6,7 @@
 namespace P2P {
 
 enum class MessageType {
-    Ping = 1,
+    ConnectionRequest = 1,
     Pong,
     JuiceLocalDescription,
     JuiceCandidate,
@@ -20,12 +20,12 @@ struct Header {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id)
 
-struct Ping {
+struct ConnectionRequest {
     Header header;
     std::string timestamp;
-    inline MessageType type() const { return MessageType::Ping; }
+    inline MessageType type() const { return MessageType::ConnectionRequest; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Ping, header, timestamp)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, header, timestamp)
 
 struct Pong {
     Header header;
@@ -59,8 +59,8 @@ public:
     template <typename Handler>
     void handle(const MessageType message_type, const std::span<u8> message, const Handler& handler) {
         switch (MessageType(message_type)) {
-            case MessageType::Ping: {
-                Ping deserialized{};
+            case MessageType::ConnectionRequest: {
+                ConnectionRequest deserialized{};
                 deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;

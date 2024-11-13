@@ -7,7 +7,7 @@
 
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
-    
+
     memset(&m_config, 0, sizeof(m_config));
 
     m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
@@ -45,7 +45,9 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 
     m_agent = juice_create(&m_config);
 
-    send_signal_ping();
+    m_controlling = g_crown_link->crowserve().id() < address;
+
+    send_connection_request();
 }
 
 JuiceAgent::~JuiceAgent() {
@@ -92,8 +94,8 @@ void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
     spdlog::trace("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
 }
 
-void JuiceAgent::send_signal_ping() {
-    auto ping = P2P::Ping{{m_address}};
+void JuiceAgent::send_connection_request() {
+    auto ping = P2P::ConnectionRequest{{m_address}};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
     spdlog::debug("[{}] Sent signal ping", m_address);
 }
@@ -106,9 +108,13 @@ juice_state JuiceAgent::state() {
     return m_p2p_state = juice_get_state(m_agent);
 }
 
-void JuiceAgent::set_player_name(std::string& name) {
+void JuiceAgent::set_player_name(const std::string& name) {
     std::unique_lock lock{m_mutex};
     m_player_name = name;
+}
+
+void JuiceAgent::set_player_name(const char game_name[128]) {
+    m_player_name = std::string{game_name};
 }
 
 std::string& JuiceAgent::player_name() {
@@ -134,7 +140,7 @@ bool JuiceAgent::send_message(void* data, size_t size) {
             return false;
         } break;
         case JUICE_STATE_DISCONNECTED: {
-            send_signal_ping();
+            send_connection_request();
         } break;
 
         case JUICE_STATE_FAILED: {

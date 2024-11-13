@@ -117,7 +117,7 @@ TEST_CASE("P2P message exchange") {
             receiver_id.destination = message.peer_id;
             receiver_id.cv.notify_all();
         },
-        [&receiver_socket](const P2P::Ping &message) {
+        [&receiver_socket](const P2P::ConnectionRequest &message) {
             auto msg = P2P::Pong{{message.header.peer_id},message.timestamp};
             receiver_socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, msg);
         },        
@@ -161,7 +161,7 @@ TEST_CASE("P2P message exchange") {
     INFO("Received receiver id " << receiver_id.destination);
 
 
-    auto ping = P2P::Ping{{receiver_id.destination},"TestMessage"};
+    auto ping = P2P::ConnectionRequest{{receiver_id.destination},"TestMessage"};
     INFO("Sending PING to " << ping.header.peer_id.b64());
     sender_socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
 

@@ -102,9 +102,9 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
 void Socket::set_profile(const NetAddress ID, const NetAddress Token) {
     std::lock_guard lock{m_mutex};
     profile_received = true;
-    id_received = true;
-    id = ID;
-    reconnect_token = Token;
+    m_id_received = true;
+    m_id = ID;
+    m_reconnect_token = Token;
 }
 
 }
