@@ -65,6 +65,9 @@ void Socket::try_init(std::stop_token &stop_token) {
             continue;
         }
 
+        m_poll_fd[0].fd = m_socket;
+        m_poll_fd[0].events = POLLIN;
+
         try_log("Successfully connected to matchmaking server");
         std::cout << "successfully connected\n";
         freeaddrinfo(address_info);

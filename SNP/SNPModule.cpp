@@ -73,6 +73,8 @@ static void init_logging() {
 static BOOL __stdcall spi_initialize(
     client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event
 ) {
+    // called by storm when the CrownLink connection mode is selected from the multiplayer menu
+
     g_snp_context.game_app_info = *client_info;
     g_receive_event = event;
     init_logging();
@@ -96,6 +98,8 @@ static BOOL __stdcall spi_initialize(
 }
 
 static BOOL __stdcall spi_destroy() {
+    // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer connnection types menu 
+
     try {
         g_crown_link.reset();
     } catch (const std::exception& e) {
@@ -165,7 +169,10 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
 }
 
 static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+    // called by storm once per second when on the games list screen
+
     g_advertisement_mutex.lock();
+    // storm will unlock when it's done with the data by calling spi_unlock_game_list()
 
     s32     game_index = 0;
     AdFile* last_ad = nullptr;
@@ -253,6 +260,8 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 }
 
 static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
+    // called by storm after it is done reading the games list to unlock the mutex
+
     g_advertisement_mutex.unlock();
 
     g_crown_link->request_advertisements();
@@ -300,6 +309,8 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
     int, int, void* user_data, DWORD user_data_size
 ) {
+    // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
+
     std::lock_guard lock{g_advertisement_mutex};
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
     g_crown_link->start_advertising(g_snp_context.hosted_game);
@@ -307,12 +318,17 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
 }
 
 static BOOL __stdcall spi_stop_advertising_game() {
+    // called by storm when the host cancels their lobby or the game is over
+
     std::lock_guard lock{g_advertisement_mutex};
     g_crown_link->stop_advertising();
     return true;
 }
 
 static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
+    // called by storm when the user selects a lobby to join from the games list
+    // if we return false the user will immediately see a "couldn't join game" message
+
     std::lock_guard lock{g_advertisement_mutex};
     spdlog::trace("getting game info for index {}", index);
 
@@ -362,6 +378,8 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
 }
 
 static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) {
+    // when g_receive_event is set storm will repeatedly call this until it returns false, reading one packet each time until the queue is empty
+
     *peer = nullptr;
     *out_data = nullptr;
     *out_size = 0;
@@ -390,6 +408,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
 }
 
 static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
+    // called after storm is done with the packet to free its memory
     if (loan) {
         delete loan;
     }

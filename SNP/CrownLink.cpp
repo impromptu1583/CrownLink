@@ -10,8 +10,6 @@ CrownLink::~CrownLink() {
     spdlog::info("Shutting down");
     m_is_running = false;
     m_listener_thread.request_stop();
-    auto echo = CrownLinkProtocol::EchoRequest{};
-    m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, echo);
 }
 
 bool CrownLink::in_games_list() const {

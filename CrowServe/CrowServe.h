@@ -154,6 +154,31 @@ public:
 
                 Header main_header{};
 
+                auto poll_ready_count = WSAPoll(m_poll_fd, 1, 100);
+                if (poll_ready_count == SOCKET_ERROR) {
+                    try_log("Winsock error while polling: {}", WSAGetLastError());
+                    disconnect();
+                    continue;
+                } else if (!poll_ready_count && profile_received) {
+                    auto time_since_message = std::chrono::steady_clock::now() - m_last_message;
+                    if (time_since_message > 1.5s) {
+                        u16 missed = time_since_message / 1s;
+                        if (missed != m_missed_heartbeats) {
+                            m_missed_heartbeats = missed;
+                            try_log("Missed {} server heartbeats", m_missed_heartbeats);
+                        }
+                        if (m_missed_heartbeats > 5) {
+                            m_last_message = std::chrono::steady_clock::now();
+                            m_missed_heartbeats = 0;
+                            disconnect();
+                        }
+                        
+                    }
+                    continue;
+                }
+                m_last_message = std::chrono::steady_clock::now();
+                m_missed_heartbeats = 0;
+
                 auto [bytes, error] = receive_into(main_header);
                 if (!bytes || error) {
                     log_socket_error("Main header error: ", bytes, error);
@@ -234,7 +259,20 @@ private:
         auto bytes_remaining = sizeof(container);
         u32 offset = 0;
         s32 bytes_received = 0;
+        u8   allowed_timeouts = 10; // 1s
         while (bytes_remaining > 0) {
+            auto poll_ready_count = WSAPoll(m_poll_fd, 1, 100);
+            if (poll_ready_count == SOCKET_ERROR) { 
+                return {bytes_received, WSAGetLastError()};
+            } else if (!poll_ready_count) {
+                if (allowed_timeouts) {
+                    allowed_timeouts--;
+                    continue;
+                } else {
+                    return {bytes_received, WSAETIMEDOUT};
+                }
+            }
+
             bytes_received = recv(m_socket, (char*)&container + offset, bytes_remaining, 0);
             if (bytes_received == 0 || bytes_received == SOCKET_ERROR) {
                 // currently we back-propagate for error handling
@@ -248,9 +286,13 @@ private:
 
         return {bytes_received, 0};
     }
-    
+
 private:
     SOCKET m_socket = 0;
+    WSAPOLLFD m_poll_fd[1];
+    u16       m_missed_heartbeats = 0;
+    std::chrono::steady_clock::time_point m_last_message = std::chrono::steady_clock::now();
+
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";
     SocketState m_state = SocketState::Disconnected;
