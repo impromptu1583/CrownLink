@@ -15,7 +15,15 @@ CrownLink::~CrownLink() {
 bool CrownLink::in_games_list() const {
     std::shared_lock lock{m_ad_mutex};
 
-    return (m_is_advertising && m_ad_data.game_info.game_state == 0) || std::chrono::steady_clock::now() - m_last_solicitation < 2s;
+    bool in =
+        (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
+        std::chrono::steady_clock::now() - m_last_solicitation < 2s;
+
+    spdlog::trace(
+        "checking if in lobby, m_is_advertising: {}, game_state: {}, last_solicitation_delta {}, output: {}",
+        m_is_advertising, m_ad_data.game_info.game_state, std::chrono::steady_clock::now() - m_last_solicitation, in
+    );
+    return in;
 }
 
 auto& CrownLink::advertising() {

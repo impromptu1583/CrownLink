@@ -28,25 +28,23 @@ public:
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
+        spdlog::trace("handle_crownlink_message locking mtx");
+        std::unique_lock lock{m_mutex};
 
         if constexpr (std::is_same_v<T, P2P::Ping>) {
             spdlog::trace("[{}] Received Ping", m_address);
-            try_initialize();
-        } else if constexpr (std::is_same_v<T, P2P::Pong>) {
-            spdlog::trace("[{}] Received Pong", m_address);  // TODO: Remove this type - unused
+            if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
+                reset_agent(lock);
+            }
+            try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceLocalDescription>) {
             spdlog::debug("[{}] Received remote description:\n{}", m_address, message.sdp);
-
-            if (m_p2p_state == JUICE_STATE_FAILED ||
-                m_p2p_state == JUICE_STATE_CONNECTED ||
-                m_p2p_state == JUICE_STATE_COMPLETED) {
-                // peer is requesting reconnect, need to reset agent
-                spdlog::debug("[{}] Agent was in {} state, reset agent.",m_address, to_string(m_p2p_state));
-                reset_agent();
+            if (m_remote_description_set) {
+                spdlog::debug("[{}] Remote description was set previously, resetting", m_address);
+                reset_agent(lock);
             }
-
             juice_set_remote_description(m_agent, message.sdp.c_str());
-            try_initialize();
+            try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
             spdlog::trace("[{}] Received candidate:\n{}", m_address, message.candidate);
             juice_add_remote_candidate(m_agent, message.candidate.c_str());
@@ -54,6 +52,7 @@ public:
             spdlog::trace("[{}] Remote gathering done", m_address);
             juice_set_remote_gathering_done(m_agent);
         }
+        spdlog::trace("handle_crownlink_message unlocking mtx");
     };
 
     bool send_message(void* data, const size_t size);
@@ -61,21 +60,22 @@ public:
 
 public:
     const NetAddress&   address() const { return m_address; }
-    juice_state         state() const { return m_p2p_state; }
-    JuiceConnectionType connection_type() const { return m_connection_type; };
+    juice_state         state();
+    JuiceConnectionType connection_type() { return m_connection_type.load(); }
     void                set_player_name(std::string& name);
     std::string&        player_name();
 
-    bool is_active() const {
-        return std::chrono::steady_clock::now() - m_last_active < 5s;
-    }
 
-    void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; };
+    bool is_active();
+
+    void set_connection_type(JuiceConnectionType ct) {
+        m_connection_type = ct;
+    };
 
 private:
-    void mark_active() { m_last_active = std::chrono::steady_clock::now(); }
-    void try_initialize();
-    void reset_agent();
+    void mark_active(std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
+    void try_initialize(std::unique_lock<std::shared_mutex>& lock);
+    void reset_agent(std::unique_lock<std::shared_mutex>& lock);
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
@@ -83,15 +83,19 @@ private:
     static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
 private:
-    bool                m_is_relayed = false;
-    bool                m_is_radmin = false;
-    JuiceConnectionType m_connection_type = JuiceConnectionType::Standard;
+    bool m_is_relayed = false;
+    bool m_is_radmin = false;
+    bool m_remote_description_set = false;
+
+    std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
+
     juice_state         m_p2p_state = JUICE_STATE_DISCONNECTED;
     NetAddress          m_address;
     juice_config_t      m_config;
+    juice_turn_server   m_servers[2];
     juice_agent_t*      m_agent;
     std::string         m_player_name;
-    std::mutex          m_mutex;
+    std::shared_mutex   m_mutex;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

@@ -26,21 +26,20 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 
     if (ice_credentials.turn_servers_count) {
 
-        juice_turn_server servers[2]{};
         for (int i = 0; i < ice_credentials.turn_servers_count; i++) {
-            servers[i].host = ice_credentials.turn_servers[i].host.c_str();
-            servers[i].username = ice_credentials.turn_servers[i].username.c_str();
-            servers[i].password = ice_credentials.turn_servers[i].password.c_str();
+            m_servers[i].host = ice_credentials.turn_servers[i].host.c_str();
+            m_servers[i].username = ice_credentials.turn_servers[i].username.c_str();
+            m_servers[i].password = ice_credentials.turn_servers[i].password.c_str();
             const auto res = std::from_chars(
                 ice_credentials.turn_servers[i].port.data(),
                 ice_credentials.turn_servers[i].port.data() + ice_credentials.turn_servers[i].port.size(),
-                servers[i].port
+                m_servers[i].port
             );
             if (res.ec == std::errc::invalid_argument or res.ec == std::errc::result_out_of_range) {
                 spdlog::error("Invalid turn port received: {}", ice_credentials.turn_servers[i].port);
             }
         }
-        m_config.turn_servers = servers;
+        m_config.turn_servers = m_servers;
         m_config.turn_servers_count = ice_credentials.turn_servers_count;
     }
 
@@ -54,8 +53,8 @@ JuiceAgent::~JuiceAgent() {
     juice_destroy(m_agent);
 }
 
-void JuiceAgent::try_initialize() {
-
+void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
+    m_p2p_state = juice_get_state(m_agent);
     switch (m_p2p_state) {
         case JUICE_STATE_COMPLETED:
         case JUICE_STATE_CONNECTED: {
@@ -68,7 +67,9 @@ void JuiceAgent::try_initialize() {
 
 		case JUICE_STATE_FAILED: {
             spdlog::error("[{}] P2P agent init attempted but agent in failed state", m_address);
-        } break;
+                    reset_agent(lock);
+        }
+        [[fallthrough]];
 
 		case JUICE_STATE_DISCONNECTED: {
             char sdp[JUICE_MAX_SDP_STRING_LEN]{};
@@ -82,12 +83,13 @@ void JuiceAgent::try_initialize() {
     }
 }
 
-void JuiceAgent::reset_agent() {
-    std::lock_guard lock{m_mutex};
-
+void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
+    m_remote_description_set = false;
+    spdlog::trace("[{}] resetting agent", m_address);
     juice_destroy(m_agent);
     m_agent = juice_create(&m_config);
-    m_p2p_state = JUICE_STATE_DISCONNECTED;
+    m_p2p_state = juice_get_state(m_agent);
+    spdlog::trace("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
 }
 
 void JuiceAgent::send_signal_ping() {
@@ -96,17 +98,32 @@ void JuiceAgent::send_signal_ping() {
     spdlog::debug("[{}] Sent signal ping", m_address);
 }
 
+juice_state JuiceAgent::state() {
+    std::unique_lock lock{m_mutex};
+    if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
+        reset_agent(lock);
+    }
+    return m_p2p_state = juice_get_state(m_agent);
+}
+
 void JuiceAgent::set_player_name(std::string& name) {
+    std::unique_lock lock{m_mutex};
     m_player_name = name;
 }
 
 std::string& JuiceAgent::player_name() {
+    std::shared_lock lock{m_mutex};
     return m_player_name;
 }
 
+bool JuiceAgent::is_active() {
+    std::shared_lock lock{m_mutex};
+    return std::chrono::steady_clock::now() - m_last_active < 5s;
+}
+
 bool JuiceAgent::send_message(void* data, size_t size) {
-    std::lock_guard lock{m_mutex};
-    mark_active();
+    std::unique_lock lock{m_mutex};
+    mark_active(lock);
 
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
@@ -120,7 +137,9 @@ bool JuiceAgent::send_message(void* data, size_t size) {
             send_signal_ping();
         } break;
 
-        case JUICE_STATE_FAILED:
+        case JUICE_STATE_FAILED: {
+            reset_agent(lock);
+        } break;
         case JUICE_STATE_CONNECTING:
         case JUICE_STATE_GATHERING: {
         } break;
@@ -131,11 +150,10 @@ bool JuiceAgent::send_message(void* data, size_t size) {
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    parent.m_p2p_state = state;
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
+
+    parent.m_p2p_state = state;
     switch (state) {
-        case JUICE_STATE_CONNECTED: {
-        } break;
         case JUICE_STATE_COMPLETED: {
             char local[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
             char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
@@ -159,7 +177,6 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
         } break;
         case JUICE_STATE_FAILED: {
             spdlog::error("[{}] Could not establish P2P connection", parent.address());
-            parent.reset_agent();
         } break;
     }
 }

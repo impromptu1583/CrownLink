@@ -210,6 +210,11 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
             joinable = false;
         }
 
+        if (ad.game_info.game_state == 12) {
+            // in progress - these won't be shown anyway but don't want to initiate p2p
+            joinable = false;
+        }
+
         // agent_state calls ensure_agent so one will be created if needed
         // this kicks off the p2p connection process
         if (joinable) {
@@ -222,10 +227,10 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
                     prefixes += "[P2P Not Connected]";
+                    g_crown_link->juice_manager().send_signal_ping(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
-                    //prefixes += "";
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
                             prefixes += "[Relayed]";
