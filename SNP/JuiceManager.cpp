@@ -59,7 +59,7 @@ void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& 
 void JuiceManager::send_all(void* data, const size_t size) {
     std::lock_guard lock{m_mutex};
     for (auto& [name, agent] : m_agents) {
-        spdlog::debug("Sending message peer {} with status: {}\n", agent->address().b64(), as_string(agent->state()));
+        spdlog::debug("Sending message peer {} with status: {}\n", agent->address(), as_string(agent->state()));
         agent->send_message(data, size);
     }
 }

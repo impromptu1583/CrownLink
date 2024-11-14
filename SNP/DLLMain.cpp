@@ -38,14 +38,16 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
         switch (index) {
             case CLNK_ID: {
                 *out_funcs = &snp::g_spi_functions;
-                g_crown_link = std::make_unique<CrownLink>();
-                g_crown_link->set_mode(CrownLinkMode::CLNK);
+                //g_crown_link = std::make_unique<CrownLink>();
+                //g_crown_link->set_mode(CrownLinkMode::CLNK);
                 return true;
             } break;
             case DBCL_ID: {
+                auto& snp_config = SnpConfig::instance();
+                snp_config.mode = CrownLinkMode::DBCL;
                 *out_funcs = &snp::g_spi_functions;
-                g_crown_link = std::make_unique<CrownLink>();
-                g_crown_link->set_mode(CrownLinkMode::DBCL);
+                //g_crown_link = std::make_unique<CrownLink>();
+                //g_crown_link->set_mode(CrownLinkMode::DBCL);
                 return true;
             } break;
         }

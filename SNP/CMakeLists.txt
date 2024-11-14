@@ -1,8 +1,6 @@
 ﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(MODULE_FILES
-	"include/base64.hpp"
-	
 	"SNPModule.cpp"
 	"SNPModule.h"
 	"SNPModule.def"

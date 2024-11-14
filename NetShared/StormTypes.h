@@ -1,6 +1,5 @@
 #pragma once
 #include "../shared_common.h"
-#include "../SNP/include/base64.hpp"
 #include <nlohmann/json.hpp>
 using Json = nlohmann::json;
 
@@ -8,10 +7,6 @@ using Json = nlohmann::json;
 
 struct NetAddress {
     u8 bytes[16]{};
-
-    std::string b64() const {
-        return base64::to_base64(std::string((char*) bytes, sizeof(NetAddress)));
-    }
 
     bool operator==(const NetAddress&) const = default;
     bool operator<(const NetAddress& other) const {
@@ -341,7 +336,7 @@ inline std::string to_string(GamePacketFlags value) {
     return out;
 }
 
-struct GamePacketHeader { // TODO: Constructor & to_string / print method
+struct GamePacketHeader {
     u16 checksum;
     u16 size;
     u16 sequence;
@@ -370,7 +365,7 @@ struct SystemPlayerJoin_PlayerInfo {
     char       name_description[256];
 };
 
-struct GamePacketData { // TODO: Constructor & to_string / print method
+struct GamePacketData {
     GamePacketHeader header;
     char payload[500]{};
 };

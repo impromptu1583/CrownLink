@@ -12,7 +12,6 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-#include <base64.hpp>
 #include <nlohmann/json.hpp>
 
 using Json = nlohmann::json;

@@ -64,7 +64,6 @@ struct IceCredentials {
 inline void to_json(Json& j, const IceCredentials& ice_credentials) {
     j = Json{
         {"stun_host", ice_credentials.stun_host}, {"stun_port", ice_credentials.stun_port}
-        // TODO: handle TurnServers
     };
 }
 
@@ -200,7 +199,6 @@ public:
                 handler(deserialized);
             } break;
             default: {
-                // TODO: log an error
             }
         }
 

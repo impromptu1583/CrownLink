@@ -162,7 +162,7 @@ TEST_CASE("P2P message exchange") {
 
 
     auto ping = P2P::ConnectionRequest{{receiver_id.destination},"TestMessage"};
-    INFO("Sending PING to " << ping.header.peer_id.b64());
+    INFO("Sending PING to " << ping.header.peer_id);
     sender_socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
 
     INFO("Waiting for reply");

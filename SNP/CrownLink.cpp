@@ -10,6 +10,7 @@ CrownLink::~CrownLink() {
     spdlog::info("Shutting down");
     m_is_running = false;
     m_listener_thread.request_stop();
+    m_listener_thread.join();
 }
 
 bool CrownLink::in_games_list() const {
@@ -42,7 +43,7 @@ void CrownLink::request_advertisements() {
             snp::clear_status_ad();
         } break;
         default: {
-            auto status_string = std::string{"  Connecting"};
+            auto status_string = std::string{"Connecting"};
             m_ellipsis_counter = (m_ellipsis_counter + 1) % 4;
             for (u32 i = 0; i < m_ellipsis_counter; i++) {
                 status_string += ".";
@@ -69,10 +70,7 @@ void CrownLink::init_listener() {
         snp_config.port,
         [&](const CrownLinkProtocol::ClientProfile& message) {
             spdlog::info("received client ID from server: {}", message.peer_id);
-            set_id(message.peer_id);
-            set_token(message.token);
             juice_manager().set_ice_credentials(message.ice_credentials);
-            // TODO clean this up
             crowserve().set_profile(message.peer_id, message.token);
         },
         [&](const CrownLinkProtocol::UpdateAvailable& message) {
@@ -124,8 +122,8 @@ void CrownLink::send_advertisement() {
     const auto&      snp_config = SnpConfig::instance();
     std::unique_lock lock{m_ad_mutex};
 
-    if (m_ad_data.game_info.host != m_client_id) {
-        m_ad_data.game_info.host = m_client_id;
+    if (m_ad_data.game_info.host != crowserve().id()) {
+        m_ad_data.game_info.host = crowserve().id();
     }
 
     auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data, snp_config.lobby_password};

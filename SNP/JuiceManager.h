@@ -11,7 +11,7 @@ public:
     JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
     JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
 
-    void clear_inactive_agents();  // TODO - figure out a new place to call this
+    void clear_inactive_agents();
     void disconnect_if_inactive(const NetAddress& address);
     bool send_p2p(const NetAddress& address, void* data, size_t size);
     void send_all(void* data, size_t size);

@@ -85,7 +85,6 @@ public:
                 handler(deserialized);
             } break;
             default: {
-                // TODO: log an error
             }
         }
         
