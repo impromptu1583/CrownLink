@@ -81,7 +81,7 @@ static BOOL __stdcall spi_initialize(
     g_receive_event = event;
     init_logging();
 
-    set_status_ad("Crownlink Initializing");
+    set_status_ad("  Initializing");
     spdlog::info(
         "Crownlink Initializing, mode: {}, game version: {}", to_string(g_crown_link->mode()),
         g_snp_context.game_app_info.version_id
@@ -158,16 +158,44 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
 }
 
 void update_lobby_name(AdFile& ad, std::string& prefixes) {
-    // todo - add map name to lobby name if config option is set
-    if (!prefixes.empty()) {
+    const auto& snp_config = SnpConfig::instance();
+
+    if (!prefixes.empty() || snp_config.add_map_to_lobby_name) {
         prefixes += ad.game_info.game_name;
         if (prefixes.size() > 127) {
             prefixes.resize(127);
         }
+
+        if (snp_config.add_map_to_lobby_name) {
+            std::string_view description{ad.game_info.game_description};
+            description.remove_prefix(std::min(description.find('\r') + 1, description.size()));
+            auto back_trim_pos = description.find_last_not_of("\t\n\v\f\r ");
+            if (back_trim_pos != description.npos) {
+                description.remove_suffix(description.size() - back_trim_pos - 1);
+            }
+
+            auto total_length = prefixes.size() + description.size();
+            if (total_length > 22) {
+                auto to_trim = total_length - 22;
+                if (description.size() > 8) {
+                    auto d_trim = (std::min)(to_trim, description.size() - 8);
+                    description.remove_suffix(d_trim);
+                    to_trim -= d_trim;
+                }
+                if (to_trim > 0) {
+                    prefixes.resize(prefixes.size() - to_trim);
+                }
+            }
+            prefixes.append("-");
+            prefixes.append(description);
+            spdlog::trace("map name injection result:{}", prefixes);
+        }
+
         strncpy_s(
             ad.game_info.game_name, sizeof(ad.game_info.game_name), prefixes.c_str(), sizeof(ad.game_info.game_name)
         );
     }
+
 }
 
 static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
@@ -222,24 +250,26 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (joinable) {
             switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
-                    prefixes += "[P2P Connecting]";
+                    prefixes += "[...]";
                 } break;
                 case JUICE_STATE_FAILED: {
-                    prefixes += "[P2P Failed]";
+                    prefixes += "[!]";
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
-                    prefixes += "[P2P Not Connected]";
+                    prefixes += "[-]";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
-                            prefixes += "[Relayed]";
+                            prefixes += " [R]";
                         } break;
                         case JuiceConnectionType::Radmin: {
-                            prefixes += "[Radmin]";
+                            prefixes += std::format(" [Radmin {}]", char(131));
                         } break;
+                        default:
+                            prefixes += std::format(" {} ", char(187));
                     }
                 }
             }
@@ -272,8 +302,8 @@ static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
 
     const auto& snp_config = SnpConfig::instance();
     if (!snp_config.lobby_password.empty()) {
-        g_snp_context.permanent_status = "Private Lobby Mode";
-        set_status_ad("Private Lobby Mode");
+        g_snp_context.permanent_status = "  Private Lobby Mode";
+        set_status_ad(g_snp_context.permanent_status);
     }
     g_crown_link->request_advertisements();
 

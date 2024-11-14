@@ -15,6 +15,7 @@ struct SnpConfig {
     std::string server = "127.0.0.1";
     std::string port = "33377";
     std::string lobby_password = "";
+    bool        add_map_to_lobby_name = true;
 
     LogLevel log_level = LogLevel::Debug;
 
@@ -49,6 +50,7 @@ public:
         load_field(json, "server", config.server);
         load_field(json, "port", config.port);
         load_field(json, "lobby_password", config.lobby_password);
+        load_field(json, "add_map_to_lobby_name", config.add_map_to_lobby_name);
 
         load_field(json, "log_level", config.log_level);
         switch (config.log_level) {
@@ -88,6 +90,7 @@ public:
             {"server", config.server},
             {"port", config.port},
             {"lobby_password", config.lobby_password},
+            {"add_map_to_lobby_name", config.add_map_to_lobby_name},
             {"log_level", config.log_level},
         };
 
