@@ -20,10 +20,6 @@ bool CrownLink::in_games_list() const {
         (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
         std::chrono::steady_clock::now() - m_last_solicitation < 2s;
 
-    spdlog::trace(
-        "checking if in lobby, m_is_advertising: {}, game_state: {}, last_solicitation_delta {}, output: {}",
-        m_is_advertising, m_ad_data.game_info.game_state, std::chrono::steady_clock::now() - m_last_solicitation, in
-    );
     return in;
 }
 
@@ -34,7 +30,7 @@ auto& CrownLink::advertising() {
 
 void CrownLink::request_advertisements() {
     const auto& snp_config = SnpConfig::instance();
-    spdlog::debug("Requesting lobbies");
+    spdlog::trace("Requesting lobbies");
     auto request = CrownLinkProtocol::AdvertisementsRequest{{}, snp_config.lobby_password};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, request);
 
@@ -140,7 +136,6 @@ void CrownLink::send_advertisement() {
 void CrownLink::stop_advertising() {
     auto message = CrownLinkProtocol::StopAdvertising{};
     m_crowserve.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
-    spdlog::info("Stopped advertising lobby");
 
     std::unique_lock lock{m_ad_mutex};
     m_is_advertising = false;

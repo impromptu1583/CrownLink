@@ -31,7 +31,7 @@ public:
         std::unique_lock lock{m_mutex};
 
         if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
-            spdlog::trace("[{}] Received Connection Request", m_address);
+            spdlog::debug("[{}] Received Connection Request", m_address);
             if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
                 reset_agent(lock);
             }
@@ -49,10 +49,10 @@ public:
             juice_set_remote_description(m_agent, message.sdp.c_str());
             try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
-            spdlog::trace("[{}] Received candidate:\n{}", m_address, message.candidate);
+            spdlog::debug("[{}] Received candidate:\n{}", m_address, message.candidate);
             juice_add_remote_candidate(m_agent, message.candidate.c_str());
         } else if constexpr (std::is_same_v<T, P2P::JuiceDone>) {
-            spdlog::trace("[{}] Remote gathering done", m_address);
+            spdlog::debug("[{}] Remote gathering done", m_address);
             juice_set_remote_gathering_done(m_agent);
         }
     };

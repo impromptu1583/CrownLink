@@ -51,7 +51,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 }
 
 JuiceAgent::~JuiceAgent() {
-    spdlog::debug("Agent {} closed", m_address);
+    spdlog::info("[{}] Agent closed", m_address);
     juice_destroy(m_agent);
 }
 
@@ -79,7 +79,7 @@ void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
 
             auto sdp_message = P2P::JuiceLocalDescription{{m_address}, sdp};
             g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
-            spdlog::trace("[{}] Init - local SDP {}", m_address, sdp);
+            spdlog::debug("[{}] Init - local SDP {}", m_address, sdp);
             juice_gather_candidates(m_agent);
         }
     }
@@ -87,17 +87,17 @@ void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
 
 void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
     m_remote_description_set = false;
-    spdlog::trace("[{}] resetting agent", m_address);
+    spdlog::debug("[{}] resetting agent", m_address);
     juice_destroy(m_agent);
     m_agent = juice_create(&m_config);
     m_p2p_state = juice_get_state(m_agent);
-    spdlog::trace("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
+    spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
 }
 
 void JuiceAgent::send_connection_request() {
     auto ping = P2P::ConnectionRequest{{m_address}};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
-    spdlog::debug("[{}] Sent signal ping", m_address);
+    spdlog::debug("[{}] Sent connection request", m_address);
 }
 
 juice_state JuiceAgent::state() {
@@ -114,6 +114,7 @@ void JuiceAgent::set_player_name(const std::string& name) {
 }
 
 void JuiceAgent::set_player_name(const char game_name[128]) {
+    std::unique_lock lock{m_mutex};
     m_player_name = std::string{game_name};
 }
 
