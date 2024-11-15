@@ -101,5 +101,8 @@ private:
     std::string         m_player_name;
     std::shared_mutex   m_mutex;
 
+    u32 m_packet_count = 0;
+    u32 m_resends_requested = 0;
+
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

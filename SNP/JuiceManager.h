@@ -22,7 +22,6 @@ public:
     void handle_crownlink_message(const T& message) {
         std::lock_guard lock{m_mutex};
 
-        spdlog::trace("received p2p message type {} from {}", message.type(), message.header.peer_id);
         auto& peer_agent = ensure_agent(message.header.peer_id, lock);
         peer_agent.handle_crownlink_message(message);
     };

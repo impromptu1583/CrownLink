@@ -131,6 +131,11 @@ bool JuiceAgent::send_message(void* data, size_t size) {
     std::unique_lock lock{m_mutex};
     mark_active(lock);
 
+    auto packet = GamePacket{m_address, (char*)data, size};
+    if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
+        spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested, m_packet_count);
+    }
+
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
@@ -206,6 +211,11 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
     auto  packet = GamePacket{parent.m_address, data, size};
+    parent.m_packet_count++;
+    if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
+        parent.m_resends_requested++;
+        spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested, parent.m_packet_count);
+    }
     g_crown_link->receive_queue().enqueue(packet);
     SetEvent(g_receive_event);
 }

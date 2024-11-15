@@ -72,6 +72,13 @@ void CrownLink::init_listener() {
             spdlog::info("received client ID from server: {}", message.peer_id);
             juice_manager().set_ice_credentials(message.ice_credentials);
             crowserve().set_profile(message.peer_id, message.token);
+            for (int i = 0; i < message.ice_credentials.turn_servers_count; i++) {
+                auto& ts = message.ice_credentials.turn_servers[i];
+                spdlog::info(
+                    "Turn server received, host: {}, port: {}, user: {}, pass: {}", ts.host, ts.port, ts.username,
+                    ts.password
+                );
+            }
         },
         [&](const CrownLinkProtocol::UpdateAvailable& message) {
             // TODO display status string

@@ -130,10 +130,6 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
             it->mark_for_removal = true;
         } else {
             known_lobby.mark_for_removal = true;
-            // this is likely unnecessary as we'll be regularly sweeping inactive agents
-            // and it might be triggering the leave/re-enter rapidly connection bug
-            // TODO: re-enable after squashing the bug
-            // g_crown_link->juice_manager().disconnect_if_inactive(known_lobby.game_info.host);
         }
     }
     g_snp_context.lobbies.erase(
@@ -190,7 +186,6 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
             }
             prefixes.append("-");
             prefixes.append(description);
-            spdlog::trace("map name injection result:{}", prefixes);
         }
 
         strncpy_s(
@@ -379,6 +374,7 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     std::lock_guard lock{g_advertisement_mutex};
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
     g_crown_link->start_advertising(g_snp_context.hosted_game);
+    spdlog::info("Started advertising");
     return true;
 }
 
@@ -387,6 +383,7 @@ static BOOL __stdcall spi_stop_advertising_game() {
 
     std::lock_guard lock{g_advertisement_mutex};
     g_crown_link->stop_advertising();
+    spdlog::info("Stopped advertising");
     return true;
 }
 
@@ -421,18 +418,18 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
 
 static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
     if (!address_count) {
-        spdlog::trace("spiSend called with no addresses");
+        spdlog::error("spiSend called with no addresses");
         return true;
     }
 
     if (address_count > 1) {
-        spdlog::info("multicast attempted");  // BW engine doesn't seem to ever use multicast
+        spdlog::error("multicast attempted");  // BW engine doesn't seem to ever use multicast
     }
 
     const NetAddress& peer = out_address_list[0][0];
     GamePacketData*   packet = reinterpret_cast<GamePacketData*>(data);
     spdlog::trace(
-        "send {}: {} {:pa}", peer, to_string(packet->header),
+        "[{}] Send: {} {:pa}", peer, to_string(packet->header),
         spdlog::to_hex(
             std::begin(packet->payload),
             std::begin(packet->payload) + packet->header.size - sizeof(GamePacketHeader)
@@ -457,7 +454,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             return false;
         }
         auto payload_size = loan->data.header.size - sizeof(GamePacketHeader);
-        spdlog::trace("Recv {}: {} {:pa}", loan->sender, to_string(loan->data.header),
+        spdlog::trace("[{}] Recv: {} {:pa}", loan->sender, to_string(loan->data.header),
                       spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + payload_size)
         );
 
