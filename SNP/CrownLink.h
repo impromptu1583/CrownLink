@@ -23,7 +23,7 @@ public:
 
     void request_advertisements();
     bool send(const NetAddress& to, void* data, size_t size);
-    void start_advertising(AdFile ad_data);
+    void start_advertising(AdFile& ad_data);
     void send_advertisement();
     void stop_advertising();
     bool in_games_list() const; 
@@ -32,10 +32,6 @@ public:
     auto& receive_queue() { return m_receive_queue; }
     auto& juice_manager() { return m_juice_manager; }
     auto& crowserve() { return m_crowserve; }
-
-    void set_mode(const CrownLinkMode& v) { m_cl_version = v; }
-
-    CrownLinkMode mode() const { return m_cl_version; }
 
 private:
     void init_listener();
@@ -55,7 +51,6 @@ private:
     mutable std::shared_mutex             m_ad_mutex;
 
     u32           m_ellipsis_counter = 3;
-    CrownLinkMode m_cl_version = CrownLinkMode::CLNK;
 };
 
 inline HANDLE                     g_receive_event;

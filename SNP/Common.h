@@ -69,6 +69,16 @@ inline std::string as_string(const auto& value) {
     return std::string();
 }
 
+enum class ColorByte {
+    Blue = 2,
+    Green,
+    LightGreen,
+    Gray,
+    White,
+    Red,
+    Black
+};
+
 // NOTE: this code doesn't yet compile, but would be VERY NICE :) -Veeq7
 /*
 template <typename T>

@@ -175,8 +175,8 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
             auto total_length = prefixes.size() + description.size();
             if (total_length > 22) {
                 auto to_trim = total_length - 22;
-                if (description.size() > 8) {
-                    auto d_trim = (std::min)(to_trim, description.size() - 8);
+                if (description.size() > 6) {
+                    auto d_trim = (std::min)(to_trim, description.size() - 6);
                     description.remove_suffix(d_trim);
                     to_trim -= d_trim;
                 }
@@ -184,8 +184,7 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
                     prefixes.resize(prefixes.size() - to_trim);
                 }
             }
-            prefixes.append("-");
-            prefixes.append(description);
+            prefixes += std::format("{}{}", (char)ColorByte::Blue, description);
         }
 
         strncpy_s(
@@ -200,6 +199,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 
     g_advertisement_mutex.lock();
     // storm will unlock when it's done with the data by calling spi_unlock_game_list()
+    const auto& snp_config = SnpConfig::instance();
 
     s32     game_index = 1;
     AdFile* last_ad = nullptr;
@@ -221,15 +221,13 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
             joinable = false;
             prefixes += "[!Ver]";
+            prefixes += char(ColorByte::Gray);
         }
 
-        if (g_crown_link->mode() != ad.crownlink_mode) {
+        if (snp_config.mode != ad.crownlink_mode) {
             joinable = false;
-            if (ad.crownlink_mode == CrownLinkMode::CLNK) {
-                prefixes += "[not DBC]";
-            } else {
-                prefixes += "[DBC]";
-            }
+            prefixes += "[!Mode]";
+            prefixes += std::format("{}", char(ColorByte::Gray));
         }
 
         if (ad == g_snp_context.status_ad) {
@@ -246,13 +244,17 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (joinable) {
             switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
-                    prefixes += "[...]";
+                    prefixes += "...";
+                    prefixes += std::format("{}", char(ColorByte::Gray));
                 } break;
                 case JUICE_STATE_FAILED: {
-                    prefixes += "[!]";
+                    prefixes += " !! ";
+                    prefixes += std::format("{}", char(ColorByte::Gray));
+                    g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
-                    prefixes += "[-]";
+                    prefixes += " - ";
+                    prefixes += std::format("{}", char(ColorByte::Gray));
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
@@ -332,20 +334,23 @@ void create_status_ad() {
 
 void update_status_ad() {
     const auto& snp_config = SnpConfig::instance();
-    std::string output = std::format("{}", char(2));
+    std::string output{};
     // "start of text" character changes to a heading font and makes sure the status is at the top of the list
     if (g_snp_context.status_string.empty()) {
         if (!snp_config.lobby_password.empty()) {
-            output += "Private ";
+            output += std::format("{}Private ", char(ColorByte::Blue));
         }
         if (snp_config.mode == CrownLinkMode::DBCL) {
+            if (output.empty()) {
+                output += std::format("{}", char(ColorByte::Blue));
+            }
             output += "DBC ";
         }
-        if (output.size() > 1) {
+        if (!output.empty()) {
             output += "Mode";
         }
     } else {
-        output = g_snp_context.status_string;
+        output = std::format("{}{}", char(ColorByte::White), g_snp_context.status_string);
         // intentionally not using a "start of text" character here so the ad is green
     }
     if (output.size() == 1) {
@@ -370,9 +375,11 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
     int, int, void* user_data, DWORD user_data_size) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
-
     std::lock_guard lock{g_advertisement_mutex};
+
+    const auto&     snp_config = SnpConfig::instance();
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
+    g_snp_context.hosted_game.crownlink_mode = snp_config.mode;
     g_crown_link->start_advertising(g_snp_context.hosted_game);
     spdlog::info("Started advertising");
     return true;
@@ -398,10 +405,11 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game*
 
     for (auto& ad : g_snp_context.lobbies) {
         spdlog::trace("checking game: {} with index {}, version {}", ad.game_info.game_description, ad.game_info.game_index, ad.game_info.version_id);
+        const auto& snp_config = SnpConfig::instance();
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
             spdlog::trace("found game with description {}", ad.game_info.game_description);
-            if (g_crown_link->mode() == ad.crownlink_mode) {
+            if (snp_config.mode == ad.crownlink_mode) {
                 return true;
             }
         }

@@ -31,12 +31,15 @@ public:
         std::unique_lock lock{m_mutex};
 
         if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
-            spdlog::debug("[{}] Received Connection Request", m_address);
+            spdlog::debug("[{}] Received Connection Request, counter: {}, ours: {}, processed {} state: {}", m_address,
+                message.counter, m_connreq_count.load(), m_connreq_processed, to_string(m_p2p_state)
+            );
             if (m_connreq_processed != message.counter) {
                 // this is a new conn request
+                spdlog::debug("[{}] counters didn't match, resetting", m_address);
                 reset_agent(lock);
                 m_connreq_processed = message.counter;
-            } else if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
+            } else if (m_p2p_state == JUICE_STATE_FAILED) {
                 reset_agent(lock);
             }
             if (!m_controlling) {
@@ -49,6 +52,9 @@ public:
             if (m_remote_description_set) {
                 spdlog::debug("[{}] Remote description was set previously, resetting", m_address);
                 reset_agent(lock);
+                m_connreq_count++;
+                send_connection_request();
+                return;
             }
 
             m_remote_description_set = true;
@@ -97,7 +103,7 @@ private:
 
     std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
     std::atomic<juice_state>         m_p2p_state = JUICE_STATE_DISCONNECTED;
-    std::atomic<u32>                 m_connreq_count = 0;
+    std::atomic<u32>                 m_connreq_count = get_tick_count();
     u32                              m_connreq_processed = 0;
 
     NetAddress          m_address;

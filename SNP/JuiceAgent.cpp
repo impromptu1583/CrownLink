@@ -26,7 +26,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 
     if (ice_credentials.turn_servers_count) {
 
-        for (int i = 0; i < ice_credentials.turn_servers_count; i++) {
+        for (u32 i = 0; i < ice_credentials.turn_servers_count; i++) {
             m_servers[i].host = ice_credentials.turn_servers[i].host.c_str();
             m_servers[i].username = ice_credentials.turn_servers[i].username.c_str();
             m_servers[i].password = ice_credentials.turn_servers[i].password.c_str();
@@ -96,7 +96,7 @@ void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
 void JuiceAgent::send_connection_request() {
     auto ping = P2P::ConnectionRequest{{m_address}, m_connreq_count.load()};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
-    spdlog::debug("[{}] Sent connection request", m_address);
+    spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_connreq_count.load());
 }
 
 void JuiceAgent::set_player_name(const std::string& name) {

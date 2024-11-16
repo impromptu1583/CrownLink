@@ -57,7 +57,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, host, port, username, password)
 struct IceCredentials {
     std::string stun_host;
     std::string stun_port;
-    u8          turn_servers_count;
+    u32         turn_servers_count;
     TurnServer  turn_servers[2];
 };
 

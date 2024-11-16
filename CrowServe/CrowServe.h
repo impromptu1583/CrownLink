@@ -289,7 +289,7 @@ private:
 private:
     SOCKET                                m_socket = 0;
     WSAPOLLFD                             m_poll_fd[1] = {0};
-    u16                                   m_missed_heartbeats = 0;
+    s64                                   m_missed_heartbeats = 0;
     std::chrono::steady_clock::time_point m_last_message = std::chrono::steady_clock::now();
 
     NetAddress m_id;

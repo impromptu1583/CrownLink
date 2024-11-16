@@ -12,7 +12,8 @@ enum class LogLevel {
 };
 
 struct SnpConfig {
-    std::string server = "127.0.0.1";
+    u32         config_version = 2;
+    std::string server = "crowserve.cosmonarchy.com";
     std::string port = "33377";
     std::string lobby_password = "";
     bool        add_map_to_lobby_name = true;
@@ -49,34 +50,36 @@ public:
         }
 
         SnpConfig config{};
-        load_field(json, "server", config.server);
-        load_field(json, "port", config.port);
-        load_field(json, "lobby_password", config.lobby_password);
-        load_field(json, "add_map_to_lobby_name", config.add_map_to_lobby_name);
+        if (config_version_matches(json, config.config_version)) {
+            load_field(json, "server", config.server);
+            load_field(json, "port", config.port);
+            load_field(json, "lobby_password", config.lobby_password);
+            load_field(json, "add_map_to_lobby_name", config.add_map_to_lobby_name);
 
-        load_field(json, "log_level", config.log_level);
-        switch (config.log_level) {
-            case LogLevel::Trace: {
-                spdlog::set_level(spdlog::level::trace);
-            } break;
-            case LogLevel::Debug: {
-                spdlog::set_level(spdlog::level::debug);
-            } break;
-            case LogLevel::Info: {
-                spdlog::set_level(spdlog::level::info);
-            } break;
-            case LogLevel::Warn: {
-                spdlog::set_level(spdlog::level::warn);
-            } break;
-            case LogLevel::Error: {
-                spdlog::set_level(spdlog::level::err);
-            } break;
-            case LogLevel::Fatal: {
-                spdlog::set_level(spdlog::level::critical);
-            } break;
-            case LogLevel::None: {
-                spdlog::set_level(spdlog::level::off);
-            } break;
+            load_field(json, "log_level", config.log_level);
+            switch (config.log_level) {
+                case LogLevel::Trace: {
+                    spdlog::set_level(spdlog::level::trace);
+                } break;
+                case LogLevel::Debug: {
+                    spdlog::set_level(spdlog::level::debug);
+                } break;
+                case LogLevel::Info: {
+                    spdlog::set_level(spdlog::level::info);
+                } break;
+                case LogLevel::Warn: {
+                    spdlog::set_level(spdlog::level::warn);
+                } break;
+                case LogLevel::Error: {
+                    spdlog::set_level(spdlog::level::err);
+                } break;
+                case LogLevel::Fatal: {
+                    spdlog::set_level(spdlog::level::critical);
+                } break;
+                case LogLevel::None: {
+                    spdlog::set_level(spdlog::level::off);
+                } break;
+            }
         }
 
         save(config);
@@ -89,6 +92,7 @@ public:
         }
 
         const auto json = Json{
+            {"config_version", config.config_version},
             {"server", config.server},
             {"port", config.port},
             {"lobby_password", config.lobby_password},
@@ -120,6 +124,18 @@ private:
         } catch (const Json::type_error& ex) {
             spdlog::warn("Value for \"{}\" is of wrong type (using default), exception: {}", key, ex.what());
         }
+    }
+
+    bool config_version_matches(Json& json, u32 config_version) {
+        u32 file_version = 0;
+        try {
+            json.at("config_version").get_to(file_version);
+        } catch (const Json::out_of_range& ex) {
+            spdlog::warn("config_version missing, exception: {}", ex.what());
+        } catch (const Json::type_error& ex) {
+            spdlog::warn("config_version type was incorrect, exception: {}", ex.what());
+        }
+        return file_version == config_version;
     }
 
 private:
