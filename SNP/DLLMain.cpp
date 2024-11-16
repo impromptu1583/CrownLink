@@ -70,7 +70,7 @@ static void juice_logger(juice_log_level_t log_level, const char* message) {
             spdlog::info("{}", message);
             break;
         case JUICE_LOG_LEVEL_ERROR:
-            spdlog::info("{}", message);
+            spdlog::error("{}", message);
             break;
         case JUICE_LOG_LEVEL_FATAL:
             spdlog::error("{}", message);

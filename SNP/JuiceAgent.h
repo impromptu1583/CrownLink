@@ -32,7 +32,11 @@ public:
 
         if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
             spdlog::debug("[{}] Received Connection Request", m_address);
-            if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
+            if (m_connreq_processed != message.counter) {
+                // this is a new conn request
+                reset_agent(lock);
+                m_connreq_processed = message.counter;
+            } else if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
                 reset_agent(lock);
             }
             if (!m_controlling) {
@@ -46,6 +50,8 @@ public:
                 spdlog::debug("[{}] Remote description was set previously, resetting", m_address);
                 reset_agent(lock);
             }
+
+            m_remote_description_set = true;
             juice_set_remote_description(m_agent, message.sdp.c_str());
             try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
@@ -62,7 +68,7 @@ public:
 
 public:
     const NetAddress&   address() const { return m_address; }
-    juice_state         state();
+    juice_state         state() { return m_p2p_state.load(); }
     JuiceConnectionType connection_type() { return m_connection_type.load(); }
     void                set_player_name(const std::string& name);
     void                set_player_name(const char game_name[128]);
@@ -71,9 +77,7 @@ public:
 
     bool is_active();
 
-    void set_connection_type(JuiceConnectionType ct) {
-        m_connection_type = ct;
-    };
+    void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; }
 
 private:
     void mark_active(std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
@@ -92,8 +96,10 @@ private:
     bool m_controlling = true;
 
     std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
+    std::atomic<juice_state>         m_p2p_state = JUICE_STATE_DISCONNECTED;
+    std::atomic<u32>                 m_connreq_count = 0;
+    u32                              m_connreq_processed = 0;
 
-    juice_state         m_p2p_state = JUICE_STATE_DISCONNECTED;
     NetAddress          m_address;
     juice_config_t      m_config;
     juice_turn_server   m_servers[2];
@@ -101,8 +107,8 @@ private:
     std::string         m_player_name;
     std::shared_mutex   m_mutex;
 
-    u32 m_packet_count = 0;
     u32 m_resends_requested = 0;
+    u32 m_packet_count = 0;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

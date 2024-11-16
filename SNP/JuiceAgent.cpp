@@ -56,7 +56,6 @@ JuiceAgent::~JuiceAgent() {
 }
 
 void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
-    m_p2p_state = juice_get_state(m_agent);
     switch (m_p2p_state) {
         case JUICE_STATE_COMPLETED:
         case JUICE_STATE_CONNECTED: {
@@ -89,23 +88,15 @@ void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
     m_remote_description_set = false;
     spdlog::debug("[{}] resetting agent", m_address);
     juice_destroy(m_agent);
+    m_p2p_state = JUICE_STATE_DISCONNECTED;
     m_agent = juice_create(&m_config);
-    m_p2p_state = juice_get_state(m_agent);
-    spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
+    spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state.load()));
 }
 
 void JuiceAgent::send_connection_request() {
-    auto ping = P2P::ConnectionRequest{{m_address}};
+    auto ping = P2P::ConnectionRequest{{m_address}, m_connreq_count.load()};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
     spdlog::debug("[{}] Sent connection request", m_address);
-}
-
-juice_state JuiceAgent::state() {
-    std::unique_lock lock{m_mutex};
-    if (juice_get_state(m_agent) == JUICE_STATE_FAILED) {
-        reset_agent(lock);
-    }
-    return m_p2p_state = juice_get_state(m_agent);
 }
 
 void JuiceAgent::set_player_name(const std::string& name) {
@@ -133,8 +124,17 @@ bool JuiceAgent::send_message(void* data, size_t size) {
     mark_active(lock);
 
     auto packet = GamePacket{m_address, (char*)data, size};
+    m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
-        spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested, m_packet_count);
+        m_resends_requested++;
+        //spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested, m_packet_count);
+    }
+    if (m_packet_count % 80 == 0) {
+        spdlog::debug(
+            "[{}] Connection stats: {} packets, {} resend requests", m_address, m_packet_count, m_resends_requested
+        );
+        m_packet_count = 0;
+        m_resends_requested = 0;
     }
 
     switch (m_p2p_state) {
@@ -150,6 +150,7 @@ bool JuiceAgent::send_message(void* data, size_t size) {
         } break;
 
         case JUICE_STATE_FAILED: {
+            spdlog::info("p2p send reset agent");
             reset_agent(lock);
         } break;
         case JUICE_STATE_CONNECTING:
@@ -190,6 +191,9 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
         case JUICE_STATE_FAILED: {
             spdlog::error("[{}] Could not establish P2P connection", parent.address());
         } break;
+        case JUICE_STATE_GATHERING: {
+            parent.m_connreq_count++;
+        } break;
     }
 }
 
@@ -207,6 +211,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
     auto done_message = P2P::JuiceDone{{parent.address()}};
     g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
+    spdlog::info("[{}] Gathering done", parent.address());
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
@@ -215,7 +220,7 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
     parent.m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
         parent.m_resends_requested++;
-        spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested, parent.m_packet_count);
+        //spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested, parent.m_packet_count);
     }
     g_crown_link->receive_queue().enqueue(packet);
     SetEvent(g_receive_event);

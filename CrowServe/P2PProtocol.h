@@ -22,10 +22,10 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id)
 
 struct ConnectionRequest {
     Header header;
-    std::string timestamp;
+    u32                counter = 0;
     inline MessageType type() const { return MessageType::ConnectionRequest; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, header, timestamp)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, header, counter)
 
 struct Pong {
     Header header;
