@@ -129,7 +129,7 @@ bool JuiceAgent::send_message(void* data, size_t size) {
         m_resends_requested++;
         //spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested, m_packet_count);
     }
-    if (m_packet_count % 80 == 0) {
+    if (m_packet_count > 80) {
         spdlog::debug(
             "[{}] Connection stats: {} packets, {} resend requests", m_address, m_packet_count, m_resends_requested
         );

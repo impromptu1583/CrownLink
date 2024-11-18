@@ -35,9 +35,9 @@ using f32 = float;
 using f64 = double;
 
 
-constexpr const u8    MAJOR_VERSION = 0;
-constexpr const u8    MINOR_VERSION = 9;
-constexpr const u8    BUILD_VERSION = 9;
+constexpr const u8    MAJOR_VERSION = 1;
+constexpr const u8    MINOR_VERSION = 0;
+constexpr const u8    BUILD_VERSION = 0;
 inline std::string CL_VERSION_STRING() {
     return std::format("{}.{}.{}", MAJOR_VERSION, MINOR_VERSION, BUILD_VERSION);
 }
