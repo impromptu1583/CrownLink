@@ -15,7 +15,7 @@ struct NetworkInfo {
 };
 
 void update_lobbies(std::vector<AdFile> &updated_list);
-void update_lobby_name(AdFile &ad, std::string &prefixes);
+void update_lobby_name(AdFile &ad, std::string &prefixes, bool joinable);
 void remove_advertisement(const NetAddress &host);
 void create_status_ad();
 void update_status_ad();

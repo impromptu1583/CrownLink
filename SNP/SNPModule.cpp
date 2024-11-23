@@ -155,9 +155,9 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
     }
 }
 
-void update_lobby_name(AdFile& ad, std::string& prefixes) {
+void update_lobby_name(AdFile& ad, std::string& prefixes, bool joinable) {
     const auto& snp_config = SnpConfig::instance();
-
+    
     if (!prefixes.empty() || snp_config.add_map_to_lobby_name) {
         prefixes += ad.game_info.game_name;
         if (prefixes.size() > 127) {
@@ -172,9 +172,9 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
                 description.remove_suffix(description.size() - back_trim_pos - 1);
             }
 
-            auto total_length = prefixes.size() + description.size();
-            if (total_length > 22) {
-                auto to_trim = total_length - 22;
+            auto total_length = prefixes.size() + description.size() + 2;
+            if (total_length > 23) {
+                auto to_trim = total_length - 23;
                 if (description.size() > 6) {
                     auto d_trim = (std::min)(to_trim, description.size() - 6);
                     description.remove_suffix(d_trim);
@@ -184,8 +184,15 @@ void update_lobby_name(AdFile& ad, std::string& prefixes) {
                     prefixes.resize(prefixes.size() - to_trim);
                 }
             }
-            prefixes += std::format("{}{}", (char)ColorByte::Blue, description);
+            if (joinable) {
+                prefixes += std::format("{} {}", (char)ColorByte::Blue, description);
+            } else {
+                prefixes += std::format("{} {}", (char)ColorByte::Revert, description);
+            }
+
         }
+
+        spdlog::debug("Lobby name updated to {}, length: {}", prefixes, prefixes.size());
 
         strncpy_s(
             ad.game_info.game_name, sizeof(ad.game_info.game_name), prefixes.c_str(), sizeof(ad.game_info.game_name)
@@ -253,7 +260,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
-                    prefixes += " - ";
+                    prefixes += "-";
                     prefixes += std::format("{}", char(ColorByte::Gray));
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
@@ -267,13 +274,13 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                             prefixes += std::format(" [Radmin {}]", char(131));
                         } break;
                         default:
-                            prefixes += std::format(" {} ", char(187));
+                            prefixes += std::format("{}", char(187));
                     }
                 }
             }
         }
 
-        update_lobby_name(ad, prefixes);
+        update_lobby_name(ad, prefixes, joinable);
 
         if (last_ad) {
             last_ad->game_info.pNext = &ad.game_info;
