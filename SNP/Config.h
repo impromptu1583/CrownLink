@@ -116,7 +116,7 @@ public:
 			{"log-level", config.log_level},
 		};
 
-		if (m_config_existed) {
+		if (!m_config_existed) {
 			spdlog::info("Creating new config at {}", m_path.string());
 		} else {
 			spdlog::info("Updating config at {}", m_path.string());
@@ -148,6 +148,6 @@ private:
 };
 
 inline SnpConfig& SnpConfig::instance() {
-	static SnpConfig config = SnpConfigLoader{"CrownLink.json"}.load();
+	static SnpConfig config = SnpConfigLoader{"OldLink.json"}.load();
 	return config;
 }
