@@ -87,6 +87,9 @@ void CrownLink::init_listener() {
             }
             if (advertising()) {
                 send_advertisement();
+            } else {
+                auto reply = CrownLinkProtocol::EchoResponse{{}, ""};
+                crowserve().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, reply);
             }
         },
         [&](CrownLinkProtocol::AdvertisementsResponse& message) {
