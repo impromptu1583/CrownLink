@@ -273,10 +273,10 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 case JUICE_STATE_COMPLETED: {
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
-                            prefixes += " [R]";
+                            prefixes += "[R]";
                         } break;
                         case JuiceConnectionType::Radmin: {
-                            prefixes += std::format(" [Radmin {}]", char(131));
+                            prefixes += std::format("[Radmin {}]", char(131));
                         } break;
                         default:
                             prefixes += std::format("{}", char(187));
