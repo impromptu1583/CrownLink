@@ -294,6 +294,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     }
 
     *out_game_list = &g_snp_context.status_ad.game_info;
+    
     return true;
 }
 
@@ -361,7 +362,7 @@ void update_status_ad() {
         output = std::format("{}{}", char(ColorByte::White), g_snp_context.status_string);
         // intentionally not using a "start of text" character here so the ad is green
     }
-    if (output.size() == 1) {
+    if (output.empty()) {
         g_snp_context.status_ad.game_info.game_state = 12; // hide the ad, games list doesn't show games "in progress"
         return;
     }
