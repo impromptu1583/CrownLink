@@ -159,7 +159,11 @@ void update_lobby_name(AdFile& ad, std::string& prefixes, bool joinable) {
     const auto& snp_config = SnpConfig::instance();
     
     if (!prefixes.empty() || snp_config.add_map_to_lobby_name) {
-        prefixes += ad.game_info.game_name;
+        if (ad.original_name.empty()) {
+            ad.original_name += ad.game_info.game_name;
+        }
+
+        prefixes += ad.original_name;
         if (prefixes.size() > 127) {
             prefixes.resize(127);
         }

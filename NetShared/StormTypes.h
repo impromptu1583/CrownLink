@@ -218,6 +218,7 @@ struct AdFile {
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
     bool          mark_for_removal = false;
+    std::string   original_name{""};
     bool          is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host;}
 };
 
