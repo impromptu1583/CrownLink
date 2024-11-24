@@ -34,7 +34,11 @@ public:
             spdlog::debug("[{}] Received Connection Request, counter: {}, ours: {}, processed {} state: {}", m_address,
                 message.counter, m_connreq_count.load(), m_connreq_processed, to_string(m_p2p_state)
             );
-            if (m_connreq_processed != message.counter) {
+            if (m_connreq_processed > message.counter) {
+                spdlog::debug("[{}] counter lower than processed, old message received?", m_address);
+                return;
+            }
+            if (m_connreq_processed < message.counter) {
                 // this is a new conn request
                 spdlog::debug("[{}] counters didn't match, resetting", m_address);
                 reset_agent(lock);

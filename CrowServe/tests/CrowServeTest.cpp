@@ -56,8 +56,8 @@ TEST_CASE("Advertisement Exchange") {
     CrowServe::Socket receiver_socket;
 
     sender_socket.listen(
-        "192.168.1.17",
-        "33377",
+        "192.168.1.17", "33377",
+        "",
         [&sender_socket, &adfile](const CrownLinkProtocol::AdvertisementsRequest& message) {
             auto msg = CrownLinkProtocol::StartAdvertising{{}, adfile};
             sender_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, msg);
@@ -67,6 +67,7 @@ TEST_CASE("Advertisement Exchange") {
 
     receiver_socket.listen(
         "192.168.1.17", "33377",
+        "",
         [&adfile_out](const CrownLinkProtocol::AdvertisementsResponse& message) {
             if (!message.ad_files.empty()) {
                 std::lock_guard lock{adfile_out.mtx};
@@ -112,6 +113,7 @@ TEST_CASE("P2P message exchange") {
 
     receiver_socket.listen(
         "192.168.1.17", "33377",
+        "",
         [&receiver_id](const CrownLinkProtocol::ClientProfile& message) {
             std::lock_guard lock(receiver_id.mtx);
             receiver_id.destination = message.peer_id;
@@ -125,6 +127,7 @@ TEST_CASE("P2P message exchange") {
     );
     sender_socket.listen(
         "192.168.1.17", "33377",
+        "",
         [&sender_id](const CrownLinkProtocol::ClientProfile& message) {
             std::lock_guard lock{sender_id.mtx};
             sender_id.destination = message.peer_id;
@@ -182,6 +185,7 @@ TEST_CASE("CrowServe integration") {
     CrowServe::Socket crow_serve;
     crow_serve.listen(
         "192.168.1.17", "33377",
+        "",
         [](const CrownLinkProtocol::ConnectionRequest& message) {
             INFO("Received ConnectionRequest");
         },

@@ -122,9 +122,10 @@ public:
     }
 
     template <typename... Handlers>
-    std::jthread listen(const std::string &host, const std::string& port, Handlers&&... handlers) {
+    std::jthread listen(const std::string &host, const std::string& port, const std::string &lobby_password, Handlers&&... handlers) {
         m_host = host;
         m_port = port;
+        m_lobby_password = lobby_password;
         return std::jthread{[this, handler = Overloaded{std::forward<Handlers>(handlers)...
                                        }](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
@@ -140,6 +141,7 @@ public:
                     request.peer_id_requested = false;
                     request.requested_id = NetAddress{0};
                     request.request_token = NetAddress{0};
+                    request.lobby_password = m_lobby_password;
                     request.product_id = 0;
                     request.version_id = 0;
                     request.crownlink_version = 0;
@@ -295,9 +297,11 @@ private:
     NetAddress m_id;
     NetAddress m_reconnect_token;
     bool       m_id_received = false;
+    u32        m_retry_counter = 0;
 
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";
+    std::string m_lobby_password = "";
     SocketState m_state = SocketState::Disconnected;
     //std::jthread m_thread;
     CrownLinkProtocol::Protocol m_crownlink_protocol;

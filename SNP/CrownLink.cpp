@@ -64,6 +64,7 @@ void CrownLink::init_listener() {
     m_listener_thread = m_crowserve.listen(
         snp_config.server,
         snp_config.port,
+        snp_config.lobby_password,
         [&](const CrownLinkProtocol::ClientProfile& message) {
             spdlog::info("received client ID from server: {}", message.peer_id);
             juice_manager().set_ice_credentials(message.ice_credentials);

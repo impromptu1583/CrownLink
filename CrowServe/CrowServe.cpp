@@ -35,17 +35,22 @@ void Socket::try_init(std::stop_token &stop_token) {
     // TODO implement some kind of max retries or increase sleep value gradually
 
     while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
+
+        if (m_retry_counter > 0) {
+            std::this_thread::sleep_for(m_retry_counter * 1s);
+        }
+
         std::cout << "attempting connection\n";
         try_log("Attempting connection to {}:{}" ,m_host, m_port);
         if (const auto error = getaddrinfo(m_host.c_str(), m_port.c_str(), &hints, &address_info)) {
-            // TODO check error and log
-            std::this_thread::sleep_for(1s);
+            m_retry_counter = m_retry_counter < 3 ? m_retry_counter + 1 : 3;
             continue;
         }
 
         addrinfo* result = nullptr;
         for (result = address_info; result; result = result->ai_next) {
             if ((m_socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol)) == INVALID_SOCKET) {
+                m_retry_counter = m_retry_counter < 3 ? m_retry_counter + 1 : 3;
                 continue;
             }
 
@@ -53,6 +58,7 @@ void Socket::try_init(std::stop_token &stop_token) {
                 try_log("Error: connection error");
                 std::cout << "conn err\n";
                 closesocket(m_socket);
+                m_retry_counter = m_retry_counter < 3 ? m_retry_counter + 1 : 3;
                 continue;
             }
 
@@ -60,8 +66,7 @@ void Socket::try_init(std::stop_token &stop_token) {
         }
 
         if (!result) {
-            // TODO log
-            std::this_thread::sleep_for(1s);
+            m_retry_counter = m_retry_counter < 3 ? m_retry_counter + 1 : 3;
             continue;
         }
 
@@ -74,6 +79,7 @@ void Socket::try_init(std::stop_token &stop_token) {
 
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
+        m_retry_counter = 0;
     }
 }
 
