@@ -363,7 +363,7 @@ void update_status_ad() {
             output += "Mode";
         }
     } else {
-        output = std::format("{}{}", char(ColorByte::White), g_snp_context.status_string);
+        output = std::format("{}{}", char(ColorByte::LightGreen), g_snp_context.status_string);
         // intentionally not using a "start of text" character here so the ad is green
     }
     if (output.empty()) {
