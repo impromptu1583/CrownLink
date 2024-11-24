@@ -228,14 +228,14 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
             joinable = false;
             prefixes += std::format("{}", char(ColorByte::Gray));
-            prefixes += "[!Ver]";
+            prefixes += "[!Ver] ";
             prefixes += char(ColorByte::Gray);
         }
 
         if (snp_config.mode != ad.crownlink_mode) {
             joinable = false;
             prefixes += std::format("{}", char(ColorByte::Gray));
-            prefixes += "[!Mode]";
+            prefixes += "[!Mode] ";
         }
 
         if (ad == g_snp_context.status_ad) {
