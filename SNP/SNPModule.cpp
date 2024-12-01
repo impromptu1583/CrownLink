@@ -38,14 +38,14 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 
 	memcpy_s(adFile, sizeof(AdFile), &ad, sizeof(AdFile));
 
-	std::string prefix;
+	std::stringstream ss;
 	if (g_snp_context.game_app_info.version_id != adFile->game_info.version_id) {
 		spdlog::info("Version byte mismatch. ours: {} theirs: {}", g_snp_context.game_app_info.version_id, adFile->game_info.version_id);
-		prefix += "[!Ver]";
+		ss << "[!Ver]";
 	}
 	try {
 		if (adFile->crownlink_mode == CrownLinkMode::DBCL) {
-			prefix += "[DBC]";
+			ss << "[DBC]";
 		}
 		if (adFile->crownlink_mode != g_crown_link->mode()) {
 			adFile->game_info.version_id = 0; // should ensure we can't join the game
@@ -56,28 +56,28 @@ void pass_advertisement(const NetAddress& host, AdFile& ad) {
 
 	switch (g_crown_link->juice_manager().agent_state(host)) {
         case JUICE_STATE_CONNECTING: {
-            prefix += "[P2P Connecting]";
+            ss << "[P2P Connecting]";
         } break;
         case JUICE_STATE_FAILED: {
-            prefix += "[P2P Failed]";
+            ss << "[P2P Failed]";
         } break;
         case JUICE_STATE_DISCONNECTED: {
-            prefix += "[P2P Not Connected]";
+            ss << "[P2P Not Connected]";
         } break;
 	}
 
 	switch (g_crown_link->juice_manager().final_connection_type(host)) {
         case JuiceConnectionType::Relay: {
-            prefix += "[Relayed]";
+            ss << "[Relayed]";
         } break;
         case JuiceConnectionType::Radmin: {
-            prefix += "[Radmin]";
+            ss << "[Radmin]";
         } break;
 	}
+	ss << adFile->game_info.game_name;
 
-	prefix += adFile->game_info.game_name;
+	auto prefix = ss.str();
 	if (prefix.size() > 23) { prefix.resize(23); }
-
 
 	// todo - make this optional via config file
 	// map name is in description after carriage return character
