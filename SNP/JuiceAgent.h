@@ -7,7 +7,7 @@ struct TurnServer {
     std::string host;
     std::string username;
     std::string password;
-    uint16_t    port;
+    uint16_t port;
 };
 
 enum class JuiceConnectionType {
@@ -18,9 +18,7 @@ enum class JuiceConnectionType {
 
 class JuiceAgent {
 public:
-    JuiceAgent(
-        const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials
-    );
+    JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials);
     ~JuiceAgent();
 
     JuiceAgent(const JuiceAgent&) = delete;
@@ -31,7 +29,8 @@ public:
         std::unique_lock lock{m_mutex};
 
         if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
-            spdlog::debug("[{}] Received Connection Request, counter: {}, ours: {}, processed {} state: {}", m_address,
+            spdlog::debug(
+                "[{}] Received Connection Request, counter: {}, ours: {}, processed {} state: {}", m_address,
                 message.counter, m_connreq_count.load(), m_connreq_processed, to_string(m_p2p_state)
             );
             if (m_connreq_processed > message.counter) {
@@ -47,7 +46,7 @@ public:
                 reset_agent(lock);
             }
             if (!m_controlling) {
-                send_connection_request(); // no u
+                send_connection_request();  // no u
                 return;
             }
             try_initialize(lock);
@@ -77,13 +76,12 @@ public:
     void send_connection_request();
 
 public:
-    const NetAddress&   address() const { return m_address; }
-    juice_state         state() { return m_p2p_state.load(); }
+    const NetAddress& address() const { return m_address; }
+    juice_state state() { return m_p2p_state.load(); }
     JuiceConnectionType connection_type() { return m_connection_type.load(); }
-    void                set_player_name(const std::string& name);
-    void                set_player_name(const char game_name[128]);
-    std::string&        player_name();
-
+    void set_player_name(const std::string& name);
+    void set_player_name(const char game_name[128]);
+    std::string& player_name();
 
     bool is_active();
 
@@ -106,16 +104,16 @@ private:
     bool m_controlling = true;
 
     std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
-    std::atomic<juice_state>         m_p2p_state = JUICE_STATE_DISCONNECTED;
-    std::atomic<u32>                 m_connreq_count = get_tick_count();
-    u32                              m_connreq_processed = 0;
+    std::atomic<juice_state> m_p2p_state = JUICE_STATE_DISCONNECTED;
+    std::atomic<u32> m_connreq_count = get_tick_count();
+    u32 m_connreq_processed = 0;
 
-    NetAddress          m_address;
-    juice_config_t      m_config;
-    juice_turn_server   m_servers[2];
-    juice_agent_t*      m_agent;
-    std::string         m_player_name;
-    std::shared_mutex   m_mutex;
+    NetAddress m_address;
+    juice_config_t m_config;
+    juice_turn_server m_servers[2];
+    juice_agent_t* m_agent;
+    std::string m_player_name;
+    std::shared_mutex m_mutex;
 
     u32 m_resends_requested = 0;
     u32 m_packet_count = 0;

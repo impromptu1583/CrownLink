@@ -69,7 +69,7 @@ inline std::string as_string(const auto& value) {
     return std::string();
 }
 
-enum class ColorByte {
+enum class ColorByte : u8 {
     Revert = 1,
     Blue,
     Green,
@@ -79,6 +79,10 @@ enum class ColorByte {
     Red,
     Black
 };
+
+inline std::ostream& operator<<(std::ostream& out, ColorByte value) {
+    return out << static_cast<u8>(value);
+}
 
 // NOTE: this code doesn't yet compile, but would be VERY NICE :) -Veeq7
 /*

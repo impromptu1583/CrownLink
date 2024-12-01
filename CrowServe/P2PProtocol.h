@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.h"
 #include "../NetShared/StormTypes.h"
+#include "common.h"
 
 namespace P2P {
 
@@ -13,16 +13,16 @@ enum class MessageType {
     JuiceDone,
 };
 
-std::ostream& operator<<(std::ostream& out, const MessageType& message_type);
+std::ostream& operator<<(std::ostream& out, MessageType message_type);
 
 struct Header {
-    NetAddress peer_id;    
+    NetAddress peer_id;
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id)
 
 struct ConnectionRequest {
     Header header;
-    u32                counter = 0;
+    u32 counter = 0;
     inline MessageType type() const { return MessageType::ConnectionRequest; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, header, counter)
@@ -84,11 +84,8 @@ public:
                 deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
-            default: {
-            }
         }
-        
     }
 };
 
-}
+}  // namespace P2P

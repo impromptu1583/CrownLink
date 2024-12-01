@@ -1,7 +1,7 @@
 #include "CrownLink.h"
 
 CrownLink::CrownLink() {
-    spdlog::info("Crownlink loaded, version {}", CL_VERSION_STRING());
+    spdlog::info("Crownlink loaded, version {}", CL_VERSION_STRING);
     m_is_running = true;
     init_listener();
 }
@@ -16,9 +16,8 @@ CrownLink::~CrownLink() {
 bool CrownLink::in_games_list() const {
     std::shared_lock lock{m_ad_mutex};
 
-    bool in =
-        (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
-        std::chrono::steady_clock::now() - m_last_solicitation < 2s;
+    bool in = (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
+              std::chrono::steady_clock::now() - m_last_solicitation < 2s;
 
     return in;
 }
@@ -58,13 +57,11 @@ bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
 
 void CrownLink::init_listener() {
     const auto& snp_config = SnpConfig::instance();
-    m_crowserve.external_logger = [](const std::string message) {
+    m_crowserve.set_external_logger([](const std::string& message) {
         spdlog::info("Crowserve: {}", message);
-    };
+    });
     m_listener_thread = m_crowserve.listen(
-        snp_config.server,
-        snp_config.port,
-        snp_config.lobby_password,
+        snp_config.server, snp_config.port, snp_config.lobby_password,
         [&](const CrownLinkProtocol::ClientProfile& message) {
             spdlog::info("received client ID from server: {}", message.peer_id);
             juice_manager().set_ice_credentials(message.ice_credentials);
@@ -126,7 +123,7 @@ void CrownLink::start_advertising(AdFile& ad_data) {
 }
 
 void CrownLink::send_advertisement() {
-    const auto&      snp_config = SnpConfig::instance();
+    const auto& snp_config = SnpConfig::instance();
     std::unique_lock lock{m_ad_mutex};
 
     if (m_ad_data.game_info.host != crowserve().id()) {

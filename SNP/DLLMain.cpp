@@ -9,7 +9,7 @@
 #define DBCL_ID 1
 
 BOOL WINAPI SnpQuery(
-    DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, CAPS** out_caps
+    DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 ) {
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
@@ -38,16 +38,16 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
         switch (index) {
             case CLNK_ID: {
                 *out_funcs = &snp::g_spi_functions;
-                //g_crown_link = std::make_unique<CrownLink>();
-                //g_crown_link->set_mode(CrownLinkMode::CLNK);
+                // g_crown_link = std::make_unique<CrownLink>();
+                // g_crown_link->set_mode(CrownLinkMode::CLNK);
                 return true;
             } break;
             case DBCL_ID: {
                 auto& snp_config = SnpConfig::instance();
                 snp_config.mode = CrownLinkMode::DBCL;
                 *out_funcs = &snp::g_spi_functions;
-                //g_crown_link = std::make_unique<CrownLink>();
-                //g_crown_link->set_mode(CrownLinkMode::DBCL);
+                // g_crown_link = std::make_unique<CrownLink>();
+                // g_crown_link->set_mode(CrownLinkMode::DBCL);
                 return true;
             } break;
         }
@@ -80,7 +80,7 @@ static void juice_logger(juice_log_level_t log_level, const char* message) {
 
 static void dll_start() {
     WSADATA wsaData{};
-    WORD    wVersionRequested = MAKEWORD(2, 2);
+    WORD wVersionRequested = MAKEWORD(2, 2);
     if (auto error_code = WSAStartup(wVersionRequested, &wsaData); error_code != S_OK) {
         spdlog::critical("WSAStartup failed with error {}", error_code);
     }

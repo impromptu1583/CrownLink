@@ -2,29 +2,29 @@
 
 namespace CrowServe {
 
-bool init_sockets(){
+bool init_sockets() {
 #ifdef Windows
     WSADATA WsaData;
-    return WSAStartup( MAKEWORD(2,2), &WsaData ) == NO_ERROR;
+    return WSAStartup(MAKEWORD(2, 2), &WsaData) == NO_ERROR;
 #else
     return true;
 #endif
 }
 
-void deinit_sockets(){
+void deinit_sockets() {
 #ifdef Windows
     WSACleanup();
 #endif
 }
 
-void Socket::try_init(std::stop_token &stop_token) {
+void Socket::try_init(std::stop_token& stop_token) {
     {
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Connecting;
-        profile_received = false;
+        m_profile_received = false;
     }
 
-    addrinfo hints = {};
+    addrinfo  hints = {};
     addrinfo* address_info = nullptr;
 
     hints.ai_family = AF_INET;
@@ -35,13 +35,12 @@ void Socket::try_init(std::stop_token &stop_token) {
     // TODO implement some kind of max retries or increase sleep value gradually
 
     while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
-
         if (m_retry_counter > 0) {
             std::this_thread::sleep_for(m_retry_counter * 1s);
         }
 
         std::cout << "attempting connection\n";
-        try_log("Attempting connection to {}:{}" ,m_host, m_port);
+        try_log("Attempting connection to {}:{}", m_host, m_port);
         if (const auto error = getaddrinfo(m_host.c_str(), m_port.c_str(), &hints, &address_info)) {
             m_retry_counter = m_retry_counter < 3 ? m_retry_counter + 1 : 3;
             continue;
@@ -95,7 +94,7 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
         std::cout << message << "Server terminated connection\n";
         return;
     }
-    
+
 #ifdef Windows
     try_log("Error: Winsock error code: {}", error);
     std::cout << message << "Winsock error code: " << error << " \n";
@@ -105,12 +104,12 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
     return;
 }
 
-void Socket::set_profile(const NetAddress ID, const NetAddress Token) {
+void Socket::set_profile(NetAddress id, NetAddress Token) {
     std::lock_guard lock{m_mutex};
-    profile_received = true;
+    m_profile_received = true;
     m_id_received = true;
-    m_id = ID;
+    m_id = id;
     m_reconnect_token = Token;
 }
 
-}
+}  // namespace CrowServe

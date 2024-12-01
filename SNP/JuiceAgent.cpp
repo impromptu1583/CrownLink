@@ -7,13 +7,14 @@
 
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
-
     memset(&m_config, 0, sizeof(m_config));
 
     m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
     m_config.stun_server_host = ice_credentials.stun_host.c_str();
-    const auto res = std::from_chars(ice_credentials.stun_port.data(), ice_credentials.stun_port.data() + ice_credentials.stun_port.size(),
-        m_config.stun_server_port);
+    const auto res = std::from_chars(
+        ice_credentials.stun_port.data(), ice_credentials.stun_port.data() + ice_credentials.stun_port.size(),
+        m_config.stun_server_port
+    );
     if (res.ec == std::errc::invalid_argument or res.ec == std::errc::result_out_of_range) {
         spdlog::error("Invalid stun port received: {}", ice_credentials.stun_port);
     }
@@ -25,7 +26,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
     m_config.user_ptr = this;
 
     if (ice_credentials.turn_servers_count) {
-
         for (u32 i = 0; i < ice_credentials.turn_servers_count; i++) {
             m_servers[i].host = ice_credentials.turn_servers[i].host.c_str();
             m_servers[i].username = ice_credentials.turn_servers[i].username.c_str();
@@ -66,13 +66,13 @@ void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
             spdlog::debug("[{}] P2P agent init. State: {}", m_address, to_string(m_p2p_state));
         } break;
 
-		case JUICE_STATE_FAILED: {
+        case JUICE_STATE_FAILED: {
             spdlog::error("[{}] P2P agent init attempted but agent in failed state", m_address);
-                    reset_agent(lock);
+            reset_agent(lock);
         }
-        [[fallthrough]];
+            [[fallthrough]];
 
-		case JUICE_STATE_DISCONNECTED: {
+        case JUICE_STATE_DISCONNECTED: {
             char sdp[JUICE_MAX_SDP_STRING_LEN]{};
             juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
@@ -127,7 +127,8 @@ bool JuiceAgent::send_message(void* data, size_t size) {
     m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
         m_resends_requested++;
-        //spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested, m_packet_count);
+        // spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested,
+        // m_packet_count);
     }
     if (m_packet_count > 80) {
         spdlog::debug(
@@ -184,7 +185,10 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
             }
             if (std::regex_match(local, std::regex(".+26.\\d+.\\d+.\\d+.+"))) {
                 parent.set_connection_type(JuiceConnectionType::Radmin);
-                spdlog::warn("[{}] CrownLink is connected over Radmin - performance will be worse than peer-to-peer", parent.address());
+                spdlog::warn(
+                    "[{}] CrownLink is connected over Radmin - performance will be worse than peer-to-peer",
+                    parent.address()
+                );
             }
             spdlog::info("[{}] Final candidates were local: {} remote: {}", parent.address(), local, remote);
         } break;
@@ -216,11 +220,12 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *(JuiceAgent*)user_ptr;
-    auto  packet = GamePacket{parent.m_address, data, size};
+    auto packet = GamePacket{parent.m_address, data, size};
     parent.m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
         parent.m_resends_requested++;
-        //spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested, parent.m_packet_count);
+        // spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested,
+        // parent.m_packet_count);
     }
     g_crown_link->receive_queue().enqueue(packet);
     SetEvent(g_receive_event);

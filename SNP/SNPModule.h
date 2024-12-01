@@ -11,17 +11,16 @@ struct NetworkInfo {
     char *pszName;
     DWORD dwIdentifier;
     char *pszDescription;
-    CAPS  caps;
+    Caps caps;
 };
 
 void update_lobbies(std::vector<AdFile> &updated_list);
 void update_lobby_name(AdFile &ad, std::string &prefixes, bool joinable);
-void remove_advertisement(const NetAddress &host);
 void create_status_ad();
 void update_status_ad();
 void set_status_ad(const std::string &status);
 void clear_status_ad();
-void packet_parser(const GamePacket* game_packet);
+void packet_parser(const GamePacket *game_packet);
 
 struct NetFunctions {
     // The size of the vtable

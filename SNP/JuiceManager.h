@@ -26,13 +26,13 @@ public:
         peer_agent.handle_crownlink_message(message);
     };
 
-    juice_state         lobby_agent_state(const AdFile& ad);
+    juice_state lobby_agent_state(const AdFile& ad);
     JuiceConnectionType final_connection_type(const NetAddress& address);
 
     std::mutex& mutex() { return m_mutex; }
 
 private:
     std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
-    std::mutex                                                  m_mutex;
-    CrownLinkProtocol::IceCredentials                           m_ice_credentials;
+    std::mutex m_mutex;
+    CrownLinkProtocol::IceCredentials m_ice_credentials;
 };

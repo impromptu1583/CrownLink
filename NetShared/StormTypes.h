@@ -57,7 +57,7 @@ struct std::hash<NetAddress> {
     }
 };
 
-struct CAPS {
+struct Caps {
     u32 size;
     u32 flags;             // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
     u32 max_message_size;  // must be between 128 and 512

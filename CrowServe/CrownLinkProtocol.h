@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.h"
 #include "../NetShared/StormTypes.h"
+#include "common.h"
 
 namespace CrownLinkProtocol {
 
@@ -28,17 +28,20 @@ enum class Mode {
 struct Header {};
 
 struct ConnectionRequest : Header {
-    std::string        preshared_key;
-    bool               peer_id_requested = false;
-    NetAddress         requested_id;
-    NetAddress         request_token;
-    std::string        lobby_password{};
-    u32                product_id;
-    u32                version_id;
-    u32                crownlink_version;
+    std::string preshared_key;
+    bool peer_id_requested = false;
+    NetAddress requested_id;
+    NetAddress request_token;
+    std::string lobby_password{};
+    u32 product_id;
+    u32 version_id;
+    u32 crownlink_version;
     inline MessageType type() { return MessageType::ConnectionRequest; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, preshared_key, peer_id_requested, requested_id, request_token, lobby_password, product_id, version_id, crownlink_version)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
+    ConnectionRequest, preshared_key, peer_id_requested, requested_id, request_token, lobby_password, product_id,
+    version_id, crownlink_version
+)
 
 struct KeyExchange : Header {
     std::string public_key;
@@ -57,14 +60,12 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(TurnServer, host, port, username, password)
 struct IceCredentials {
     std::string stun_host;
     std::string stun_port;
-    u32         turn_servers_count;
-    TurnServer  turn_servers[2];
+    u32 turn_servers_count;
+    TurnServer turn_servers[2];
 };
 
 inline void to_json(Json& j, const IceCredentials& ice_credentials) {
-    j = Json{
-        {"stun_host", ice_credentials.stun_host}, {"stun_port", ice_credentials.stun_port}
-    };
+    j = Json{{"stun_host", ice_credentials.stun_host}, {"stun_port", ice_credentials.stun_port}};
 }
 
 inline void from_json(const Json& j, IceCredentials& ice_credentials) {
@@ -81,7 +82,6 @@ inline void from_json(const Json& j, IceCredentials& ice_credentials) {
         }
     }
 }
-
 
 struct ClientProfile : Header {
     NetAddress peer_id;
@@ -100,8 +100,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(UpdateAvailable, min_clink_version)
 // GameInfo and AdFile are defined in StormTypes.h
 
 struct StartAdvertising : Header {
-    AdFile             ad;
-    std::string        lobby_password{};
+    AdFile ad;
+    std::string lobby_password{};
     inline MessageType type() const { return MessageType::StartAdvertising; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StartAdvertising, ad, lobby_password)
@@ -110,16 +110,16 @@ struct StopAdvertising : Header {
     inline MessageType type() const { return MessageType::StopAdvertising; }
 };
 
-inline void to_json(Json &j, const StopAdvertising& message) {
+inline void to_json(Json& j, const StopAdvertising& message) {
     // do nothing because this is an empty type
 }
 
-inline void from_json(const Json &j, StopAdvertising& message) {
+inline void from_json(const Json& j, StopAdvertising& message) {
     // do nothing because this is an empty type
 }
 
 struct AdvertisementsRequest : Header {
-    std::string        lobby_password{};
+    std::string lobby_password{};
     inline MessageType type() const { return MessageType::AdvertisementsRequest; }
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AdvertisementsRequest, lobby_password)
@@ -146,7 +146,7 @@ class Protocol {
 public:
     template <typename Handler>
     void handle(const MessageType message_type, std::span<u8> message, const Handler& handler) {
-        switch (MessageType(message_type)){
+        switch (MessageType(message_type)) {
             case MessageType::ConnectionRequest: {
                 ConnectionRequest deserialized{};
                 deserialize_cbor_into(deserialized, message);
@@ -156,7 +156,7 @@ public:
                 KeyExchange deserialized{};
                 deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
-            } break;    
+            } break;
             case MessageType::ClientProfile: {
                 ClientProfile deserialized{};
                 deserialize_cbor_into(deserialized, message);
@@ -198,11 +198,8 @@ public:
                 deserialize_cbor_into(deserialized, message);
                 handler(deserialized);
             } break;
-            default: {
-            }
         }
-
     }
 };
 
-}
+}  // namespace CrownLinkProtocol

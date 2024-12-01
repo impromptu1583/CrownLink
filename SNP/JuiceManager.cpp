@@ -3,16 +3,14 @@
 #include "JuiceAgent.h"
 
 JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
-    auto it = m_agents.find(address);
-    if (it != m_agents.end()) {
+    if (const auto it = m_agents.find(address); it != m_agents.end()) {
         return it->second.get();
     }
     return nullptr;
 }
 
 JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&) {
-    auto it = m_agents.find(address);
-    if (it != m_agents.end()) {
+    if (const auto it = m_agents.find(address); it != m_agents.end()) {
         return *it->second;
     }
 
@@ -35,19 +33,19 @@ void JuiceManager::disconnect_if_inactive(const NetAddress& address) {
         return !agent->is_active() && addr == address;
     });
     if (count) {
-        spdlog::debug("disconnected {} inactive agent with ID {}", count, address);
+        spdlog::debug("Disconnected {} inactive agent with ID {}", count, address);
     }
 }
 
 bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
     std::lock_guard lock{m_mutex};
-    auto&           agent = ensure_agent(address, lock);
+    auto& agent = ensure_agent(address, lock);
     return agent.send_message(data, size);
 }
 
 void JuiceManager::send_connection_request(const NetAddress& address) {
     std::lock_guard lock{m_mutex};
-    auto&           agent = ensure_agent(address, lock);
+    auto& agent = ensure_agent(address, lock);
     agent.send_connection_request();
 }
 
@@ -66,10 +64,9 @@ void JuiceManager::send_all(void* data, const size_t size) {
 
 juice_state JuiceManager::lobby_agent_state(const AdFile& ad) {
     std::lock_guard lock{m_mutex};
-    auto&           agent = ensure_agent(ad.game_info.host, lock);
+    auto& agent = ensure_agent(ad.game_info.host, lock);
     agent.set_player_name(ad.game_info.game_name);
     return agent.state();
-
 }
 
 JuiceConnectionType JuiceManager::final_connection_type(const NetAddress& address) {
