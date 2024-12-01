@@ -6,7 +6,7 @@
 #include <regex>
 
 JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_servers, const std::string& init_message)
-: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
+	: m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
 	const auto& snp_config = SnpConfig::instance();
 	juice_config_t config{
 		.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD,
@@ -29,7 +29,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 		}
 		config.turn_servers = servers;
 		config.turn_servers_count = (turn_servers.size() < 5) ? turn_servers.size() : 5;
-
 	}
 	m_agent = juice_create(&config);
 	mark_active();
@@ -38,7 +37,6 @@ JuiceAgent::JuiceAgent(const NetAddress& address, std::vector<TurnServer>& turn_
 		handle_signal_packet(SignalPacket{init_message});
 	}
 	send_signal_ping();
-	//try_initialize();
 }
 
 JuiceAgent::~JuiceAgent() {
@@ -47,7 +45,6 @@ JuiceAgent::~JuiceAgent() {
 }
 
 void JuiceAgent::try_initialize() {
-
 	switch (m_p2p_state) {
 		case JUICE_STATE_COMPLETED:
 		case JUICE_STATE_CONNECTED: {
@@ -63,10 +60,6 @@ void JuiceAgent::try_initialize() {
 		} break;
 
 		case JUICE_STATE_DISCONNECTED: {
-			//if (std::chrono::steady_clock::now() - m_last_signal > 10s) {
-			//	spdlog::debug("P2P agent init waiting for signal ping to confirm connectivity with peer");
-			//	return;
-			//}
 			char sdp[JUICE_MAX_SDP_STRING_LEN]{};
 			juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
@@ -79,10 +72,7 @@ void JuiceAgent::try_initialize() {
 
 void JuiceAgent::send_signal_ping() {
 	spdlog::info("sending signal ping to {}", m_address.b64());
-	//if (std::chrono::steady_clock::now() - m_last_ping > 1s) {
 	g_crown_link->signaling_socket().send_packet(m_address, SignalMessageType::SignalingPing, "");
-		//m_last_ping = std::chrono::steady_clock::now();
-	//}
 }
 
 void JuiceAgent::handle_signal_packet(const SignalPacket& packet) {
@@ -113,7 +103,6 @@ void JuiceAgent::send_message(void* data, size_t size) {
 
 	switch (m_p2p_state) {
         case JUICE_STATE_DISCONNECTED:{
-            //try_initialize();
 			send_signal_ping();
         } break;		
         case JUICE_STATE_CONNECTED:
@@ -131,13 +120,13 @@ void JuiceAgent::send_message(void* data, size_t size) {
 		} break;
         default: {
             spdlog::dump_backtrace();
-            spdlog::error("Trying to send message but P2P connection is in unexpected state:");
+            spdlog::error("Trying to send message but P2P connection is in unexpected state");
         } break;
 	}
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-	JuiceAgent& parent = *(JuiceAgent*)user_ptr;
+	auto& parent = *static_cast<JuiceAgent*>(user_ptr);
 	parent.mark_active();
 	parent.m_p2p_state = state;
 	spdlog::debug("Connection changed state, new state: {}", to_string(state));
@@ -151,47 +140,46 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
             char remote[JUICE_MAX_CANDIDATE_SDP_STRING_LEN];
             juice_get_selected_candidates(agent, local, JUICE_MAX_CANDIDATE_SDP_STRING_LEN, remote, JUICE_MAX_CANDIDATE_SDP_STRING_LEN);
 
-		if (std::string{local}.find("typ relay") != std::string::npos) {
-			parent.set_connection_type(JuiceConnectionType::Relay);
-			spdlog::warn("Local connection is relayed, performance may be affected");
-		}
-		if (std::string{remote}.find("typ relay") != std::string::npos) {
-			parent.set_connection_type(JuiceConnectionType::Relay);
-			spdlog::warn("Remote connection is relayed, performance may be affected");
-		}
-		if (std::regex_match(local, std::regex(".*26\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*"))) {
-			parent.set_connection_type(JuiceConnectionType::Radmin);
-			spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
-		}
-		spdlog::info("Final candidates were local: {} remote: {}", local, remote);
-	} break;
-	case JUICE_STATE_FAILED: {
-		spdlog::dump_backtrace();
-		spdlog::error("Could not connect, gave up");
-	} break;
+            if (std::string{local}.find("typ relay") != std::string::npos) {
+                parent.set_connection_type(JuiceConnectionType::Relay);
+                spdlog::warn("Local connection is relayed, performance may be affected");
+            }
+            if (std::string{remote}.find("typ relay") != std::string::npos) {
+                parent.set_connection_type(JuiceConnectionType::Relay);
+                spdlog::warn("Remote connection is relayed, performance may be affected");
+            }
+            if (std::regex_match(local, std::regex{".*26\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*"})) {
+                parent.set_connection_type(JuiceConnectionType::Radmin);
+                spdlog::warn("CrownLink is connected over Radmin - performance will be worse than peer-to-peer");
+            }
+            spdlog::info("Final candidates were local: {} remote: {}", local, remote);
+        } break;
+        case JUICE_STATE_FAILED: {
+            spdlog::dump_backtrace();
+            spdlog::error("Could not connect, gave up");
+        } break;
 	}
 }
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
-	auto& parent = *(JuiceAgent*)user_ptr;
+	auto& parent = *static_cast<JuiceAgent*>(user_ptr);
 	parent.mark_active();
-	if (!std::regex_match(sdp, std::regex(".*26\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*"))) {
+	if (!std::regex_match(sdp, std::regex{".*26\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}.*"})) {
 		g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuciceCandidate, sdp);
 	} else {
-		spdlog::info("skipped sending radmin candidate: {}", sdp);
+		spdlog::info("Skipped sending radmin candidate: {}", sdp);
 	}
 }
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
-	auto& parent = *(JuiceAgent*)user_ptr;
+	auto& parent = *static_cast<JuiceAgent*>(user_ptr);
 	parent.mark_active();
 	g_crown_link->signaling_socket().send_packet(parent.m_address, SignalMessageType::JuiceDone);
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
-	auto& parent = *(JuiceAgent*)user_ptr;
+	auto& parent = *static_cast<JuiceAgent*>(user_ptr);
 	parent.mark_active();
-	//g_crown_link->receive_queue().emplace(GamePacket{parent.m_address, data, size});
-	g_crown_link->receive_queue().enqueue(GamePacket{ parent.m_address, data, size });
+	g_crown_link->receive_queue().enqueue(GamePacket{parent.m_address, data, size});
 	SetEvent(g_receive_event);
 }

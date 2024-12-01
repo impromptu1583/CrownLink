@@ -4,6 +4,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <stop_token>
 
 #include "signaling.h"
 
@@ -38,25 +39,24 @@ public:
 	CrownLinkMode mode() const { return m_cl_version; }
 
 private:
-	void receive_signaling();
+	void receive_signaling_thread();
 	void handle_signal_packets(std::vector<SignalPacket>& packets);
 	void handle_winsock_error(s32 error_code);
 	void update_known_advertisers(const std::string& message);
 
 private:
-	//ThQueue<GamePacket> m_receive_queue;
 	moodycamel::ConcurrentQueue<GamePacket> m_receive_queue;
 	JuiceManager m_juice_manager;
 	SignalingSocket m_signaling_socket;
 
+	bool m_is_running = false;
+	bool m_is_advertising = false;
+	bool m_client_id_set = false;
+	NetAddress m_client_id;
+
 	std::jthread m_signaling_thread;
 	std::vector<NetAddress> m_known_advertisers;
 	AdFile m_ad_data;
-
-	bool m_is_advertising = false;
-	bool m_is_running = true;
-	bool m_client_id_set = false;
-	NetAddress m_client_id;
 
 	u32 m_ellipsis_counter = 3;
 	CrownLinkMode m_cl_version = CrownLinkMode::CLNK;
