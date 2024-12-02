@@ -69,7 +69,7 @@ struct Caps {
     u32 turns_in_transit; // in the appended mpq file seem to be used instead
 };
 
-struct client_info {
+struct ClientInfo {
     u32   size; // 60
     char* program_name;
     char* program_description;
@@ -87,14 +87,14 @@ struct client_info {
     u32   language_id;
 };
 
-struct user_info {
+struct UserInfo {
     u32   size; // 16
     char* player_name;
     char* player_description;
     u32   dwUnknown;
 };
 
-struct battle_info {
+struct BattleInfo {
     u32   size;   // 92
     u32   dwUnkType;
     void* hFrameWnd;
@@ -120,7 +120,7 @@ struct battle_info {
     void* pfnBattleSetLeagueName;
 };
 
-struct module_info {
+struct ModuleInfo {
     u32   size; // 20
     char* version_string;
     char* executable_file;
@@ -128,41 +128,39 @@ struct module_info {
     char* patch_archive_file;
 };
 
-struct game {
-    u32     game_index;
-    u32     game_state;
-    u32     creation_time;
+struct GameInfo {
+    u32         game_index;
+    u32         game_state;
+    u32         creation_time;
     NetAddress  host;
-    u32     host_latency;
-    u32     host_last_time;
-    u32     category_bits;
-    char    game_name[128];
-    char    game_description[128];
-    game*   pNext;
-    void*   pExtra;
-    u32     extra_bytes;
-    u32     program_id;
-    u32     version_id;
+    u32         host_latency;
+    u32         host_last_time;
+    u32         category_bits;
+    char        game_name[128];
+    char        game_description[128];
+    GameInfo*   pNext;
+    void*       pExtra;
+    u32         extra_bytes;
+    u32         program_id;
+    u32         version_id;
 };
 
-inline bool operator== (const game& g1, const game& g2) {
-    return (
-        g1.game_index == g2.game_index &&
-        g1.game_state == g2.game_state &&
-        g1.creation_time == g2.creation_time &&
-        g1.host == g2.host &&
-        g1.host_latency == g2.host_latency &&
-        g1.host_last_time == g2.host_last_time &&
-        g1.category_bits == g2.category_bits &&
-        strncmp(g1.game_name, g2.game_name, sizeof(g1.game_name)) == 0 &&
-        strncmp(g1.game_description, g2.game_description, sizeof(g1.game_description)) == 0 &&
-        g1.extra_bytes == g2.extra_bytes &&
-        g1.program_id == g2.program_id &&
-        g1.version_id == g2.version_id
-    );
+inline bool operator==(const GameInfo& a, const GameInfo& b) {
+    return a.game_index == b.game_index
+        && a.game_state == b.game_state
+        && a.creation_time == b.creation_time
+        && a.host == b.host
+        && a.host_latency == b.host_latency
+        && a.host_last_time == b.host_last_time
+        && a.category_bits == b.category_bits
+        && std::ranges::equal(a.game_name, b.game_name)
+        && std::ranges::equal(a.game_description, b.game_description)
+        && a.extra_bytes == b.extra_bytes
+        && a.program_id == b.program_id
+        && a.version_id == b.version_id;
 }
 
-inline void to_json(Json& j, const game& g) {
+inline void to_json(Json& j, const GameInfo& g) {
     j = Json{
         {"game_index", g.game_index},
         {"game_state", g.game_state},
@@ -179,7 +177,7 @@ inline void to_json(Json& j, const game& g) {
     };
 }
 
-inline void from_json (const Json& j, game& g) {
+inline void from_json (const Json& j, GameInfo& g) {
     j.at("game_index").get_to(g.game_index);
     j.at("game_state").get_to(g.game_state);
     j.at("creation_time").get_to(g.creation_time);
@@ -214,7 +212,7 @@ inline std::string to_string(CrownLinkMode value) {
 }
 
 struct AdFile {
-    game game_info{};
+    GameInfo game_info{};
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
     bool          mark_for_removal = false;

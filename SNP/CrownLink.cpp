@@ -15,11 +15,8 @@ CrownLink::~CrownLink() {
 
 bool CrownLink::in_games_list() const {
     std::shared_lock lock{m_ad_mutex};
-
-    bool in = (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
-              std::chrono::steady_clock::now() - m_last_solicitation < 2s;
-
-    return in;
+    return (m_is_advertising && m_ad_data.game_info.game_state != 12) ||
+           std::chrono::steady_clock::now() - m_last_solicitation < 2s;
 }
 
 auto& CrownLink::advertising() {
@@ -75,7 +72,7 @@ void CrownLink::init_listener() {
             }
         },
         [&](const CrownLinkProtocol::UpdateAvailable& message) {
-            // TODO display status string
+            // TODO: Display status string
         },
         [&](const CrownLinkProtocol::AdvertisementsRequest& message) {
             spdlog::trace("Received server heartbeat");

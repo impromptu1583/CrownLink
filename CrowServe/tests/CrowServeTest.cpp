@@ -34,7 +34,7 @@ TEST_CASE("CBOR de/serialization") {
     REQUIRE(test_serialization(net_addresses));
 
     auto games = GENERATE(
-        game{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}
+        GameInfo{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}
     );
     REQUIRE(test_serialization(games));
 

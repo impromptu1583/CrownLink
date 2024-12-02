@@ -7,7 +7,7 @@
 namespace snp {
 
 struct SNPContext {
-    client_info game_app_info;
+    ClientInfo game_app_info;
     std::list<AdFile> game_list;
 
     std::vector<AdFile> lobbies;
@@ -73,7 +73,7 @@ static void init_logging() {
 }
 
 static BOOL __stdcall spi_initialize(
-    client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event
+    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, HANDLE event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     g_snp_context.game_app_info = *client_info;
@@ -156,7 +156,17 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
     }
 }
 
-static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+static std::string_view extract_map_name(const GameInfo& game_info) {
+    std::string_view sv{game_info.game_description};
+    sv.remove_prefix(std::min(sv.find('\r') + 1, sv.size()));
+    auto back_trim_pos = sv.find_last_not_of("\t\n\v\f\r ");
+    if (back_trim_pos != sv.npos) {
+        sv.remove_suffix(sv.size() - back_trim_pos - 1);
+    }
+    return sv;
+}
+
+static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
     // called by storm once per second when on the games list screen
     g_advertisement_mutex.lock();
 
@@ -180,18 +190,22 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
 
         if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
             joinable = false;
-            ss << ColorByte::Gray << "[!Ver]";
+            want_space = true;
+            ss << ColorByte::Red << "[!Ver]";
         }
         if (snp_config.mode != ad.crownlink_mode) {
             joinable = false;
-            ss << ColorByte::Gray << "[!Mode]";
+            want_space = true;
+            ss << ColorByte::Red << "[!Mode]";
         }
         if (ad == g_snp_context.status_ad) {
             joinable = false;
+            ss << ColorByte::Red;
         }
         if (ad.game_info.game_state == 12) {
             // Game in progress - these won't be shown anyway but we don't want to initiate p2p
             joinable = false;
+            ss << ColorByte::Red;
         }
 
         // agent_state calls ensure_agent so one will be created if needed,
@@ -199,13 +213,16 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (joinable) {
             switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
+                    want_space = true;
                     ss << ColorByte::Gray << "...";
                 } break;
                 case JUICE_STATE_FAILED: {
-                    ss << ColorByte::Gray << " !! ";
+                    want_space = true;
+                    ss << ColorByte::Gray << "!!";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
+                    want_space = true;
                     ss << ColorByte::Gray << "-";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
@@ -213,13 +230,16 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
                 case JUICE_STATE_COMPLETED: {
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
-                            ss << ColorByte::Gray << "[R]";
+                            want_space = true;
+                            ss << ColorByte::Default << "[R]";
                         } break;
                         case JuiceConnectionType::Radmin: {
+                            want_space = true;
                             ss << ColorByte::Gray << std::format("[Radmin {}]", static_cast<char>(131));  // char :(
                         } break;
                         default: {
-                            ss << ColorByte::Gray << static_cast<char>(187);  // char >>
+                            want_space = true;
+                            ss << ColorByte::Default << static_cast<char>(187);  // char >>
                         } break;
                     }
                 }
@@ -232,10 +252,10 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         if (want_space) {
             ss << " ";
         }
-        ss << ColorByte::Gray << ad.original_name;
+        ss << ad.original_name;
 
         if (snp_config.add_map_to_lobby_name) {
-            ss << (joinable ? ColorByte::Blue : ColorByte::Revert) << ad.game_info.game_description;
+            ss << (joinable ? ColorByte::Blue : ColorByte::Default) << extract_map_name(ad.game_info);
         }
 
         const auto prefixes = ss.str();
@@ -256,7 +276,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     return true;
 }
 
-static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
+static BOOL __stdcall spi_unlock_game_list(GameInfo* game_list, DWORD*) {
     // Called by storm after it is done reading the games list to unlock the mutex
     g_advertisement_mutex.unlock();
 
@@ -360,7 +380,7 @@ static BOOL __stdcall spi_stop_advertising_game() {
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, GameInfo* out_game) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
 
@@ -523,7 +543,7 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 static BOOL __stdcall spi_select_game(
-    int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int
+    int, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int
 ) {
     // Looks like an old function and doesn't seem like it's used anymore
     // UDPN's function Creates an IPX game select dialog window
