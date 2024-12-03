@@ -7,16 +7,16 @@
 namespace snp {
 
 struct SNPContext {
-    client_info       game_app_info;
+    ClientInfo game_app_info;
     std::list<AdFile> game_list;
-    
+
     std::vector<AdFile> lobbies;
 
-    s32    next_game_ad_id = 1;
+    s32 next_game_ad_id = 1;
     AdFile hosted_game;
     AdFile status_ad;
-    bool   status_ad_used = false;
-    
+    bool status_ad_used = false;
+
     std::string status_string{};
 };
 
@@ -27,11 +27,11 @@ static void init_logging() {
     spdlog::init_thread_pool(8192, 1);
 
     const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
-    auto       standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
+    auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
     standard_sink->set_level(spdlog::level::debug);
 
     const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
-    auto       trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024 * 1024 * 10, 3);
+    auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024 * 1024 * 10, 3);
     trace_sink->set_level(spdlog::level::trace);
 
     auto logger = std::make_shared<spdlog::async_logger>(
@@ -73,7 +73,7 @@ static void init_logging() {
 }
 
 static BOOL __stdcall spi_initialize(
-    client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_data, HANDLE event
+    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, HANDLE event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     g_snp_context.game_app_info = *client_info;
@@ -99,7 +99,8 @@ static BOOL __stdcall spi_initialize(
 }
 
 static BOOL __stdcall spi_destroy() {
-    // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer connnection types menu 
+    // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer
+    // connnection types menu
 
     try {
         g_crown_link.reset();
@@ -115,7 +116,7 @@ static BOOL __stdcall spi_destroy() {
 //===========================================================================
 //
 // Lobbies & Advertisements
-// 
+//
 //===========================================================================
 
 void update_lobbies(std::vector<AdFile>& updated_list) {
@@ -146,8 +147,8 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
         return !incoming_ad.mark_for_removal;
     });
 
-    auto last_updated = get_tick_count();
-    u32  index = 1;
+    const auto last_updated = get_tick_count();
+    u32 index = 1;
     for (AdFile& known_lobby : g_snp_context.lobbies) {
         known_lobby.game_info.host_last_time = last_updated;
         known_lobby.game_info.game_index = ++index;
@@ -155,64 +156,24 @@ void update_lobbies(std::vector<AdFile>& updated_list) {
     }
 }
 
-void update_lobby_name(AdFile& ad, std::string& prefixes, bool joinable) {
-    const auto& snp_config = SnpConfig::instance();
-    
-    if (!prefixes.empty() || snp_config.add_map_to_lobby_name) {
-        if (ad.original_name.empty()) {
-            ad.original_name += ad.game_info.game_name;
-        }
-
-        prefixes += ad.original_name;
-        if (prefixes.size() > 127) {
-            prefixes.resize(127);
-        }
-
-        if (snp_config.add_map_to_lobby_name) {
-            std::string_view description{ad.game_info.game_description};
-            description.remove_prefix(std::min(description.find('\r') + 1, description.size()));
-            auto back_trim_pos = description.find_last_not_of("\t\n\v\f\r ");
-            if (back_trim_pos != description.npos) {
-                description.remove_suffix(description.size() - back_trim_pos - 1);
-            }
-
-            auto total_length = prefixes.size() + description.size() + 2;
-            if (total_length > 23) {
-                auto to_trim = total_length - 23;
-                if (description.size() > 6) {
-                    auto d_trim = (std::min)(to_trim, description.size() - 6);
-                    description.remove_suffix(d_trim);
-                    to_trim -= d_trim;
-                }
-                if (to_trim > 0) {
-                    prefixes.resize(prefixes.size() - to_trim);
-                }
-            }
-            if (joinable) {
-                prefixes += std::format("{} {}", (char)ColorByte::Blue, description);
-            } else {
-                prefixes += std::format("{} {}", (char)ColorByte::Revert, description);
-            }
-
-        }
-
-        spdlog::debug("Lobby name updated to {}, length: {}", prefixes, prefixes.size());
-
-        strncpy_s(
-            ad.game_info.game_name, sizeof(ad.game_info.game_name), prefixes.c_str(), sizeof(ad.game_info.game_name)
-        );
+static std::string_view extract_map_name(const GameInfo& game_info) {
+    std::string_view sv{game_info.game_description};
+    sv.remove_prefix(std::min(sv.find('\r') + 1, sv.size()));
+    auto back_trim_pos = sv.find_last_not_of("\t\n\v\f\r ");
+    if (back_trim_pos != sv.npos) {
+        sv.remove_suffix(sv.size() - back_trim_pos - 1);
     }
-
+    return sv;
 }
 
-static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
+static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
     // called by storm once per second when on the games list screen
-
     g_advertisement_mutex.lock();
+
     // storm will unlock when it's done with the data by calling spi_unlock_game_list()
     const auto& snp_config = SnpConfig::instance();
 
-    s32     game_index = 1;
+    s32 game_index = 1;
     AdFile* last_ad = nullptr;
 
     update_status_ad();
@@ -222,70 +183,85 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
         return get_tick_count() - lobby.game_info.host_last_time > 3;
     });
 
-    bool        joinable;
-    std::string prefixes;
     for (AdFile& ad : g_snp_context.lobbies) {
-
-        joinable = true;
-        prefixes = "";
+        bool joinable = true;
+        bool has_text_prefix = false;
+        std::stringstream ss;
 
         if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
             joinable = false;
-            prefixes += std::format("{}", char(ColorByte::Gray));
-            prefixes += "[!Ver] ";
-            prefixes += char(ColorByte::Gray);
+            has_text_prefix = true;
+            ss << ColorByte::Red << "[!Ver]";
         }
-
         if (snp_config.mode != ad.crownlink_mode) {
             joinable = false;
-            prefixes += std::format("{}", char(ColorByte::Gray));
-            prefixes += "[!Mode] ";
+            has_text_prefix = true;
+            ss << ColorByte::Red << "[!Mode]";
         }
-
         if (ad == g_snp_context.status_ad) {
             joinable = false;
+            ss << ColorByte::Red;
         }
-
         if (ad.game_info.game_state == 12) {
-            // game in progress - these won't be shown anyway but we don't want to initiate p2p
+            // Game in progress - these won't be shown anyway but we don't want to initiate p2p
             joinable = false;
+            ss << ColorByte::Red;
         }
 
-        // agent_state calls ensure_agent so one will be created if needed
+        // agent_state calls ensure_agent so one will be created if needed,
         // this kicks off the p2p connection process
         if (joinable) {
             switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
-                    prefixes += "...";
-                    prefixes += std::format("{}", char(ColorByte::Gray));
+                    has_text_prefix = true;
+                    ss << ColorByte::Gray << "...";
                 } break;
                 case JUICE_STATE_FAILED: {
-                    prefixes += " !! ";
-                    prefixes += std::format("{}", char(ColorByte::Gray));
+                    has_text_prefix = true;
+                    ss << ColorByte::Gray << "!!";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
-                    prefixes += "-";
-                    prefixes += std::format("{}", char(ColorByte::Gray));
+                    has_text_prefix = true;
+                    ss << ColorByte::Gray << "-";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
+                    // Use ColorByte to manipulate menu order but revert to standard menu behavior
+                    ss << ColorByte::Green << ColorByte::Revert;
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
-                            prefixes += "[R]";
+                            has_text_prefix = true;
+                            ss << "[R]";
                         } break;
                         case JuiceConnectionType::Radmin: {
-                            prefixes += std::format("[Radmin {}]", char(131));
+                            has_text_prefix = true;
+                            static constexpr char SadEmoji = 131;
+                            ss << std::format("[Radmin {}]", SadEmoji);
                         } break;
-                        default:
-                            prefixes += std::format("{}", char(187));
+                        default: {
+                            has_text_prefix = true;
+                            static constexpr char DoubleArrow = 187;
+                            ss << DoubleArrow;
+                        } break;
                     }
                 }
             }
         }
 
-        update_lobby_name(ad, prefixes, joinable);
+        if (ad.original_name.empty()) {
+            ad.original_name = ad.game_info.game_name;
+        }
+        ss << (has_text_prefix ? " " : "") << ad.original_name;
+
+        if (snp_config.add_map_to_lobby_name) {
+            ss << (joinable ? ColorByte::Blue : ColorByte::Revert) << " " << extract_map_name(ad.game_info);
+        }
+
+        const auto prefixes = ss.str();
+        spdlog::debug("Lobby name updated to {}, length: {}", prefixes, prefixes.size());
+        strncpy(ad.game_info.game_name, prefixes.c_str(), sizeof(ad.game_info.game_name));
 
         if (last_ad) {
             last_ad->game_info.pNext = &ad.game_info;
@@ -296,22 +272,19 @@ static BOOL __stdcall spi_lock_game_list(int, int, game** out_game_list) {
     if (last_ad) {
         last_ad->game_info.pNext = nullptr;
     }
-
     *out_game_list = &g_snp_context.status_ad.game_info;
-    
+
     return true;
 }
 
-static BOOL __stdcall spi_unlock_game_list(game* game_list, DWORD*) {
-    // called by storm after it is done reading the games list to unlock the mutex
+static BOOL __stdcall spi_unlock_game_list(GameInfo* game_list, DWORD*) {
+    // Called by storm after it is done reading the games list to unlock the mutex
     g_advertisement_mutex.unlock();
 
     g_crown_link->request_advertisements();
 
     return true;
 }
-
-void remove_advertisement(const NetAddress& host) {}
 
 static void create_ad(
     AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
@@ -336,8 +309,8 @@ static void create_ad(
 
 void create_status_ad() {
     std::lock_guard lock{g_advertisement_mutex};
-    char            user_data[32] = {12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                     0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    char user_data[32] = {12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     create_ad(
         g_snp_context.status_ad, "", ",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r", 12, &user_data, sizeof(user_data)
     );
@@ -367,7 +340,7 @@ void update_status_ad() {
         // intentionally not using a "start of text" character here so the ad is green
     }
     if (output.empty()) {
-        g_snp_context.status_ad.game_info.game_state = 12; // hide the ad, games list doesn't show games "in progress"
+        g_snp_context.status_ad.game_info.game_state = 12;  // hide the ad, games list doesn't show games "in progress"
         return;
     }
     g_snp_context.status_ad.game_info.game_state = 0;  // show the ad
@@ -386,11 +359,12 @@ void clear_status_ad() {
 
 static BOOL __stdcall spi_start_advertising_ladder_game(
     char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
-    int, int, void* user_data, DWORD user_data_size) {
+    int, int, void* user_data, DWORD user_data_size
+) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     std::lock_guard lock{g_advertisement_mutex};
 
-    const auto&     snp_config = SnpConfig::instance();
+    const auto& snp_config = SnpConfig::instance();
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
     g_snp_context.hosted_game.crownlink_mode = snp_config.mode;
     g_crown_link->start_advertising(g_snp_context.hosted_game);
@@ -407,17 +381,18 @@ static BOOL __stdcall spi_stop_advertising_game() {
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, game* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, GameInfo* out_game) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
 
     std::lock_guard lock{g_advertisement_mutex};
     spdlog::trace("getting game info for index {}", index);
 
-
-
     for (auto& ad : g_snp_context.lobbies) {
-        spdlog::trace("checking game: {} with index {}, version {}", ad.game_info.game_description, ad.game_info.game_index, ad.game_info.version_id);
+        spdlog::trace(
+            "checking game: {} with index {}, version {}", ad.game_info.game_description, ad.game_info.game_index,
+            ad.game_info.version_id
+        );
         const auto& snp_config = SnpConfig::instance();
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
@@ -448,12 +423,11 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
     }
 
     const NetAddress& peer = out_address_list[0][0];
-    GamePacketData*   packet = reinterpret_cast<GamePacketData*>(data);
+    GamePacketData* packet = reinterpret_cast<GamePacketData*>(data);
     spdlog::trace(
         "[{}] Send: {} {:pa}", peer, to_string(packet->header),
         spdlog::to_hex(
-            std::begin(packet->payload),
-            std::begin(packet->payload) + packet->header.size - sizeof(GamePacketHeader)
+            std::begin(packet->payload), std::begin(packet->payload) + packet->header.size - sizeof(GamePacketHeader)
         )
     );
 
@@ -461,7 +435,8 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
 }
 
 static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out_size) {
-    // when g_receive_event is set storm will repeatedly call this until it returns false, reading one packet each time until the queue is empty
+    // when g_receive_event is set storm will repeatedly call this until it returns false, reading one packet each time
+    // until the queue is empty
 
     *peer = nullptr;
     *out_data = nullptr;
@@ -475,11 +450,12 @@ static BOOL __stdcall spi_receive(NetAddress** peer, char** out_data, DWORD* out
             return false;
         }
         auto payload_size = loan->data.header.size - sizeof(GamePacketHeader);
-        spdlog::trace("[{}] Recv: {} {:pa}", loan->sender, to_string(loan->data.header),
-                      spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + payload_size)
+        spdlog::trace(
+            "[{}] Recv: {} {:pa}", loan->sender, to_string(loan->data.header),
+            spdlog::to_hex(std::begin(loan->data.payload), std::begin(loan->data.payload) + payload_size)
         );
 
-        if (get_tick_count() > loan->timestamp + 2 ) {
+        if (get_tick_count() > loan->timestamp + 2) {
             continue;
         }
 
@@ -499,14 +475,16 @@ void packet_parser(const GamePacket* game_packet) {
             SystemPlayerJoin_PlayerInfo player_info{};
             memcpy(
                 &player_info, game_packet->data.payload,
-                payload_size < sizeof(SystemPlayerJoin_PlayerInfo) ? payload_size
-                                                                    : sizeof(SystemPlayerJoin_PlayerInfo)
+                payload_size < sizeof(SystemPlayerJoin_PlayerInfo) ? payload_size : sizeof(SystemPlayerJoin_PlayerInfo)
             );
             if (player_info.address.is_zero()) {
                 player_info.address = game_packet->sender;
                 spdlog::trace("address was zero, copying from game info");
             }
-            spdlog::trace("Player introduction received, address: {}, player id: {}, host: {}, name {}", player_info.address, player_info.player_id, player_info.gameowner, player_info.name_description);            
+            spdlog::trace(
+                "Player introduction received, address: {}, player id: {}, host: {}, name {}", player_info.address,
+                player_info.player_id, player_info.gameowner, player_info.name_description
+            );
         }
     }
 }
@@ -566,7 +544,7 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 static BOOL __stdcall spi_select_game(
-    int, client_info* client_info, user_info* user_info, battle_info* callbacks, module_info* module_info, int
+    int, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int
 ) {
     // Looks like an old function and doesn't seem like it's used anymore
     // UDPN's function Creates an IPX game select dialog window

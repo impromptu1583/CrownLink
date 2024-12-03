@@ -9,4 +9,3 @@ AllowShortEnumsOnASingleLine: false
 AllowShortBlocksOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortLambdasOnASingleLine: Empty
-AlignConsecutiveDeclarations: Consecutive
