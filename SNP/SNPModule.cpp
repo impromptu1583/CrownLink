@@ -185,17 +185,17 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
 
     for (AdFile& ad : g_snp_context.lobbies) {
         bool joinable = true;
-        bool want_space = false;
+        bool has_text_prefix = false;
         std::stringstream ss;
 
         if (g_snp_context.game_app_info.version_id != ad.game_info.version_id) {
             joinable = false;
-            want_space = true;
+            has_text_prefix = true;
             ss << ColorByte::Red << "[!Ver]";
         }
         if (snp_config.mode != ad.crownlink_mode) {
             joinable = false;
-            want_space = true;
+            has_text_prefix = true;
             ss << ColorByte::Red << "[!Mode]";
         }
         if (ad == g_snp_context.status_ad) {
@@ -213,33 +213,37 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
         if (joinable) {
             switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
-                    want_space = true;
+                    has_text_prefix = true;
                     ss << ColorByte::Gray << "...";
                 } break;
                 case JUICE_STATE_FAILED: {
-                    want_space = true;
+                    has_text_prefix = true;
                     ss << ColorByte::Gray << "!!";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
-                    want_space = true;
+                    has_text_prefix = true;
                     ss << ColorByte::Gray << "-";
                     g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
+                    // Use ColorByte to manipulate menu order but revert to standard menu behavior
+                    ss << ColorByte::Green << ColorByte::Revert;
                     switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
-                            want_space = true;
-                            ss << ColorByte::Default << "[R]";
+                            has_text_prefix = true;
+                            ss << "[R]";
                         } break;
                         case JuiceConnectionType::Radmin: {
-                            want_space = true;
-                            ss << ColorByte::Gray << std::format("[Radmin {}]", static_cast<char>(131));  // char :(
+                            has_text_prefix = true;
+                            static constexpr char SadEmoji = 131;
+                            ss << std::format("[Radmin {}]", SadEmoji);
                         } break;
                         default: {
-                            want_space = true;
-                            ss << ColorByte::Default << static_cast<char>(187);  // char >>
+                            has_text_prefix = true;
+                            static constexpr char DoubleArrow = 187;
+                            ss << DoubleArrow;
                         } break;
                     }
                 }
@@ -249,13 +253,10 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
         if (ad.original_name.empty()) {
             ad.original_name = ad.game_info.game_name;
         }
-        if (want_space) {
-            ss << " ";
-        }
-        ss << ad.original_name;
+        ss << (has_text_prefix ? " " : "") << ad.original_name;
 
         if (snp_config.add_map_to_lobby_name) {
-            ss << (joinable ? ColorByte::Blue : ColorByte::Default) << extract_map_name(ad.game_info);
+            ss << (joinable ? ColorByte::Blue : ColorByte::Revert) << " " << extract_map_name(ad.game_info);
         }
 
         const auto prefixes = ss.str();

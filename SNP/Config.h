@@ -12,11 +12,11 @@ enum class LogLevel {
 };
 
 struct SnpConfig {
-    u32         config_version = 2;
+    u32 config_version = 2;
     std::string server = "crowserve.cosmonarchy.com";
     std::string port = "33377";
     std::string lobby_password = "";
-    bool        add_map_to_lobby_name = true;
+    bool add_map_to_lobby_name = true;
 
     LogLevel log_level = LogLevel::Debug;
 
@@ -31,7 +31,7 @@ public:
 
     SnpConfig load() {
         std::ifstream file{m_path};
-        Json          json;
+        Json json;
         if (file.good()) {
             try {
                 json = Json::parse(file);
@@ -139,7 +139,7 @@ private:
     }
 
 private:
-    bool     m_config_existed = false;
+    bool m_config_existed = false;
     fs::path m_path;
 };
 

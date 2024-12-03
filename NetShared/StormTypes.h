@@ -1,6 +1,7 @@
 #pragma once
-#include "../shared_common.h"
 #include <nlohmann/json.hpp>
+
+#include "../shared_common.h"
 using Json = nlohmann::json;
 
 #include <numeric>
@@ -16,33 +17,31 @@ struct NetAddress {
         return false;
     };
 
-    bool is_zero() const {
-        return std::accumulate(std::begin(bytes), std::end(bytes), 0) == 0;
-    }
+    bool is_zero() const { return std::accumulate(std::begin(bytes), std::end(bytes), 0) == 0; }
 
     std::string uuid_string() const {
         char str[37] = {};
-        sprintf(str, 
-        "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+        sprintf(
+            str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0], bytes[1], bytes[2],
+            bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11], bytes[12],
+            bytes[13], bytes[14], bytes[15]
         );
         return str;
     }
 
-    friend std::ostream& operator<< (std::ostream& out, const NetAddress& address) {
+    friend std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
         return out << address.uuid_string();
     }
 };
 
 inline void to_json(Json& j, const NetAddress& address) {
-    j = Json{{"Id",Json::binary_t(std::vector<u8>{address.bytes,address.bytes + sizeof(NetAddress)})}};
+    j = Json{{"Id", Json::binary_t(std::vector<u8>{address.bytes, address.bytes + sizeof(NetAddress)})}};
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
     // TODO error handling
     auto id = j["Id"];
-    memcpy(address.bytes,id.get_binary().data(),sizeof(address.bytes));
+    memcpy(address.bytes, id.get_binary().data(), sizeof(address.bytes));
 }
 
 template <>
@@ -59,69 +58,69 @@ struct std::hash<NetAddress> {
 
 struct Caps {
     u32 size;
-    u32 flags;             // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
+    u32 flags;  // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
     u32 max_message_size;  // must be between 128 and 512
     u32 max_queue_size;
     u32 max_players;
     u32 bytes_per_second;
     u32 latency;
-    u32 turns_per_second; // the turn_per_second and turns_in_transit values
-    u32 turns_in_transit; // in the appended mpq file seem to be used instead
+    u32 turns_per_second;  // the turn_per_second and turns_in_transit values
+    u32 turns_in_transit;  // in the appended mpq file seem to be used instead
 };
 
 struct ClientInfo {
-    u32   size; // 60
+    u32 size;  // 60
     char* program_name;
     char* program_description;
-    u32   program_id;
-    u32   version_id;
-    u32   dwUnk5;
-    u32   max_players;
-    u32   dwUnk7;
-    u32   dwUnk8;
-    u32   dwUnk9;
-    u32   dwUnk10; // 0xFF
+    u32 program_id;
+    u32 version_id;
+    u32 dwUnk5;
+    u32 max_players;
+    u32 dwUnk7;
+    u32 dwUnk8;
+    u32 dwUnk9;
+    u32 dwUnk10;  // 0xFF
     char* cd_key;
     char* cd_owner;
-    u32   is_shareware;
-    u32   language_id;
+    u32 is_shareware;
+    u32 language_id;
 };
 
 struct UserInfo {
-    u32   size; // 16
+    u32 size;  // 16
     char* player_name;
     char* player_description;
-    u32   dwUnknown;
+    u32 dwUnknown;
 };
 
 struct BattleInfo {
-    u32   size;   // 92
-    u32   dwUnkType;
+    u32 size;  // 92
+    u32 dwUnkType;
     void* hFrameWnd;
     void* pfnBattleGetResource;
     void* pfnBattleGetErrorString;
     void* pfnBattleMakeCreateGameDialog;
     void* pfnBattleUpdateIcons;
-    u32   dwUnk_07;
+    u32 dwUnk_07;
     void* pfnBattleErrorDialog;
     void* pfnBattlePlaySound;
-    u32   dwUnk_10;
+    u32 dwUnk_10;
     void* pfnBattleGetCursorLink;
-    u32   dwUnk_12;
+    u32 dwUnk_12;
     void* pfnUnk_13;
-    u32   dwUnk_14;
+    u32 dwUnk_14;
     void* pfnBattleMakeProfileDialog;
     char* pszProfileStrings;
     void* pfnBattleDrawProfileInfo;
     void* pfnUnk_18;
-    u32   dwUnk_19;
+    u32 dwUnk_19;
     void* pfnUnk_20;
     void* pfnUnk_21;
     void* pfnBattleSetLeagueName;
 };
 
 struct ModuleInfo {
-    u32   size; // 20
+    u32 size;  // 20
     char* version_string;
     char* executable_file;
     char* original_archive_file;
@@ -129,35 +128,28 @@ struct ModuleInfo {
 };
 
 struct GameInfo {
-    u32         game_index;
-    u32         game_state;
-    u32         creation_time;
-    NetAddress  host;
-    u32         host_latency;
-    u32         host_last_time;
-    u32         category_bits;
-    char        game_name[128];
-    char        game_description[128];
-    GameInfo*   pNext;
-    void*       pExtra;
-    u32         extra_bytes;
-    u32         program_id;
-    u32         version_id;
+    u32 game_index;
+    u32 game_state;
+    u32 creation_time;
+    NetAddress host;
+    u32 host_latency;
+    u32 host_last_time;
+    u32 category_bits;
+    char game_name[128];
+    char game_description[128];
+    GameInfo* pNext;
+    void* pExtra;
+    u32 extra_bytes;
+    u32 program_id;
+    u32 version_id;
 };
 
 inline bool operator==(const GameInfo& a, const GameInfo& b) {
-    return a.game_index == b.game_index
-        && a.game_state == b.game_state
-        && a.creation_time == b.creation_time
-        && a.host == b.host
-        && a.host_latency == b.host_latency
-        && a.host_last_time == b.host_last_time
-        && a.category_bits == b.category_bits
-        && std::ranges::equal(a.game_name, b.game_name)
-        && std::ranges::equal(a.game_description, b.game_description)
-        && a.extra_bytes == b.extra_bytes
-        && a.program_id == b.program_id
-        && a.version_id == b.version_id;
+    return a.game_index == b.game_index && a.game_state == b.game_state && a.creation_time == b.creation_time &&
+           a.host == b.host && a.host_latency == b.host_latency && a.host_last_time == b.host_last_time &&
+           a.category_bits == b.category_bits && std::ranges::equal(a.game_name, b.game_name) &&
+           std::ranges::equal(a.game_description, b.game_description) && a.extra_bytes == b.extra_bytes &&
+           a.program_id == b.program_id && a.version_id == b.version_id;
 }
 
 inline void to_json(Json& j, const GameInfo& g) {
@@ -177,7 +169,7 @@ inline void to_json(Json& j, const GameInfo& g) {
     };
 }
 
-inline void from_json (const Json& j, GameInfo& g) {
+inline void from_json(const Json& j, GameInfo& g) {
     j.at("game_index").get_to(g.game_index);
     j.at("game_state").get_to(g.game_state);
     j.at("creation_time").get_to(g.creation_time);
@@ -199,8 +191,8 @@ inline void from_json (const Json& j, GameInfo& g) {
 }
 
 enum class CrownLinkMode {
-    CLNK, // standard version
-    DBCL  // double brain cells version
+    CLNK,  // standard version
+    DBCL   // double brain cells version
 };
 
 inline std::string to_string(CrownLinkMode value) {
@@ -208,22 +200,21 @@ inline std::string to_string(CrownLinkMode value) {
         EnumStringCase(CrownLinkMode::CLNK);
         EnumStringCase(CrownLinkMode::DBCL);
     }
-    return std::to_string((s32) value);
+    return std::to_string((s32)value);
 }
 
 struct AdFile {
     GameInfo game_info{};
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
-    bool          mark_for_removal = false;
-    std::string   original_name{""};
-    bool          is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host;}
+    bool mark_for_removal = false;
+    std::string original_name{""};
+    bool is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host; }
 };
 
 inline bool operator==(const AdFile& a1, const AdFile& a2) {
     return (
-        a1.game_info == a2.game_info &&
-        memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
+        a1.game_info == a2.game_info && memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
         a1.crownlink_mode == a2.crownlink_mode
     );
 }
@@ -231,7 +222,7 @@ inline bool operator==(const AdFile& a1, const AdFile& a2) {
 inline void to_json(Json& j, const AdFile& ad_file) {
     j = Json{
         {"game_info", ad_file.game_info},
-        {"extra_bytes", Json::binary({ad_file.extra_bytes,ad_file.extra_bytes+32})},
+        {"extra_bytes", Json::binary({ad_file.extra_bytes, ad_file.extra_bytes + 32})},
         {"crownlink_mode", ad_file.crownlink_mode}
     };
 }
@@ -254,7 +245,7 @@ enum class GamePacketType : u8 {
 };
 
 inline std::string to_string(GamePacketType value) {
-    switch (value) { 
+    switch (value) {
         case GamePacketType::System:
             return {"Sys"};
         case GamePacketType::Message:
@@ -264,7 +255,7 @@ inline std::string to_string(GamePacketType value) {
         case GamePacketType::Types:
             return {"Types"};
     }
-    return std::to_string((u8) value);
+    return std::to_string((u8)value);
 }
 
 enum class GamePacketSubType : u8 {
@@ -318,7 +309,7 @@ inline std::string to_string(GamePacketSubType value) {
         case GamePacketSubType::Messages:
             return {"Messages"};
     }
-    return std::to_string((u8) value);
+    return std::to_string((u8)value);
 }
 
 enum class GamePacketFlags : u8 {
@@ -329,9 +320,15 @@ enum class GamePacketFlags : u8 {
 
 inline std::string to_string(GamePacketFlags value) {
     std::string out;
-    if ((u8)value & (u8)GamePacketFlags::Acknowledgement) {out += "Ack";}
-    if ((u8)value & (u8)GamePacketFlags::ResendRequest) {out += "Resend";}
-    if ((u8)value & (u8)GamePacketFlags::Forwareded) {out += "Fwd";}
+    if ((u8)value & (u8)GamePacketFlags::Acknowledgement) {
+        out += "Ack";
+    }
+    if ((u8)value & (u8)GamePacketFlags::ResendRequest) {
+        out += "Resend";
+    }
+    if ((u8)value & (u8)GamePacketFlags::Forwareded) {
+        out += "Fwd";
+    }
     return out;
 }
 
@@ -348,20 +345,19 @@ struct GamePacketHeader {
 
 inline std::string to_string(GamePacketHeader& header) {
     return std::format(
-        "sz:{} seq:{} ack:{} tp:{} st:{} pid:{} flags:{}", header.size,
-        header.sequence, header.ack_sequence, to_string(header.type), to_string(header.sub_type), header.player_id,
-        to_string(header.flags)
+        "sz:{} seq:{} ack:{} tp:{} st:{} pid:{} flags:{}", header.size, header.sequence, header.ack_sequence,
+        to_string(header.type), to_string(header.sub_type), header.player_id, to_string(header.flags)
     );
 }
 
 struct SystemPlayerJoin_PlayerInfo {
-    u32  bytes;
-    u32  player_id;
+    u32 bytes;
+    u32 player_id;
     bool gameowner;
-    u32  flags;
-    u32  starting_turn;
+    u32 flags;
+    u32 starting_turn;
     NetAddress address;
-    char       name_description[256];
+    char name_description[256];
 };
 
 struct GamePacketData {

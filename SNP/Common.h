@@ -70,7 +70,7 @@ inline std::string as_string(const auto& value) {
 }
 
 enum class ColorByte : u8 {
-    Default = 1,
+    Revert = 1,
     Blue,
     Green,
     LightGreen,

@@ -24,7 +24,7 @@ void Socket::try_init(std::stop_token& stop_token) {
         m_profile_received = false;
     }
 
-    addrinfo  hints = {};
+    addrinfo hints = {};
     addrinfo* address_info = nullptr;
 
     hints.ai_family = AF_INET;

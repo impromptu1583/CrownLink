@@ -69,7 +69,8 @@ enum class SocketState {
 struct Header {
     Header() = default;
 
-    Header(u16 protocol, u32 message_count) : protocol{protocol}, message_count{message_count}, version{CL_VERSION_NUMBER} {
+    Header(u16 protocol, u32 message_count)
+        : protocol{protocol}, message_count{message_count}, version{CL_VERSION_NUMBER} {
         memcpy(magic, "CSRV", sizeof(magic));
     };
 

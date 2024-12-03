@@ -44,8 +44,7 @@ struct NetFunctions {
 
     // Called when the module is initialized
     BOOL(__stdcall *spiInitialize)
-    (ClientInfo *gameClientInfo, UserInfo *userData, BattleInfo *bnCallbacks, ModuleInfo *moduleData,
-     HANDLE hEvent);
+    (ClientInfo *gameClientInfo, UserInfo *userData, BattleInfo *bnCallbacks, ModuleInfo *moduleData, HANDLE hEvent);
     void *spiInitializeDevice;
     void *spiLockDeviceList;
 
