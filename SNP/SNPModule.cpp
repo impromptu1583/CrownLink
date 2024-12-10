@@ -17,7 +17,9 @@ struct SNPContext {
     AdFile status_ad;
     bool status_ad_used = false;
 
-    std::string status_string{};
+    HMODULE storm_module;
+
+    std::string status_string{}; 
 };
 
 static SNPContext g_snp_context;
@@ -82,7 +84,19 @@ static BOOL __stdcall spi_initialize(
     init_logging();
     create_status_ad();
     set_status_ad("Initializing");
+    HWND parwin = (HWND)callbacks->hFrameWnd;
+    //SetActiveWindow(parwin);
+    //ShowWindow(parwin, SW_HIDE);
+    g_snp_context.storm_module = GetModuleHandle("storm.dll");
+    if (g_snp_context.storm_module == NULL) {
+        spdlog::info("handle = null");
+    } else {
+        spdlog::info("worked?");
+    }
 
+
+
+    
     try {
         g_crown_link = std::make_unique<CrownLink>();
     } catch (const std::exception& e) {
@@ -544,11 +558,41 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 static BOOL __stdcall spi_select_game(
-    int, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int
+    int flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int* playerid
 ) {
-    // Looks like an old function and doesn't seem like it's used anymore
-    // UDPN's function Creates an IPX game select dialog window
-    return false;
+    spdlog::info("called spi_select");
+    //g_advertisement_mutex.unlock();
+    g_crown_link->request_advertisements();
+
+    // todo unsafe memory access without mutex
+    spdlog::info("size: {}", g_snp_context.lobbies.size());
+    if (g_snp_context.lobbies.size()) {
+        auto ad = g_snp_context.lobbies[0];
+        TCHAR gamename[128];
+        GameInfo gi{};
+        spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
+        DWORD id = 3;
+        spdlog::info("game owner: {}", gi.host);
+        spdlog::info("agent state: {}", to_string(g_crown_link->juice_manager().lobby_agent_state(ad)));
+
+
+        const char* n = "Jesse";
+        //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,0);
+
+        //spdlog::info("Attempt: {}", res);
+        auto err = SErrGetLastError();
+        spdlog::info("last err: {}", err);
+        char buffer[255];
+        SErrGetErrorStr(err, buffer, 254);
+
+        spdlog::info("errstr: {}", buffer);
+
+
+    }
+
+
+    std::this_thread::sleep_for(1s);
+    return true;
 }
 
 static BOOL __stdcall spi_send_external_message(int, int, int, int, int) {

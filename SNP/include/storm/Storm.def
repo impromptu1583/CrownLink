@@ -1,0 +1,6 @@
+LIBRARY Storm
+
+EXPORTS
+	SNetCreateGame	@101 NONAME
+	SNetJoinGame	@118 NONAME
+	SNetLeaveGame	@119 NONAME

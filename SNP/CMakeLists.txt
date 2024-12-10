@@ -59,15 +59,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Juice)
 
+add_library(Storm SHARED IMPORTED)
+set_property(TARGET Storm PROPERTY IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/SNP/include/storm/storm.dll")
+set_property(TARGET Storm PROPERTY IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/SNP/include/storm/Storm.lib")
+
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
+target_include_directories(SNP PUBLIC ${CMAKE_SOURCE_DIR}/SNP/include/storm)
+
 target_link_libraries(SNP
 	PUBLIC ws2_32
 	PRIVATE juice-static
+	PUBLIC Storm
 )
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
+
+
+#target_link_libraries(SNP PUBLIC storm)
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")

@@ -3,6 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#include "storm/Storm.h"
+
 namespace snp {
 
 constexpr auto MAX_PACKET_SIZE = 500;
@@ -58,7 +60,9 @@ struct NetFunctions {
     BOOL(__stdcall *spiReceiveExternalMessage)(NetAddress **addr, char **data, DWORD *databytes);
 
     // Called when a game is selected to query information
-    void *spiSelectGame;
+    //void *spiSelectGame;
+    BOOL(__stdcall *spiSelectGame)
+    (int flags, ClientInfo *client_info, UserInfo *user_info, BattleInfo *callbacks, ModuleInfo *module_info, int* playerid);
 
     // Sends data over a connectionless socket
     BOOL(__stdcall *spiSend)(DWORD addrCount, NetAddress **addrList, char *buf, DWORD bufLen);

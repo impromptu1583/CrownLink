@@ -6,11 +6,11 @@
 
 inline snp::NetworkInfo g_network_info{
     (char*)"CrownLink",
-    'CLNK',
+    'BNET',
     (char*)"",
 
     // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if its here anyway
-    {sizeof(Caps), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
+    {sizeof(Caps), 0x00000001, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
 class CrownLink {
