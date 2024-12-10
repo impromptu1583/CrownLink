@@ -33,6 +33,8 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
+using b32 = int;
+
 inline constexpr u8  MAJOR_VERSION = 1;
 inline constexpr u8  MINOR_VERSION = 0;
 inline constexpr u8  BUILD_VERSION = 3;
