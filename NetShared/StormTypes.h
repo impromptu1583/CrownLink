@@ -2,6 +2,8 @@
 #include <nlohmann/json.hpp>
 
 #include "../shared_common.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 using Json = nlohmann::json;
 
 #include <numeric>
@@ -86,25 +88,33 @@ struct ClientInfo {
     u32 language_id;
 };
 
-struct UserInfo {
-    u32 size;  // 16
-    char* player_name;
-    char* player_description;
-    u32 dwUnknown;
-};
+struct CreateInfo;
+struct ClientInfo;
+struct UIData;
+struct UserInfo;
+struct ModuleInfo;
 
-struct BattleInfo {
+// ui callbacks
+typedef BOOL(CALLBACK* SNETCREATEPROC)
+    (CreateInfo*, ClientInfo*, UserInfo*, UIData*, ModuleInfo*, DWORD*);
+typedef BOOL(CALLBACK* SNETGETARTPROC)
+    (DWORD, DWORD, LPPALETTEENTRY, LPBYTE, DWORD, int*, int*, int*);
+typedef int(CALLBACK* SNETMESSAGEBOXPROC)(HWND, LPCSTR, LPCSTR, UINT);
+typedef BOOL(CALLBACK* SNETPLAYSOUNDPROC)(DWORD, DWORD, DWORD);
+
+
+struct UIData {
     u32 size;  // 92
-    u32 dwUnkType;
-    void* hFrameWnd;
-    void* pfnBattleGetResource;
-    void* pfnBattleGetErrorString;
-    void* pfnBattleMakeCreateGameDialog;
-    void* pfnBattleUpdateIcons;
-    u32 dwUnk_07;
-    void* pfnBattleErrorDialog;
-    void* pfnBattlePlaySound;
-    u32 dwUnk_10;
+    u32 uiflags; // 1
+    HWND parent_window;
+    SNETGETARTPROC pfnBattleGetResource; // 0x004ac380
+    void* pfnBattleGetErrorString; // 0x00449810
+    SNETCREATEPROC pfnBattleMakeCreateGameDialog; // 0x0044cbe0
+    void* pfnBattleUpdateIcons; // drawdesccallback
+    u32 dwUnk_07; // selectedcallback ?
+    SNETMESSAGEBOXPROC pfnBattleErrorDialog;  // messageboxcallback
+    SNETPLAYSOUNDPROC pfnBattlePlaySound;     // soundcallback
+    u32 dwUnk_10; // statuscallback ?
     void* pfnBattleGetCursorLink;
     u32 dwUnk_12;
     void* pfnUnk_13;
@@ -112,11 +122,25 @@ struct BattleInfo {
     void* pfnBattleMakeProfileDialog;
     char* pszProfileStrings;
     void* pfnBattleDrawProfileInfo;
-    void* pfnUnk_18;
-    u32 dwUnk_19;
+    void* pfnUnk_18; // nullptr
+    u32 dwUnk_19; // 0
     void* pfnUnk_20;
     void* pfnUnk_21;
     void* pfnBattleSetLeagueName;
+};
+
+struct UserInfo {
+    u32 size;  // 16
+    char* player_name;
+    char* player_description;
+    u32 dwUnknown;  // not used in diablo storm.h
+};
+
+struct CreateInfo {
+    u32 size;
+    u32 provider_id;
+    u32 max_players;
+    u32 flags;
 };
 
 struct ModuleInfo {

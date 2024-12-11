@@ -6,6 +6,15 @@
 
 namespace snp {
 
+struct UIParams {
+    DWORD flags;
+    ClientInfo* program_data;
+    UserInfo* player_data;
+    UIData* interface_data;
+    ModuleInfo* version_data;
+    DWORD* player_id;
+};
+
 struct SNPContext {
     ClientInfo game_app_info;
     std::list<AdFile> game_list;
@@ -17,7 +26,7 @@ struct SNPContext {
     AdFile status_ad;
     bool status_ad_used = false;
 
-    HMODULE storm_module;
+    UIParams ui_params{};
 
     std::string status_string{}; 
 };
@@ -75,7 +84,7 @@ static void init_logging() {
 }
 
 static BOOL __stdcall spi_initialize(
-    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, HANDLE event
+    ClientInfo* client_info, UserInfo* user_info, UIData* callbacks, ModuleInfo* module_data, HANDLE event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     g_snp_context.game_app_info = *client_info;
@@ -84,16 +93,9 @@ static BOOL __stdcall spi_initialize(
     init_logging();
     create_status_ad();
     set_status_ad("Initializing");
-    HWND parwin = (HWND)callbacks->hFrameWnd;
+    HWND parwin = (HWND)callbacks->parent_window;
     //SetActiveWindow(parwin);
     //ShowWindow(parwin, SW_HIDE);
-    g_snp_context.storm_module = GetModuleHandle("storm.dll");
-    if (g_snp_context.storm_module == NULL) {
-        spdlog::info("handle = null");
-    } else {
-        spdlog::info("worked?");
-    }
-
 
 
     
@@ -395,7 +397,7 @@ static BOOL __stdcall spi_stop_advertising_game() {
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, GameInfo* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int buffer_size, GameInfo* out_game) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
 
@@ -558,11 +560,40 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 static BOOL __stdcall spi_select_game(
-    int flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int* playerid
+    DWORD flags, ClientInfo* client_info, UserInfo* user_info, UIData* callbacks, ModuleInfo* module_info, DWORD* playerid
 ) {
     spdlog::info("called spi_select");
     //g_advertisement_mutex.unlock();
     g_crown_link->request_advertisements();
+
+    ZeroMemory(&g_snp_context.ui_params, sizeof(UIParams));
+    g_snp_context.ui_params.flags = flags;
+    g_snp_context.ui_params.program_data = client_info;
+    g_snp_context.ui_params.player_data = user_info;
+    g_snp_context.ui_params.interface_data = callbacks;
+    g_snp_context.ui_params.version_data = module_info;
+    g_snp_context.ui_params.player_id = playerid;
+
+    CreateInfo game_create_info;
+    ZeroMemory(&game_create_info, sizeof(CreateInfo));
+    game_create_info.size = sizeof(CreateInfo);
+    game_create_info.provider_id = 'BNET';
+    game_create_info.max_players = 8;
+    game_create_info.flags = 0x00000001;  // SNET_CF_ALLOWPRIVATEGAMES
+
+    
+
+    auto res = g_snp_context.ui_params.interface_data->pfnBattleMakeCreateGameDialog(
+        &game_create_info, g_snp_context.ui_params.program_data, g_snp_context.ui_params.player_data,
+        g_snp_context.ui_params.interface_data, g_snp_context.ui_params.version_data, g_snp_context.ui_params.player_id
+    );
+
+    if (!res) {
+        auto err = SErrGetLastError();
+        char buffer[255];
+        SErrGetErrorStr(err, buffer, 254);
+        spdlog::info("Error: {} str: {}", err, buffer);
+    }
 
     // todo unsafe memory access without mutex
     spdlog::info("size: {}", g_snp_context.lobbies.size());
@@ -573,19 +604,28 @@ static BOOL __stdcall spi_select_game(
         spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
         DWORD id = 3;
         spdlog::info("game owner: {}", gi.host);
-        spdlog::info("agent state: {}", to_string(g_crown_link->juice_manager().lobby_agent_state(ad)));
 
+        auto juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+        while (juice_state != JUICE_STATE_COMPLETED) {
+            spdlog::info("waiting for p2p completion, state: {}", to_string(juice_state));
+            std::this_thread::sleep_for(1s);
+            juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+        }
+        
+        //spdlog::info("Connected, starting join_game");
 
-        const char* n = "Jesse";
-        //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,0);
+        //const char* n = "Jesse";
+
+        //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,playerid);
 
         //spdlog::info("Attempt: {}", res);
-        auto err = SErrGetLastError();
-        spdlog::info("last err: {}", err);
-        char buffer[255];
-        SErrGetErrorStr(err, buffer, 254);
+        //auto err = SErrGetLastError();
+        //spdlog::info("last err: {}", err);
+        //char buffer[255];
+        //SErrGetErrorStr(err, buffer, 254);
 
-        spdlog::info("errstr: {}", buffer);
+        //spdlog::info("errstr: {}", buffer);
+
 
 
     }
@@ -595,11 +635,28 @@ static BOOL __stdcall spi_select_game(
     return true;
 }
 
+static BOOL __stdcall spi_get_local_player_name(
+    char* name_buffer, DWORD name_buffer_size, char* desc_buffer, DWORD desc_buffer_size
+) {
+    // temporary, for testing
+    // todo
+    if (name_buffer_size > 0) {
+        strncpy(name_buffer, "Jesse", 6); 
+    }
+    if (desc_buffer_size > 0) {
+        strncpy(desc_buffer, "Desc", 5);
+    }
+    
+    return true;
+}
+
 static BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
     return false;
 }
 
 static BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
+    spdlog::info("spi_league_get_name called");
+
     return true;
 }
 
@@ -624,7 +681,7 @@ snp::NetFunctions g_spi_functions = {
     &snp::spi_stop_advertising_game,
     &snp::spi_unlock_device_list,
     &snp::spi_unlock_game_list,
-    nullptr,
+    &snp::spi_get_local_player_name,
     nullptr,
     nullptr,
     nullptr,

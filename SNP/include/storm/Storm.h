@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-inline auto g_storm_dll = GetModuleHandle("storm.dll");
+inline auto g_storm_dll = GetModuleHandleA("storm.dll");
 
 template <typename>
 class StormStdCall;
@@ -26,37 +26,5 @@ private:
 
 inline const StormStdCall<s32()> SErrGetLastError{463};
 inline const StormStdCall<b32(u32 error_code, char* buffer, size_t buffer_size)> SErrGetErrorStr{462};
-inline const StormStdCall<b32(u32 game_id, const char* game_name, const char* game_pw,
-    const char* player_name, const char* player_description, u32* player_id)> SNetJoinGame{118};
-
-//
-//inline HMODULE g_storm_module = GetModuleHandle("storm.dll");
-//
-//typedef int __stdcall SErrGetLastError_Func();
-//inline SErrGetLastError_Func* SErrGetLastError =
-//    reinterpret_cast<SErrGetLastError_Func*>(GetProcAddress(g_storm_module, MAKEINTRESOURCE(463)));
-//
-//
-//typedef bool __stdcall SErrGetErrorStr_Func(DWORD ec, char* buffer, size_t buffersize);
-//inline SErrGetErrorStr_Func* SErrGetErrorStr =
-//    reinterpret_cast<SErrGetErrorStr_Func*>(GetProcAddress(g_storm_module, MAKEINTRESOURCE(462)));
-//
-//typedef int __stdcall SNetJoinGame_Func(
-//    DWORD gameid, char* gamename, char* gamepassword, char* playername, char* playerdescription, DWORD* playerid
-//);
-//inline SNetJoinGame_Func* SNetJoinGame =
-//    reinterpret_cast<SNetJoinGame_Func*>(GetProcAddress(g_storm_module, MAKEINTRESOURCE(462)));
-//
-
-
-//        if (snjg == NULL) {
-//    auto hresult = GetLastError();
-//    LPTSTR errorText = NULL;
-//    FormatMessage(
-//        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, hresult, 0,
-//        (LPTSTR)&errorText, 0, NULL
-//    );
-//
-//    spdlog::info("Error: {}", errorText);
-//    return false;
-//}
+inline const StormStdCall<b32(u32 game_id, char* game_name, char* game_pw,
+    char* player_name, char* player_description, int* player_id)> SNetJoinGame{118};

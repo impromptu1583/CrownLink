@@ -46,7 +46,7 @@ struct NetFunctions {
 
     // Called when the module is initialized
     BOOL(__stdcall *spiInitialize)
-    (ClientInfo *gameClientInfo, UserInfo *userData, BattleInfo *bnCallbacks, ModuleInfo *moduleData, HANDLE hEvent);
+    (ClientInfo *gameClientInfo, UserInfo *userData, UIData *bnCallbacks, ModuleInfo *moduleData, HANDLE hEvent);
     void *spiInitializeDevice;
     void *spiLockDeviceList;
 
@@ -62,7 +62,7 @@ struct NetFunctions {
     // Called when a game is selected to query information
     //void *spiSelectGame;
     BOOL(__stdcall *spiSelectGame)
-    (int flags, ClientInfo *client_info, UserInfo *user_info, BattleInfo *callbacks, ModuleInfo *module_info, int* playerid);
+    (DWORD flags, ClientInfo *client_info, UserInfo *user_info, UIData *callbacks, ModuleInfo *module_info, DWORD* playerid);
 
     // Sends data over a connectionless socket
     BOOL(__stdcall *spiSend)(DWORD addrCount, NetAddress **addrList, char *buf, DWORD bufLen);
@@ -81,8 +81,8 @@ struct NetFunctions {
     void *spiUnlockGameList;
 
     // Called to begin advertising a created game to other clients
-    BOOL(__stdcall *spiStartAdvertisingGame)
-    (const char *pszGameName, DWORD dwGameNameSize, const char *pszPassword, DWORD dwPasswordSize);
+    BOOL(__stdcall *spiGetLocalPlayerName)
+    (char *name_buffer, DWORD name_buffer_size, char *desc_buffer, DWORD desc_buffer_size);
     void *spiReportGameResult;
     void *spiCheckDataFile;
     void *spiLeagueCommand;
