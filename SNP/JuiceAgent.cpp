@@ -116,7 +116,7 @@ std::string& JuiceAgent::player_name() {
 
 bool JuiceAgent::is_active() {
     std::shared_lock lock{m_mutex};
-    return std::chrono::steady_clock::now() - m_last_active < 5s;
+    return std::chrono::steady_clock::now() - m_last_active < 2min;
 }
 
 bool JuiceAgent::send_message(void* data, size_t size) {
