@@ -88,7 +88,7 @@ struct NetFunctions {
     void *spiLeagueCommand;
     void *spiLeagueSendReplayPath;
     void *spiLeagueGetReplayPath;
-    void *spiLeagueLogout;
+    BOOL(__stdcall *spiLeagueLogout)(char* unknown);
     BOOL(__stdcall *spiLeagueGetName)(char *pszDest, DWORD dwSize);
 };
 

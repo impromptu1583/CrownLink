@@ -379,7 +379,7 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
 ) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     std::lock_guard lock{g_advertisement_mutex};
-
+    spdlog::info("game_stat_string: {}", game_stat_string);
     const auto& snp_config = SnpConfig::instance();
     create_ad(g_snp_context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
     g_snp_context.hosted_game.crownlink_mode = snp_config.mode;
