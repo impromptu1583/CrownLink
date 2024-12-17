@@ -8,15 +8,15 @@ namespace snp {
 
 struct UIParams {
     DWORD flags;
-    ClientInfo* program_data;
-    UserInfo* player_data;
-    UIData* interface_data;
-    ModuleInfo* version_data;
+    ProgramInfo* program_data;
+    PlayerData* player_data;
+    InterfaceData* interface_data;
+    VersionInfo* version_data;
     DWORD* player_id;
 };
 
 struct SNPContext {
-    ClientInfo game_app_info;
+    ProgramInfo game_app_info;
     std::list<AdFile> game_list;
 
     std::vector<AdFile> lobbies;
@@ -27,6 +27,8 @@ struct SNPContext {
     bool status_ad_used = false;
 
     UIParams ui_params{};
+
+    u32 player_id;
 
     std::string status_string{}; 
 };
@@ -84,7 +86,7 @@ static void init_logging() {
 }
 
 static BOOL __stdcall spi_initialize(
-    ClientInfo* client_info, UserInfo* user_info, UIData* callbacks, ModuleInfo* module_data, HANDLE event
+    ProgramInfo* client_info, PlayerData* user_info, InterfaceData* callbacks, VersionInfo* module_data, HANDLE event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     g_snp_context.game_app_info = *client_info;
@@ -559,34 +561,88 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
     return false;
 }
 
+bool snp::try_create_game(DWORD* playerid) {
+    char name[25] = "Jesse";
+    char desc[25] = "Description";
+    PlayerData player_data{sizeof(PlayerData), name, desc};
+    
+    CreateInfo create_data{sizeof(CreateInfo), 'BNET', 256, 1}; // flags: 1 = private games allowed
+
+    if (!GetModuleFileNameA(0, bw_starcraft_exe_path, 260)) {
+        // todo error handling
+    }
+    // todo lol
+    //bw_maps_directory =
+    // "C:\Cosmonarchy\Starcraft\Maps\CMBW-Root\CMBW-maps\melee\1v1\_event\(2)Demilune 1.2.scx"
+    const char* mapfile = "C:\\Cosmonarchy\\Starcraft\\Maps\\CMBW-Root\\CMBW-maps\\melee\\1v1\\_event\\(2)Demilune 1.3.scx";
+    const char* mapname = "Demilune";
+    const char* mapsdir = "C:\\Cosmonarchy\\Starcraft\\Maps\\CMBW-Root\\CMBW-maps\\melee\\1v1\\_event\\";
+    strncpy(bw_maps_directory, mapsdir, 260); 
+    strncpy(bw_current_map_filename, mapfile, 260);
+    strncpy(bw_current_map_name, mapname, 32);
+
+    GameData game_data{0, "Jesse", 00, 112, 128, 1, 8, 0, 0, 30, 1, 3408845483, 7, 0, 0, "Jesse", "Demilune", 30, 1,
+        0,0,0,0,1,2,0,1,3,1,0,0,0,0,0,0
+    };
+
+    memcpy(bw_game_data, &game_data, sizeof(GameData));
+
+    u32 category_bits = 65566;
+    const char* pw = "";
+    const char* initdata = "initdata";
+
+    b32 success = SNetCreateGame(
+        &game_data.game_name[0], (char*)pw, &game_data.game_name[0], category_bits, (char*)initdata, (u32)9, (u32)256,
+        (char*)&game_data.host_name[0], (char*)&game_data.host_name[0], playerid
+    );
+
+    spdlog::info("Success: {}", success);
+
+    if (success) {
+        memcpy(bw_game_data, &game_data, 96);
+        *bw_is_host = true;
+    }
+
+    return success;
+}
+
+
 static BOOL __stdcall spi_select_game(
-    DWORD flags, ClientInfo* client_info, UserInfo* user_info, UIData* callbacks, ModuleInfo* module_info, DWORD* playerid
+    DWORD flags, ProgramInfo* client_info, PlayerData* user_info, InterfaceData* interface_data, VersionInfo* module_info, DWORD* playerid
 ) {
-    spdlog::info("called spi_select");
-    //g_advertisement_mutex.unlock();
+    spdlog::info("called spi_select, flags: {}", flags);
     g_crown_link->request_advertisements();
-
-    ZeroMemory(&g_snp_context.ui_params, sizeof(UIParams));
-    g_snp_context.ui_params.flags = flags;
-    g_snp_context.ui_params.program_data = client_info;
-    g_snp_context.ui_params.player_data = user_info;
-    g_snp_context.ui_params.interface_data = callbacks;
-    g_snp_context.ui_params.version_data = module_info;
-    g_snp_context.ui_params.player_id = playerid;
-
-    CreateInfo game_create_info;
-    ZeroMemory(&game_create_info, sizeof(CreateInfo));
-    game_create_info.size = sizeof(CreateInfo);
-    game_create_info.provider_id = 'BNET';
-    game_create_info.max_players = 8;
-    game_create_info.flags = 0x00000001;  // SNET_CF_ALLOWPRIVATEGAMES
-
     
 
-    auto res = g_snp_context.ui_params.interface_data->pfnBattleMakeCreateGameDialog(
-        &game_create_info, g_snp_context.ui_params.program_data, g_snp_context.ui_params.player_data,
-        g_snp_context.ui_params.interface_data, g_snp_context.ui_params.version_data, g_snp_context.ui_params.player_id
+    g_snp_context.player_id = *playerid;
+    if (!interface_data) {
+        return false;
+    }
+    HWND main_game_window = interface_data->parent_window;
+
+
+    strncpy(bw_player_name, "Jesse", 6);
+
+
+    CreateInfo game_create_info{sizeof(CreateInfo), 'BNET', 8, 1}; // SNET_CF_ALLOWPRIVATEGAMES
+    PlayerData player_data{16, bw_player_name, (char*)"Desc", 0};
+    UIParams ui_params{flags, client_info, &player_data, interface_data, module_info, playerid};
+
+    SetActiveWindow(interface_data->parent_window);
+
+    //g_snp_context.ui_params.interface_data->pfnBattleErrorDialog(
+    //    g_snp_context.ui_params.interface_data->parent_window, "this is the text", "caption!", 1
+    //);
+
+    return try_create_game(playerid);
+
+
+    auto res = interface_data->pfnBattleMakeCreateGameDialog(
+        &game_create_info, g_snp_context.ui_params.program_data, &player_data,
+        interface_data, ui_params.version_data, ui_params.player_id
     );
+
+
 
     if (!res) {
         auto err = SErrGetLastError();
@@ -594,44 +650,58 @@ static BOOL __stdcall spi_select_game(
         SErrGetErrorStr(err, buffer, 254);
         spdlog::info("Error: {} str: {}", err, buffer);
     }
-
-    // todo unsafe memory access without mutex
-    spdlog::info("size: {}", g_snp_context.lobbies.size());
-    if (g_snp_context.lobbies.size()) {
-        auto ad = g_snp_context.lobbies[0];
-        TCHAR gamename[128];
-        GameInfo gi{};
-        spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
-        DWORD id = 3;
-        spdlog::info("game owner: {}", gi.host);
-
-        auto juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
-        while (juice_state != JUICE_STATE_COMPLETED) {
-            spdlog::info("waiting for p2p completion, state: {}", to_string(juice_state));
-            std::this_thread::sleep_for(1s);
-            juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
-        }
-        
-        //spdlog::info("Connected, starting join_game");
-
-        //const char* n = "Jesse";
-
-        //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,playerid);
-
-        //spdlog::info("Attempt: {}", res);
-        //auto err = SErrGetLastError();
-        //spdlog::info("last err: {}", err);
-        //char buffer[255];
-        //SErrGetErrorStr(err, buffer, 254);
-
-        //spdlog::info("errstr: {}", buffer);
+    return res;
 
 
 
-    }
+    char initdata[43] = {0x2C, 0x33, 0x34, 0x2C, 0x31, 0x37, 0x2C, 0x30, 0x2C, 0x2C, 0x31,
+                                  0x65, 0x2C, 0x2C, 0x31, 0x2C, 0x63, 0x62, 0x32, 0x65, 0x64, 0x61,
+                                  0x61, 0x62, 0x2C, 0x37, 0x2C, 0x2C, 0x4A, 0x65, 0x73, 0x73, 0x65,
+                                  0x0D, 0x44, 0x65, 0x6D, 0x69, 0x6C, 0x75, 0x6E, 0x65, 0x0D};
+
+    //auto res = SNetCreateGame(
+    //    player_name, (char*)NULL, player_desc, (u32)0, player_desc, (u32)32, (u32)8, player_name, player_desc, playerid
+    //);
 
 
-    std::this_thread::sleep_for(1s);
+
+    //// todo unsafe memory access without mutex
+    //spdlog::info("size: {}", g_snp_context.lobbies.size());
+    //if (g_snp_context.lobbies.size()) {
+    //    auto ad = g_snp_context.lobbies[0];
+    //    TCHAR gamename[128];
+    //    GameInfo gi{};
+    //    spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
+    //    DWORD id = 3;
+    //    spdlog::info("game owner: {}", gi.host);
+
+    //    auto juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+    //    while (juice_state != JUICE_STATE_COMPLETED) {
+    //        spdlog::info("waiting for p2p completion, state: {}", to_string(juice_state));
+    //        std::this_thread::sleep_for(1s);
+    //        juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+    //    }
+    //    
+    //    //spdlog::info("Connected, starting join_game");
+
+    //    //const char* n = "Jesse";
+
+    //    //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,playerid);
+
+    //    //spdlog::info("Attempt: {}", res);
+    //    //auto err = SErrGetLastError();
+    //    //spdlog::info("last err: {}", err);
+    //    //char buffer[255];
+    //    //SErrGetErrorStr(err, buffer, 254);
+
+    //    //spdlog::info("errstr: {}", buffer);
+
+
+
+    //}
+
+
+    //std::this_thread::sleep_for(1s);
     return true;
 }
 

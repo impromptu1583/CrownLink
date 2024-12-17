@@ -70,7 +70,7 @@ struct Caps {
     u32 turns_in_transit;  // in the appended mpq file seem to be used instead
 };
 
-struct ClientInfo {
+struct ProgramInfo {
     u32 size;  // 60
     char* program_name;
     char* program_description;
@@ -89,21 +89,21 @@ struct ClientInfo {
 };
 
 struct CreateInfo;
-struct ClientInfo;
-struct UIData;
-struct UserInfo;
-struct ModuleInfo;
+struct ProgramInfo;
+struct InterfaceData;
+struct PlayerData;
+struct VersionInfo;
 
 // ui callbacks
 typedef BOOL(CALLBACK* SNETCREATEPROC)
-    (CreateInfo*, ClientInfo*, UserInfo*, UIData*, ModuleInfo*, DWORD*);
+    (CreateInfo*, ProgramInfo*, PlayerData*, InterfaceData*, VersionInfo*, DWORD*);
 typedef BOOL(CALLBACK* SNETGETARTPROC)
     (DWORD, DWORD, LPPALETTEENTRY, LPBYTE, DWORD, int*, int*, int*);
 typedef int(CALLBACK* SNETMESSAGEBOXPROC)(HWND, LPCSTR, LPCSTR, UINT);
 typedef BOOL(CALLBACK* SNETPLAYSOUNDPROC)(DWORD, DWORD, DWORD);
 
 
-struct UIData {
+struct InterfaceData {
     u32 size;  // 92
     u32 uiflags; // 1
     HWND parent_window;
@@ -129,7 +129,7 @@ struct UIData {
     void* pfnBattleSetLeagueName;
 };
 
-struct UserInfo {
+struct PlayerData {
     u32 size;  // 16
     char* player_name;
     char* player_description;
@@ -143,7 +143,7 @@ struct CreateInfo {
     u32 flags;
 };
 
-struct ModuleInfo {
+struct VersionInfo {
     u32 size;  // 20
     char* version_string;
     char* executable_file;
@@ -400,4 +400,10 @@ struct GamePacket {
         : sender{sender_id}, timestamp{get_tick_count()}, size{(u32)size} {
         memcpy(&data, recv_data, size < 500 ? size : 500);
     };
+};
+
+struct ClientData {
+    u32 size = 12;
+    u32 current_players;
+    u32 max_players;
 };

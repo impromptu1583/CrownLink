@@ -24,6 +24,8 @@ void set_status_ad(const std::string &status);
 void clear_status_ad();
 void packet_parser(const GamePacket *game_packet);
 
+bool try_create_game(DWORD* playerid);
+
 struct NetFunctions {
     // The size of the vtable
     DWORD dwSize;
@@ -46,7 +48,7 @@ struct NetFunctions {
 
     // Called when the module is initialized
     BOOL(__stdcall *spiInitialize)
-    (ClientInfo *gameClientInfo, UserInfo *userData, UIData *bnCallbacks, ModuleInfo *moduleData, HANDLE hEvent);
+    (ProgramInfo *gameClientInfo, PlayerData *userData, InterfaceData *bnCallbacks, VersionInfo *moduleData, HANDLE hEvent);
     void *spiInitializeDevice;
     void *spiLockDeviceList;
 
@@ -62,7 +64,7 @@ struct NetFunctions {
     // Called when a game is selected to query information
     //void *spiSelectGame;
     BOOL(__stdcall *spiSelectGame)
-    (DWORD flags, ClientInfo *client_info, UserInfo *user_info, UIData *callbacks, ModuleInfo *module_info, DWORD* playerid);
+    (DWORD flags, ProgramInfo *client_info, PlayerData *user_info, InterfaceData *callbacks, VersionInfo *module_info, DWORD* playerid);
 
     // Sends data over a connectionless socket
     BOOL(__stdcall *spiSend)(DWORD addrCount, NetAddress **addrList, char *buf, DWORD bufLen);
