@@ -406,12 +406,12 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int buffer
     std::lock_guard lock{g_advertisement_mutex};
     spdlog::trace("getting game info for index {}", index);
 
-    ProviderInfo* current_provider = nullptr;
-    for (ProviderInfo provider : g_providers) {
-        if (provider.provider_id == g_provider_id) {
-            current_provider = &provider;
-        }
-    }
+    //ProviderInfo* current_provider = nullptr;
+    //for (ProviderInfo provider : g_providers) {
+    //    if (provider.provider_id == g_provider_id) {
+    //        current_provider = &provider;
+    //    }
+    //}
 
     for (auto& ad : g_snp_context.lobbies) {
         spdlog::trace(
@@ -422,14 +422,14 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int buffer
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
             spdlog::trace("found game with description {}", ad.game_info.game_description);
-            if (current_provider && ad.crownlink_mode == CrownLinkMode::CLNK) {
-                current_provider->caps.turns_per_second = 8;
-            } else if (current_provider) {
-                current_provider->caps.turns_per_second = 4;
-            } else {
-                // couldn't find current provider, this should never happen
-                return false;
-            }
+            //if (current_provider && ad.crownlink_mode == CrownLinkMode::CLNK) {
+            //    current_provider->caps.turns_per_second = 8;
+            //} else if (current_provider) {
+            //    current_provider->caps.turns_per_second = 4;
+            //} else {
+            //    // couldn't find current provider, this should never happen
+            //    return false;
+            //}
             return true;
         }
     }
@@ -575,11 +575,11 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 bool snp::try_create_game(u32* playerid) {
-    char name[25] = "Jesse";
-    char desc[25] = "Description";
-    PlayerData player_data{sizeof(PlayerData), name, desc};
-    
-    CreateInfo create_data{sizeof(CreateInfo), 'BNET', 256, 1}; // flags: 1 = private games allowed
+
+    g_current_provider->caps.turns_per_second = 4;
+    auto& snp_config = SnpConfig::instance();
+    snp_config.mode = CrownLinkMode::DBCL;
+
 
     if (!GetModuleFileNameA(0, bw_starcraft_exe_path, 260)) {
         // todo result handling
@@ -589,10 +589,7 @@ bool snp::try_create_game(u32* playerid) {
     const char* mapsdir = "C:\\Cosmonarchy\\Starcraft\\Maps\\CMBW-Root\\CMBW-maps\\melee\\1v1\\_event\\";
     //const char* mapsdir = "C:\\Cosmonarchy\\Starcraft\\Maps\\replays\\a\\";
     strncpy(bw_maps_directory, mapsdir, 260); 
-    //strncpy(bw_current_map_filename, mapfile, 260);
-    //strncpy(bw_current_map_name, mapname, 32);
 
-    // build directory listing linked list
     list_dir(mapsdir);
 
     auto first_entry = *(DirEntryMap**)0x0051a27c;
@@ -676,6 +673,12 @@ bool snp::join_game(u32 index, u32* playerid) {
             *bw_game_type = 0x1e;
             *bw_game_subtype = 1;
 
+            if (ad.crownlink_mode == CrownLinkMode::CLNK) {
+                g_current_provider->caps.turns_per_second = 8;
+            } else {
+                g_current_provider->caps.turns_per_second = 4;
+            }
+
             auto res = SNetJoinGame(
                 ad.game_info.game_index, (const char*)0, (const char*)0, name, (const char*)0, (u32*)playerid
             );
@@ -715,16 +718,16 @@ static BOOL __stdcall spi_select_game(
     HWND main_game_window = interface_data->parent_window;
 
 
-    return join_game(0, playerid);
+    //return join_game(0, playerid);
 
 
 
     strncpy(bw_player_name, "Jesse", 6);
 
 
-    CreateInfo game_create_info{sizeof(CreateInfo), 'BNET', 8, 1}; // SNET_CF_ALLOWPRIVATEGAMES
-    PlayerData player_data{16, bw_player_name, (char*)"Desc", 0};
-    UIParams ui_params{flags, client_info, &player_data, interface_data, module_info, playerid};
+    //CreateInfo game_create_info{sizeof(CreateInfo), 'BNET', 8, 1}; // SNET_CF_ALLOWPRIVATEGAMES
+    //PlayerData player_data{16, bw_player_name, (char*)"Desc", 0};
+    //UIParams ui_params{flags, client_info, &player_data, interface_data, module_info, playerid};
 
     SetActiveWindow(interface_data->parent_window);
 

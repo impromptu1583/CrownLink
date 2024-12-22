@@ -279,3 +279,4 @@ struct StormList {
 #define BW_REF(Type, Name, Address) inline auto& Name = *reinterpret_cast<Type*>(Address);
 BW_REF(StormList<ProviderInfo>, g_providers, 0x1505ad6c);
 BW_REF(u32, g_provider_id, 0x0059688c);
+BW_REF(ProviderInfo*, g_current_provider, 0x1505e62c);
