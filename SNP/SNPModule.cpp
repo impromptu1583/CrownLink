@@ -7,12 +7,12 @@
 namespace snp {
 
 struct UIParams {
-    DWORD flags;
+    u32 flags;
     ProgramInfo* program_data;
     PlayerData* player_data;
     InterfaceData* interface_data;
     VersionInfo* version_data;
-    DWORD* player_id;
+    u32* player_id;
 };
 
 struct SNPContext {
@@ -255,12 +255,12 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
                         } break;
                         case JuiceConnectionType::Radmin: {
                             has_text_prefix = true;
-                            static constexpr char SadEmoji = 131;
+                            static constexpr char SadEmoji = char(131);
                             ss << std::format("[Radmin {}]", SadEmoji);
                         } break;
                         default: {
                             has_text_prefix = true;
-                            static constexpr char DoubleArrow = 187;
+                            static constexpr char DoubleArrow = char(187);
                             ss << DoubleArrow;
                         } break;
                     }
@@ -406,6 +406,13 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int buffer
     std::lock_guard lock{g_advertisement_mutex};
     spdlog::trace("getting game info for index {}", index);
 
+    ProviderInfo* current_provider = nullptr;
+    for (ProviderInfo provider : g_providers) {
+        if (provider.provider_id == g_provider_id) {
+            current_provider = &provider;
+        }
+    }
+
     for (auto& ad : g_snp_context.lobbies) {
         spdlog::trace(
             "checking game: {} with index {}, version {}", ad.game_info.game_description, ad.game_info.game_index,
@@ -415,9 +422,15 @@ static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int buffer
         if (ad.game_info.game_index == index) {
             *out_game = ad.game_info;
             spdlog::trace("found game with description {}", ad.game_info.game_description);
-            if (snp_config.mode == ad.crownlink_mode) {
-                return true;
+            if (current_provider && ad.crownlink_mode == CrownLinkMode::CLNK) {
+                current_provider->caps.turns_per_second = 8;
+            } else if (current_provider) {
+                current_provider->caps.turns_per_second = 4;
+            } else {
+                // couldn't find current provider, this should never happen
+                return false;
             }
+            return true;
         }
     }
 
@@ -561,7 +574,7 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
     return false;
 }
 
-bool snp::try_create_game(DWORD* playerid) {
+bool snp::try_create_game(u32* playerid) {
     char name[25] = "Jesse";
     char desc[25] = "Description";
     PlayerData player_data{sizeof(PlayerData), name, desc};
@@ -569,47 +582,128 @@ bool snp::try_create_game(DWORD* playerid) {
     CreateInfo create_data{sizeof(CreateInfo), 'BNET', 256, 1}; // flags: 1 = private games allowed
 
     if (!GetModuleFileNameA(0, bw_starcraft_exe_path, 260)) {
-        // todo error handling
+        // todo result handling
     }
-    // todo lol
-    //bw_maps_directory =
-    // "C:\Cosmonarchy\Starcraft\Maps\CMBW-Root\CMBW-maps\melee\1v1\_event\(2)Demilune 1.2.scx"
     const char* mapfile = "C:\\Cosmonarchy\\Starcraft\\Maps\\CMBW-Root\\CMBW-maps\\melee\\1v1\\_event\\(2)Demilune 1.3.scx";
     const char* mapname = "Demilune";
     const char* mapsdir = "C:\\Cosmonarchy\\Starcraft\\Maps\\CMBW-Root\\CMBW-maps\\melee\\1v1\\_event\\";
+    //const char* mapsdir = "C:\\Cosmonarchy\\Starcraft\\Maps\\replays\\a\\";
     strncpy(bw_maps_directory, mapsdir, 260); 
-    strncpy(bw_current_map_filename, mapfile, 260);
-    strncpy(bw_current_map_name, mapname, 32);
+    //strncpy(bw_current_map_filename, mapfile, 260);
+    //strncpy(bw_current_map_name, mapname, 32);
 
-    GameData game_data{0, "Jesse", 00, 112, 128, 1, 8, 0, 0, 30, 1, 3408845483, 7, 0, 0, "Jesse", "Demilune", 30, 1,
-        0,0,0,0,1,2,0,1,3,1,0,0,0,0,0,0
+    // build directory listing linked list
+    list_dir(mapsdir);
+
+    auto first_entry = *(DirEntryMap**)0x0051a27c;
+    /////////////////////////////
+
+    // make sure game name & mapsdir aren't null
+    // loop over the list to find selected entry
+    // verify we found it
+    // check selection type to make sure it's a map
+
+    /////////////////////////////
+
+    map_load_info(first_entry);
+
+    auto s = create_game("Jesse", "", 0x01001e, 6, mapsdir, first_entry);
+    return 1;
+
+    // 
+    DirEntryMap demilune_map{nullptr, nullptr, "(2)Demilune 1.3.scx",
     };
+    demilune_map.selection_type = 0x24;
+    strncpy(demilune_map.full_path, mapfile, 260);
+    strncpy(demilune_map.full_filename, "(2)Demilune 1.3.scx", 260);
 
-    memcpy(bw_game_data, &game_data, sizeof(GameData));
 
-    u32 category_bits = 65566;
-    const char* pw = "";
-    const char* initdata = "initdata";
 
-    b32 success = SNetCreateGame(
-        &game_data.game_name[0], (char*)pw, &game_data.game_name[0], category_bits, (char*)initdata, (u32)9, (u32)256,
-        (char*)&game_data.host_name[0], (char*)&game_data.host_name[0], playerid
-    );
 
-    spdlog::info("Success: {}", success);
+    //GameData game_data{0, "Jesse", 00, 112, 128, 1, 8, 0, 0, 30, 1, 3408845483, 7, 0, 0, "Jesse", "Demilune", 30, 1,
+    //    0,0,0,0,1,2,0,1,3,1,0,0,0,0,0,0
+    //};
 
-    if (success) {
-        memcpy(bw_game_data, &game_data, 96);
-        *bw_is_host = true;
+    // should be ready
+ //   map_load_info(&demilune_map);
+
+ //   char outstr[32]{};
+
+ //   auto mps = map_prep(mapfile, outstr, 0);
+ //   spdlog::info("Map prep success: {}, outstr: {}", mps, outstr);
+
+ //   GameData create_game_data{};
+ //   ZeroMemory(&create_game_data, sizeof(GameData));
+ //   strncpy(create_game_data.game_name, "Jesse", 24);
+ //   strncpy(create_game_data.map_title, demilune_map.map_name, 25);
+ //   create_game_data.map_height_tiles = demilune_map.map_height_tiles;
+ //   create_game_data.map_width_tiles = demilune_map.map_width_tiles;
+ //   create_game_data.max_player_count = demilune_map.max_players;
+ //   create_game_data.g_game_type = 0x02;
+ //   //create_game_data.game_subtype = 0x1e;
+ //   create_game_data.game_state = demilune_map.game_state;
+ //   create_game_data.tileset = *(u16*)0x0057f1dc;
+ //   create_game_data.active_player_count = 1;
+
+ //   auto result = create_ladder_game(&create_game_data, "");
+
+ //   if (result != 0) {
+ //   	spdlog::info("Error creating game: {}", result);
+	//}
+
+ //   return result;
+}
+
+bool snp::join_game(u32 index, u32* playerid) {
+    while (true) {
+        if (g_snp_context.lobbies.size()) {
+            auto ad = g_snp_context.lobbies[0];
+            TCHAR gamename[128];
+            GameInfo gi{};
+            spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
+            DWORD id = 3;
+            spdlog::info("game owner: {}", gi.host);
+
+            auto juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+            while (juice_state != JUICE_STATE_COMPLETED) {
+                spdlog::info("waiting for p2p completion, state: {}", to_string(juice_state));
+                std::this_thread::sleep_for(1s);
+                juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
+            }
+            const char* name = "Jesse";
+
+            // todo - need to parse description string to get game type
+            *bw_game_type = 0x1e;
+            *bw_game_subtype = 1;
+
+            auto res = SNetJoinGame(
+                ad.game_info.game_index, (const char*)0, (const char*)0, name, (const char*)0, (u32*)playerid
+            );
+
+            return res;
+        }
+        std::this_thread::sleep_for(1s);
+        g_crown_link->request_advertisements();
     }
 
-    return success;
 }
 
 
 static BOOL __stdcall spi_select_game(
-    DWORD flags, ProgramInfo* client_info, PlayerData* user_info, InterfaceData* interface_data, VersionInfo* module_info, DWORD* playerid
+    DWORD flags, ProgramInfo* client_info, PlayerData* user_info, InterfaceData* interface_data, VersionInfo* module_info, u32* playerid
 ) {
+    
+    
+    for (ProviderInfo provider : g_providers) {
+        spdlog::info("Provider ID {}", provider.provider_id);
+    }
+    
+    
+    
+    
+    
+    
+    
     spdlog::info("called spi_select, flags: {}", flags);
     g_crown_link->request_advertisements();
     
@@ -619,6 +713,10 @@ static BOOL __stdcall spi_select_game(
         return false;
     }
     HWND main_game_window = interface_data->parent_window;
+
+
+    return join_game(0, playerid);
+
 
 
     strncpy(bw_player_name, "Jesse", 6);
@@ -637,72 +735,15 @@ static BOOL __stdcall spi_select_game(
     return try_create_game(playerid);
 
 
-    auto res = interface_data->pfnBattleMakeCreateGameDialog(
-        &game_create_info, g_snp_context.ui_params.program_data, &player_data,
-        interface_data, ui_params.version_data, ui_params.player_id
-    );
 
-
-
-    if (!res) {
-        auto err = SErrGetLastError();
-        char buffer[255];
-        SErrGetErrorStr(err, buffer, 254);
-        spdlog::info("Error: {} str: {}", err, buffer);
-    }
-    return res;
-
-
-
-    char initdata[43] = {0x2C, 0x33, 0x34, 0x2C, 0x31, 0x37, 0x2C, 0x30, 0x2C, 0x2C, 0x31,
-                                  0x65, 0x2C, 0x2C, 0x31, 0x2C, 0x63, 0x62, 0x32, 0x65, 0x64, 0x61,
-                                  0x61, 0x62, 0x2C, 0x37, 0x2C, 0x2C, 0x4A, 0x65, 0x73, 0x73, 0x65,
-                                  0x0D, 0x44, 0x65, 0x6D, 0x69, 0x6C, 0x75, 0x6E, 0x65, 0x0D};
-
-    //auto res = SNetCreateGame(
-    //    player_name, (char*)NULL, player_desc, (u32)0, player_desc, (u32)32, (u32)8, player_name, player_desc, playerid
-    //);
-
-
-
-    //// todo unsafe memory access without mutex
-    //spdlog::info("size: {}", g_snp_context.lobbies.size());
-    //if (g_snp_context.lobbies.size()) {
-    //    auto ad = g_snp_context.lobbies[0];
-    //    TCHAR gamename[128];
-    //    GameInfo gi{};
-    //    spi_get_game_info(ad.game_info.game_index, gamename, 0, &gi);
-    //    DWORD id = 3;
-    //    spdlog::info("game owner: {}", gi.host);
-
-    //    auto juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
-    //    while (juice_state != JUICE_STATE_COMPLETED) {
-    //        spdlog::info("waiting for p2p completion, state: {}", to_string(juice_state));
-    //        std::this_thread::sleep_for(1s);
-    //        juice_state = g_crown_link->juice_manager().lobby_agent_state(ad);
-    //    }
-    //    
-    //    //spdlog::info("Connected, starting join_game");
-
-    //    //const char* n = "Jesse";
-
-    //    //auto res = SNetJoinGame(ad.game_info.game_index, nullptr, nullptr, (char*)n,nullptr,playerid);
-
-    //    //spdlog::info("Attempt: {}", res);
-    //    //auto err = SErrGetLastError();
-    //    //spdlog::info("last err: {}", err);
-    //    //char buffer[255];
-    //    //SErrGetErrorStr(err, buffer, 254);
-
-    //    //spdlog::info("errstr: {}", buffer);
-
-
-
+    //if (!res) {
+    //    auto err = SErrGetLastError();
+    //    char buffer[255];
+    //    SErrGetErrorStr(err, buffer, 254);
+    //    spdlog::info("Error: {} str: {}", err, buffer);
     //}
+    //return res;
 
-
-    //std::this_thread::sleep_for(1s);
-    return true;
 }
 
 static BOOL __stdcall spi_get_local_player_name(
@@ -718,6 +759,11 @@ static BOOL __stdcall spi_get_local_player_name(
     }
     
     return true;
+}
+
+static BOOL __stdcall spiReportGameResult(u32 a, u32 b, u32 c, u32 d, u32 e) {
+    spdlog::info("spiReportGameResult called, params: {}, {}, {}, {}, {}", a, b, c, d, e);
+	return true;
 }
 
 static BOOL __stdcall spi_send_external_message(int, int, int, int, int) {

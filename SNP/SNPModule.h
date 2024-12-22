@@ -17,14 +17,14 @@ struct NetworkInfo {
 };
 
 void update_lobbies(std::vector<AdFile> &updated_list);
-void update_lobby_name(AdFile &ad, std::string &prefixes, bool joinable);
 void create_status_ad();
 void update_status_ad();
 void set_status_ad(const std::string &status);
 void clear_status_ad();
 void packet_parser(const GamePacket *game_packet);
 
-bool try_create_game(DWORD* playerid);
+bool try_create_game(u32* playerid);
+bool join_game(u32 index, u32 *playerid);
 
 struct NetFunctions {
     // The size of the vtable
@@ -64,7 +64,7 @@ struct NetFunctions {
     // Called when a game is selected to query information
     //void *spiSelectGame;
     BOOL(__stdcall *spiSelectGame)
-    (DWORD flags, ProgramInfo *client_info, PlayerData *user_info, InterfaceData *callbacks, VersionInfo *module_info, DWORD* playerid);
+    (DWORD flags, ProgramInfo *client_info, PlayerData *user_info, InterfaceData *callbacks, VersionInfo *module_info, u32* playerid);
 
     // Sends data over a connectionless socket
     BOOL(__stdcall *spiSend)(DWORD addrCount, NetAddress **addrList, char *buf, DWORD bufLen);
@@ -85,7 +85,7 @@ struct NetFunctions {
     // Called to begin advertising a created game to other clients
     BOOL(__stdcall *spiGetLocalPlayerName)
     (char *name_buffer, DWORD name_buffer_size, char *desc_buffer, DWORD desc_buffer_size);
-    void *spiReportGameResult;
+    BOOL(__stdcall *spiReportGameResult)(u32 a, u32 b, u32 c, u32 d, u32 e);
     void *spiCheckDataFile;
     void *spiLeagueCommand;
     void *spiLeagueSendReplayPath;
