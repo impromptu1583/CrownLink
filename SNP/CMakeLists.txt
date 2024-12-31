@@ -59,6 +59,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Juice)
 
+FetchContent_Declare(SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG 3.0.0
+    GIT_SHALLOW ON
+    EXCLUDE_FROM_ALL
+    SYSTEM)
+FetchContent_MakeAvailable(SFML)
+
 add_library(Storm SHARED IMPORTED)
 set_property(TARGET Storm PROPERTY IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/SNP/include/storm/storm.dll")
 set_property(TARGET Storm PROPERTY IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/SNP/include/storm/Storm.lib")
@@ -75,6 +83,9 @@ target_link_libraries(SNP
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(SNP PRIVATE SFML::Graphics)
+target_link_libraries(SNP PRIVATE SFML::System)
+target_link_libraries(SNP PRIVATE SFML::Window)
 
 
 #target_link_libraries(SNP PUBLIC storm)

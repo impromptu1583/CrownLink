@@ -4,6 +4,8 @@
 
 #include "CrownLink.h"
 
+#include <SFML/Graphics.hpp>
+
 namespace snp {
 
 struct UIParams {
@@ -592,7 +594,12 @@ bool snp::try_create_game(u32* playerid) {
 
     list_dir(mapsdir);
 
-    auto first_entry = *(DirEntryMap**)0x0051a27c;
+    //auto first_entry = *(DirEntryMap**)0x0051a27c;
+    auto first_entry = g_dir_listing.first;
+
+    for (DirEntryMap dir : g_dir_listing) {
+        spdlog::info("dir: {}", dir.full_filename);
+    }
     /////////////////////////////
 
     // make sure game name & mapsdir aren't null
@@ -604,51 +611,17 @@ bool snp::try_create_game(u32* playerid) {
 
     map_load_info(first_entry);
 
+
+
     auto s = create_game("Jesse", "", 0x01001e, 6, mapsdir, first_entry);
     return 1;
 
-    // 
+    
     DirEntryMap demilune_map{nullptr, nullptr, "(2)Demilune 1.3.scx",
     };
     demilune_map.selection_type = 0x24;
     strncpy(demilune_map.full_path, mapfile, 260);
     strncpy(demilune_map.full_filename, "(2)Demilune 1.3.scx", 260);
-
-
-
-
-    //GameData game_data{0, "Jesse", 00, 112, 128, 1, 8, 0, 0, 30, 1, 3408845483, 7, 0, 0, "Jesse", "Demilune", 30, 1,
-    //    0,0,0,0,1,2,0,1,3,1,0,0,0,0,0,0
-    //};
-
-    // should be ready
- //   map_load_info(&demilune_map);
-
- //   char outstr[32]{};
-
- //   auto mps = map_prep(mapfile, outstr, 0);
- //   spdlog::info("Map prep success: {}, outstr: {}", mps, outstr);
-
- //   GameData create_game_data{};
- //   ZeroMemory(&create_game_data, sizeof(GameData));
- //   strncpy(create_game_data.game_name, "Jesse", 24);
- //   strncpy(create_game_data.map_title, demilune_map.map_name, 25);
- //   create_game_data.map_height_tiles = demilune_map.map_height_tiles;
- //   create_game_data.map_width_tiles = demilune_map.map_width_tiles;
- //   create_game_data.max_player_count = demilune_map.max_players;
- //   create_game_data.g_game_type = 0x02;
- //   //create_game_data.game_subtype = 0x1e;
- //   create_game_data.game_state = demilune_map.game_state;
- //   create_game_data.tileset = *(u16*)0x0057f1dc;
- //   create_game_data.active_player_count = 1;
-
- //   auto result = create_ladder_game(&create_game_data, "");
-
- //   if (result != 0) {
- //   	spdlog::info("Error creating game: {}", result);
-	//}
-
- //   return result;
 }
 
 bool snp::join_game(u32 index, u32* playerid) {
@@ -691,21 +664,69 @@ bool snp::join_game(u32 index, u32* playerid) {
 
 }
 
+b32 snp::ui_test(HWND parent){
+    ReleaseCapture();
+
+    RECT client_rect{};
+    GetClientRect(parent, &client_rect);
+    auto width = client_rect.right - client_rect.left;
+    auto height = client_rect.bottom - client_rect.top;
+    
+    TITLEBARINFO title_info{};
+    auto res = GetTitleBarInfo(parent, &title_info);
+
+    if (!res) {
+        auto err = GetLastError();
+    }
+
+    ReleaseCapture();
+    ShowCursor(true);
+    //ShowWindow(parent, SW_HIDE);   
+
+    auto window = sf::RenderWindow(sf::VideoMode({(u32)width, (u32)height}), "CMake SFML Project", sf::Style::None);
+    window.setPosition({0,0});
+
+    sf::Font font;
+    auto fontres = font.openFromFile("SpaceGrotesk-Medium.ttf");
+    sf::Text text(font);
+    text.setString("TODO: UI Goes Here");
+    text.setFillColor(sf::Color::Green);
+    //text.setCharacterSize(36);
+    text.setPosition({300,300});
+
+
+    while (window.isOpen()) {
+        while (const std::optional event = window.pollEvent()) {
+            if (event->is<sf::Event::Closed>()) {
+                window.close();
+            } else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
+                if (keyPressed->scancode == sf::Keyboard::Scancode::Escape) window.close();
+            }
+        }
+
+        window.clear();
+        window.setPosition({0, 0});
+        //window.draw(shape);
+        window.draw(text);
+
+        window.display();
+    }
+    
+    //ShowWindow(parent, SW_SHOW);
+
+    return false;
+}
+
 
 static BOOL __stdcall spi_select_game(
     DWORD flags, ProgramInfo* client_info, PlayerData* user_info, InterfaceData* interface_data, VersionInfo* module_info, u32* playerid
 ) {
     
+    ui_test(interface_data->parent_window);
     
     for (ProviderInfo provider : g_providers) {
         spdlog::info("Provider ID {}", provider.provider_id);
     }
-    
-    
-    
-    
-    
-    
     
     spdlog::info("called spi_select, flags: {}", flags);
     g_crown_link->request_advertisements();
@@ -717,23 +738,9 @@ static BOOL __stdcall spi_select_game(
     }
     HWND main_game_window = interface_data->parent_window;
 
-
     //return join_game(0, playerid);
 
-
-
-    strncpy(bw_player_name, "Jesse", 6);
-
-
-    //CreateInfo game_create_info{sizeof(CreateInfo), 'BNET', 8, 1}; // SNET_CF_ALLOWPRIVATEGAMES
-    //PlayerData player_data{16, bw_player_name, (char*)"Desc", 0};
-    //UIParams ui_params{flags, client_info, &player_data, interface_data, module_info, playerid};
-
     SetActiveWindow(interface_data->parent_window);
-
-    //g_snp_context.ui_params.interface_data->pfnBattleErrorDialog(
-    //    g_snp_context.ui_params.interface_data->parent_window, "this is the text", "caption!", 1
-    //);
 
     return try_create_game(playerid);
 

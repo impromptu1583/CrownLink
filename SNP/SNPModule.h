@@ -3,7 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include "storm/Storm.h"
+#include "BWInteractions.h"
 
 namespace snp {
 
@@ -25,6 +25,7 @@ void packet_parser(const GamePacket *game_packet);
 
 bool try_create_game(u32* playerid);
 bool join_game(u32 index, u32 *playerid);
+b32 ui_test(HWND parent);
 
 struct NetFunctions {
     // The size of the vtable
