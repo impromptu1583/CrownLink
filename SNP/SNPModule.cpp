@@ -389,6 +389,7 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     g_snp_context.hosted_game.crownlink_mode = snp_config.mode;
     g_crown_link->start_advertising(g_snp_context.hosted_game);
     spdlog::info("Started advertising");
+    AdGameDescription a{game_stat_string};
     return true;
 }
 
@@ -643,7 +644,11 @@ bool snp::join_game(u32 index, u32* playerid) {
             const char* name = "Jesse";
 
             // todo - need to parse description string to get game type
+            AdGameDescription desc{ad.game_info.game_description};
             *bw_game_type = 0x1e;
+            if (desc.game_type) {
+                *bw_game_type = desc.game_type;
+            }
             *bw_game_subtype = 1;
 
             if (ad.crownlink_mode == CrownLinkMode::CLNK) {
@@ -738,7 +743,7 @@ static BOOL __stdcall spi_select_game(
     }
     HWND main_game_window = interface_data->parent_window;
 
-    //return join_game(0, playerid);
+    return join_game(0, playerid);
 
     SetActiveWindow(interface_data->parent_window);
 

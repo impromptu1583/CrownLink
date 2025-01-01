@@ -151,6 +151,138 @@ struct VersionInfo {
     char* patch_archive_file;
 };
 
+class AdGameDescription {
+public:
+    AdGameDescription() = default;
+    AdGameDescription(char desc[128]) {
+        std::string_view sv{desc};
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(next_item.value().data(), next_item.value().data() + next_item.value().size(), unknown1, 16);
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            u32 width_height;
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), width_height
+            );
+            if (width_height) {
+                map_width = width_height / 10 * 32;
+                map_height = width_height % 10 * 32;
+            }
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            u16 active_max;
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), active_max, 16
+            );
+            if (active_max) {
+                active_players = active_max / 10;
+                max_players = active_max % 10;
+            }
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), game_speed, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), game_state, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), game_type, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), unknown2, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), game_subtype, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), cdkey_hash, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), tileset, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            auto res = std::from_chars(
+                next_item.value().data(), next_item.value().data() + next_item.value().size(), is_replay, 16
+            );
+        }
+        if (auto next_item = get_next(sv); next_item.has_value()) {
+            // game name\rmapname
+            auto pos = next_item.value().find("\r");
+            if (pos) {
+                strncpy(host_name, next_item.value().data(), pos<26 ? pos : 25);
+                if (pos < 25) {
+                    memcpy(host_name + pos, "", 1);
+                }
+                next_item.value().remove_prefix(pos + 1);
+                next_item.value().remove_suffix(1); // to get rid of the \r at the end
+                strncpy(map_title, next_item.value().data(), next_item.value().size()<32 ? next_item.value().size() : 32);
+                if (next_item.value().size() < 32) {
+                    memcpy(map_title + next_item.value().size(), "", 1);
+                }
+            }
+        }
+
+    }
+    u32 unknown1 = 0;
+    u16 map_width = 0;
+    u16 map_height = 0;
+    u8 active_players = 0;
+    u8 max_players = 0;
+    u8 game_speed = 0;
+    u8 game_state = 0;
+    u8 game_type = 0;
+    u8 unknown2 = 0;
+    u16 game_subtype = 0;
+    u32 cdkey_hash = 0xcb2edaab;
+    u16 tileset = 0;
+    u8 is_replay = 0;
+    char host_name[25];
+    char map_title[32];
+
+private:
+    std::optional<std::string_view> get_next(std::string_view& sv) {
+        auto pos = sv.find(",");
+        if (pos == std::string_view::npos && !sv.empty()) {
+            return sv;
+        }
+        if (pos == 0) {
+            sv.remove_prefix(1);
+            return {};
+        }
+        auto output = sv.substr(0, pos);
+        sv.remove_prefix(pos + 1);
+        return output;
+    }
+};
+
+inline std::optional<AdGameDescription> ParseAdDescription(char desc[128]) {
+    std::string_view sv{desc};
+    // example: ,34,,3,,1e,,1,cb2edaab,7,,Maverick\nDemilune
+    auto pos = sv.find(",");
+    if (pos == std::string_view::npos) {
+        return {};
+    }
+    if (pos) {
+
+    }
+
+    return {};
+}
+
 struct GameInfo {
     u32 game_index;
     u32 game_state;

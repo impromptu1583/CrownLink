@@ -61,11 +61,12 @@ inline std::string as_string(const auto& value) {
         return value;
     } else if constexpr (requires { to_string(value); }) {
         return to_string(value);
-    } else if constexpr (requires { std::declval(std::stringstream) << value; }) {
-        std::stringstream ss;
-        ss << value;
-        return ss.str();
     }
+//     else if constexpr (requires { std::declval(std::stringstream) << value; }) {
+//         std::stringstream ss;
+//         ss << value;
+//         return ss.str();
+//     }
     return std::string();
 }
 
