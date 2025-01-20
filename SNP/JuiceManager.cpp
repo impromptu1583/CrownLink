@@ -38,9 +38,13 @@ void JuiceManager::disconnect_if_inactive(const NetAddress& address) {
 }
 
 bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
+    spdlog::debug("SendP2P locking mtx");
     std::lock_guard lock{m_mutex};
+    spdlog::debug("SendP2P mtx locked");
     auto& agent = ensure_agent(address, lock);
-    return agent.send_message(data, size);
+    auto success = agent.send_message(data, size);
+    spdlog::debug("SendP2P success: {}", success);
+    return success;
 }
 
 void JuiceManager::send_connection_request(const NetAddress& address) {
