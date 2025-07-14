@@ -8,7 +8,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH ${Catch2_SOURCE_DIR}/extras)
 
-add_executable(CrowServeTest CrowServeTest.cpp)
+add_executable(CrowServeTest CrowServeTest.cpp ../../NetShared/simdutf.cpp)
 target_link_libraries(CrowServeTest PRIVATE CrowServe Catch2::Catch2WithMain)
 
 add_test(CrowServeTest CrowServeTest)

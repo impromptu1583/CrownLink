@@ -12,13 +12,13 @@ set(MODULE_FILES
 	"JuiceAgent.h"
 	"JuiceAgent.cpp"
     "../NetShared/StormTypes.h"
+	"../NetShared/simdutf.cpp"
 	"Config.h"	
 	"Common.h"
 	"caps.mpq"
 	"../CrowServe/CrowServe.cpp"
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
-	"include/simdutf.cpp"
 )
 
 add_library(SNP SHARED ${MODULE_FILES})
