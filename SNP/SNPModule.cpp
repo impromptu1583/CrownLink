@@ -251,7 +251,11 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
         }
 
         if (ad.original_name.empty()) {
-            ad.original_name = ad.game_info.game_name;
+            simdutf::convert_utf8_to_latin1(std::string_view(ad.game_info.game_name), ad.original_name);
+            //auto desc_buffer = std::string();
+            //simdutf::convert_utf8_to_latin1(std::string_view(ad.game_info.game_description), desc_buffer);
+            //strncpy(ad.game_info.game_description, desc_buffer.c_str(), sizeof(ad.game_info.game_description));
+            //ad.original_name = ad.game_info.game_name;
         }
         ss << (has_text_prefix ? " " : "") << ad.original_name;
 
@@ -294,8 +298,16 @@ static void create_ad(
     memset(&ad_file, 0, sizeof(ad_file));
     ad_file.crownlink_mode = snp_config.mode;
     auto& game_info = ad_file.game_info;
-    strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
-    strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
+
+    simdutf::convert_latin1_to_utf8_safe(
+        game_name, strnlen(game_name, sizeof(game_info.game_name)), game_info.game_name, sizeof(game_info.game_name)
+    );
+    simdutf::convert_latin1_to_utf8_safe(
+        game_stat_string, strnlen(game_stat_string, sizeof(game_info.game_description)), game_info.game_description,
+        sizeof(game_info.game_description)
+    );
+    // strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
+    // strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
     game_info.game_state = game_state;
     game_info.program_id = g_snp_context.game_app_info.program_id;
     game_info.version_id = g_snp_context.game_app_info.version_id;
