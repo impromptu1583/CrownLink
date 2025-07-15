@@ -12,6 +12,7 @@ set(MODULE_FILES
 	"JuiceAgent.h"
 	"JuiceAgent.cpp"
     "../NetShared/StormTypes.h"
+	"../NetShared/simdutf.cpp"
 	"Config.h"	
 	"Common.h"
 	"caps.mpq"
@@ -55,7 +56,7 @@ set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-	GIT_TAG v1.5.7
+	GIT_TAG v1.6.1
 )
 FetchContent_MakeAvailable(Juice)
 
@@ -65,7 +66,7 @@ target_link_libraries(SNP
 	PRIVATE juice-static
 )
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
