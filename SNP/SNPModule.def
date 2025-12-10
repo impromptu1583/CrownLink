@@ -1,3 +1,5 @@
 EXPORTS
-  SnpBind             @1
-  SnpQuery            @2
+  SnpBind                 @1
+  SnpQuery                @2
+  Status                  @3
+  RegisterStatusCallback  @4

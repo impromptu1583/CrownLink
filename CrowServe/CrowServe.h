@@ -90,6 +90,8 @@ struct MessageHeader {
 bool init_sockets();
 void deinit_sockets();
 
+using StatusCallback = std::function<void(SocketState)>;
+
 class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
@@ -110,7 +112,8 @@ public:
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void set_profile(NetAddress ID, NetAddress Token);
-    SocketState state() { return m_state; }
+    void register_status_callback(StatusCallback callback);
+    SocketState state() const { return m_state; }
     NetAddress& id() { return m_id; }
 
     template <typename... Args>
@@ -309,6 +312,8 @@ private:
     NetAddress m_reconnect_token;
     bool m_id_received = false;
     u32 m_retry_counter = 0;
+
+    StatusCallback m_status_callback = nullptr;
 
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";

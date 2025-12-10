@@ -13,6 +13,8 @@ inline snp::NetworkInfo g_network_info{
     {sizeof(Caps), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 
+
+
 class CrownLink {
 public:
     CrownLink();
@@ -27,11 +29,15 @@ public:
     void send_advertisement();
     void stop_advertising();
     bool in_games_list() const;
+    void register_status_callback(CrowServe::StatusCallback callback) {
+        m_crowserve.register_status_callback(callback);
+    }
 
     auto& advertising();
     auto& receive_queue() { return m_receive_queue; }
     auto& juice_manager() { return m_juice_manager; }
     auto& crowserve() { return m_crowserve; }
+    auto& use_status_lobby() { return m_use_status_lobby; };
 
 private:
     void init_listener();
@@ -46,6 +52,8 @@ private:
 
     bool m_is_advertising = false;
     bool m_is_running = true;
+
+    std::atomic<bool> m_use_status_lobby = true;
 
     std::chrono::steady_clock::time_point m_last_solicitation = std::chrono::steady_clock::now();
     mutable std::shared_mutex m_ad_mutex;
