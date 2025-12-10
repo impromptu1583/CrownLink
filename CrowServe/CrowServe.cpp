@@ -118,5 +118,6 @@ void Socket::set_profile(NetAddress id, NetAddress Token) {
 void Socket::register_status_callback(StatusCallback callback) {
     std::lock_guard lock{m_mutex};
     m_status_callback = callback;
+    callback(m_state);
 }
 }  // namespace CrowServe

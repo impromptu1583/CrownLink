@@ -57,7 +57,7 @@ BOOL WINAPI Status() {
 
 BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby) {
     g_crown_link->register_status_callback(callback);
-    // todo: status_lobby stuff
+    // todo: status_lobby
     return true;
 }
 
