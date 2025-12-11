@@ -166,7 +166,7 @@ static std::string_view extract_map_name(const GameInfo& game_info) {
     return sv;
 }
 
-static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
+static BOOL __stdcall spi_lock_game_list(int, int, AdFile** out_game_list) {
     // called by storm once per second when on the games list screen
     g_advertisement_mutex.lock();
 
@@ -272,12 +272,12 @@ static BOOL __stdcall spi_lock_game_list(int, int, GameInfo** out_game_list) {
     if (last_ad) {
         last_ad->game_info.pNext = nullptr;
     }
-    *out_game_list = &g_snp_context.status_ad.game_info;
+    *out_game_list = &g_snp_context.status_ad;
 
     return true;
 }
 
-static BOOL __stdcall spi_unlock_game_list(GameInfo* game_list, DWORD*) {
+static BOOL __stdcall spi_unlock_game_list(AdFile* game_list, DWORD* list_cout) {
     // Called by storm after it is done reading the games list to unlock the mutex
     g_advertisement_mutex.unlock();
 
@@ -358,8 +358,8 @@ void clear_status_ad() {
 }
 
 static BOOL __stdcall spi_start_advertising_ladder_game(
-    char* game_name, char* game_password, char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
-    int, int, void* user_data, DWORD user_data_size
+    const char* game_name, const char* game_password, const char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
+    DWORD, DWORD, void* user_data, DWORD user_data_size
 ) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     std::lock_guard lock{g_advertisement_mutex};
@@ -381,7 +381,7 @@ static BOOL __stdcall spi_stop_advertising_game() {
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, char* game_name, int, GameInfo* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, const char* game_name, const char* password, GameInfo* out_game) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
 
@@ -522,7 +522,7 @@ static BOOL __stdcall spi_free_external_message(NetAddress* address, char* data,
     return false;
 }
 
-static BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, int, int) {
+static BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, DWORD, DWORD) {
     return false;
 }
 
@@ -544,14 +544,16 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
 }
 
 static BOOL __stdcall spi_select_game(
-    int, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, int
+    DWORD flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, DWORD* player_id
 ) {
-    // Looks like an old function and doesn't seem like it's used anymore
-    // UDPN's function Creates an IPX game select dialog window
+    // This is used for battle.net instead of the games list.
+    // BW calls this function then waits for battle.net to start a multiplayer game using the appropriate storm ordinal
     return false;
 }
 
-static BOOL __stdcall spi_send_external_message(int, int, int, int, int) {
+static BOOL __stdcall spi_send_external_message(
+    char* destination, DWORD message_size, char* blank1, char* blank2, char* message
+) {
     return false;
 }
 

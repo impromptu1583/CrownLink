@@ -27,6 +27,9 @@ public:
     void send_advertisement();
     void stop_advertising();
     bool in_games_list() const;
+    void register_status_callback(CrowServe::StatusCallback callback) {
+        m_crowserve.register_status_callback(callback);
+    }
 
     auto& advertising();
     auto& receive_queue() { return m_receive_queue; }

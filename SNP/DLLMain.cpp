@@ -14,17 +14,17 @@ BOOL WINAPI SnpQuery(
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
             case CLNK_ID: {
-                *out_network_code = g_network_info.dwIdentifier;
-                *out_network_name = g_network_info.pszName;
-                *out_network_description = g_network_info.pszDescription;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
             } break;
             case DBCL_ID: {
                 g_network_info.caps.turns_per_second = 4;
-                *out_network_code = g_network_info.dwIdentifier;
-                *out_network_name = g_network_info.pszName;
-                *out_network_description = g_network_info.pszDescription;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
             } break;
@@ -53,6 +53,11 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
         }
     }
     return false;
+}
+
+BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby) {
+    g_crown_link->register_status_callback(callback);
+    return true;
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {

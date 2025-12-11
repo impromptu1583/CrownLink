@@ -90,6 +90,9 @@ struct MessageHeader {
 bool init_sockets();
 void deinit_sockets();
 
+using StatusCallback = std::function<void(SocketState)>;
+//using StatusCallback = void(__stdcall*)(SocketState);
+
 class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
@@ -110,6 +113,7 @@ public:
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void set_profile(NetAddress ID, NetAddress Token);
+    void register_status_callback(StatusCallback callback);
     SocketState state() { return m_state; }
     NetAddress& id() { return m_id; }
 
@@ -317,6 +321,8 @@ private:
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::mutex m_mutex;
+
+    StatusCallback m_status_callback{};
 };
 
 }  // namespace CrowServe
