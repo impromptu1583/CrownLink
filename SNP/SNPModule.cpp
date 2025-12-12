@@ -6,21 +6,7 @@
 
 namespace snp {
 
-struct SNPContext {
-    ClientInfo game_app_info;
-    std::list<AdFile> game_list;
-
-    std::vector<AdFile> lobbies;
-
-    s32 next_game_ad_id = 1;
-    AdFile hosted_game;
-    AdFile status_ad;
-    bool status_ad_used = false;
-
-    std::string status_string{};
-};
-
-static SNPContext g_snp_context;
+auto& g_snp_context = SNPContext::instance();
 
 static void init_logging() {
     const auto& snp_config = SnpConfig::instance();
@@ -166,11 +152,19 @@ static std::string_view extract_map_name(const GameInfo& game_info) {
     return sv;
 }
 
-static BOOL __stdcall spi_lock_game_list(int, int, AdFile** out_game_list) {
-    // called by storm once per second when on the games list screen
+    // Called by storm once per second when on the games list screen
+static BOOL __stdcall spi_lock_game_list(DWORD category_bits, DWORD category_mask, AdFile** out_game_list) {
+    g_crown_link->request_advertisements();
+
+    // Storm will unlock when it's done with the data by calling spi_unlock_game_list()
     g_advertisement_mutex.lock();
 
-    // storm will unlock when it's done with the data by calling spi_unlock_game_list()
+    if (!g_snp_context.status_ad_used && g_snp_context.lobbies.empty()) {
+        // If we return false Storm won't call spi_unlock_game_list() to unlock the mutex
+        g_advertisement_mutex.unlock();
+        return false;
+    }
+
     const auto& snp_config = SnpConfig::instance();
 
     s32 game_index = 1;
@@ -180,7 +174,7 @@ static BOOL __stdcall spi_lock_game_list(int, int, AdFile** out_game_list) {
     last_ad = &g_snp_context.status_ad;
 
     std::erase_if(g_snp_context.lobbies, [](AdFile lobby) {
-        return get_tick_count() - lobby.game_info.host_last_time > 3;
+        return get_tick_count() - lobby.game_info.host_last_time > 2;
     });
 
     for (AdFile& ad : g_snp_context.lobbies) {
@@ -194,13 +188,9 @@ static BOOL __stdcall spi_lock_game_list(int, int, AdFile** out_game_list) {
             ss << ColorByte::Red << "[!Ver]";
         }
         if (snp_config.mode != ad.crownlink_mode) {
-            joinable = false;
+            // joinable = false;
             has_text_prefix = true;
             ss << ColorByte::Red << "[!Mode]";
-        }
-        if (ad == g_snp_context.status_ad) {
-            joinable = false;
-            ss << ColorByte::Red;
         }
         if (ad.game_info.game_state == 12) {
             // Game in progress - these won't be shown anyway but we don't want to initiate p2p
@@ -272,17 +262,19 @@ static BOOL __stdcall spi_lock_game_list(int, int, AdFile** out_game_list) {
     if (last_ad) {
         last_ad->game_info.pNext = nullptr;
     }
-    *out_game_list = &g_snp_context.status_ad;
-
-    return true;
+    if (g_snp_context.status_ad_used) {
+        *out_game_list = &g_snp_context.status_ad;
+        return true;
+    } else if (g_snp_context.lobbies.size()) {
+        *out_game_list = &g_snp_context.lobbies[0];
+        return true;
+    }
+    *out_game_list = nullptr;
 }
 
 static BOOL __stdcall spi_unlock_game_list(AdFile* game_list, DWORD* list_cout) {
     // Called by storm after it is done reading the games list to unlock the mutex
     g_advertisement_mutex.unlock();
-
-    g_crown_link->request_advertisements();
-
     return true;
 }
 

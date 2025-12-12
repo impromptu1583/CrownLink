@@ -57,6 +57,8 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
 
 BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby) {
     g_crown_link->register_status_callback(callback);
+    auto& context = snp::SNPContext::instance();
+    context.status_ad_used = use_status_lobby;
     return true;
 }
 

@@ -7,6 +7,24 @@ namespace snp {
 
 constexpr auto MAX_PACKET_SIZE = 500;
 
+struct SNPContext {
+    static SNPContext& instance() { static SNPContext context;
+        return context;
+    }
+
+    ClientInfo game_app_info;
+    std::list<AdFile> game_list;
+
+    std::vector<AdFile> lobbies;
+
+    s32 next_game_ad_id = 1;
+    AdFile hosted_game;
+    AdFile status_ad;
+    bool status_ad_used = true;
+
+    std::string status_string{};
+};
+
 struct NetworkInfo {
     char* name;
     DWORD id;
@@ -32,7 +50,7 @@ struct NetFunctions {
     BOOL(__stdcall* initialize)(ClientInfo* gameClientInfo, UserInfo* userData, BattleInfo* bnCallbacks, ModuleInfo* moduleData, HANDLE hEvent);
     BOOL(__stdcall* unused_initialize_device)(int, void*, void*, DWORD*, void*);
     BOOL(__stdcall* unused_lock_device_list)(DWORD* out_device_list);
-    BOOL(__stdcall* lock_game_list)(int, int, AdFile** out_game_list);
+    BOOL(__stdcall* lock_game_list)(DWORD category_bits, DWORD category_mask, AdFile** out_game_list);
     BOOL(__stdcall* receive_message)(NetAddress** sender, char** message, DWORD* message_size);
     BOOL(__stdcall* receive_external_message)(NetAddress** sender, char** message, DWORD* message_size);
     BOOL(__stdcall* bnet_select_game)(
