@@ -38,7 +38,7 @@ inline std::string to_string(MessageType value) {
 
 struct ConnectionRequest {
 	u32 version{0};
-	CrownLinkMode mode{CrownLinkMode::CLNK};
+	TurnsPerSecond mode{TurnsPerSecond::CNLK};
 	NetAddress previous_id{}; // initialize to zero or something if not needed?
 };
 

@@ -13,8 +13,8 @@ public:
 
     void clear_inactive_agents();
     void disconnect_if_inactive(const NetAddress& address);
-    bool send_p2p(const NetAddress& address, void* data, size_t size);
-    void send_all(void* data, size_t size);
+    bool send_p2p(const NetAddress& address, const char* data, size_t size);
+    void send_all(const char* data, size_t size);
     void send_connection_request(const NetAddress& address);
     void set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials);
 
@@ -34,5 +34,5 @@ public:
 private:
     std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
     std::mutex m_mutex;
-    CrownLinkProtocol::IceCredentials m_ice_credentials;
+    CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };

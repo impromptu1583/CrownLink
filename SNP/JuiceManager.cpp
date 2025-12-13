@@ -37,7 +37,7 @@ void JuiceManager::disconnect_if_inactive(const NetAddress& address) {
     }
 }
 
-bool JuiceManager::send_p2p(const NetAddress& address, void* data, size_t size) {
+bool JuiceManager::send_p2p(const NetAddress& address, const char* data, size_t size) {
     std::lock_guard lock{m_mutex};
     auto& agent = ensure_agent(address, lock);
     auto success = agent.send_message(data, size);
@@ -55,7 +55,7 @@ void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& 
     m_ice_credentials = ice_credentials;
 }
 
-void JuiceManager::send_all(void* data, const size_t size) {
+void JuiceManager::send_all(const char* data, const size_t size) {
     std::lock_guard lock{m_mutex};
     for (auto& [name, agent] : m_agents) {
         spdlog::debug("Sending message peer {} with status: {}\n", agent->address(), as_string(agent->state()));

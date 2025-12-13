@@ -72,7 +72,7 @@ public:
         }
     };
 
-    bool send_message(void* data, const size_t size);
+    bool send_message(const char* data, const size_t size);
     void send_connection_request();
 
 public:
@@ -88,9 +88,9 @@ public:
     void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; }
 
 private:
-    void mark_active(std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
-    void try_initialize(std::unique_lock<std::shared_mutex>& lock);
-    void reset_agent(std::unique_lock<std::shared_mutex>& lock);
+    void mark_active(const std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
+    void try_initialize(const std::unique_lock<std::shared_mutex>& lock);
+    void reset_agent(const std::unique_lock<std::shared_mutex>& lock);
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);

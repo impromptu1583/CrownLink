@@ -20,8 +20,6 @@ struct SnpConfig {
 
     LogLevel log_level = LogLevel::Debug;
 
-    CrownLinkMode mode = CrownLinkMode::CLNK;
-
     static SnpConfig& instance();
 };
 

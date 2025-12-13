@@ -40,16 +40,16 @@ TEST_CASE("CBOR de/serialization") {
 
     auto adfiles = GENERATE(
         AdFile{{1, 2, 3, NetAddress{"0123456789abcde"},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
-            "test extra bytes", CrownLinkMode::CLNK},
+            "test extra bytes", TurnsPerSecond::CNLK},
         AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9},
-            "", CrownLinkMode::DBCL},
+            "", TurnsPerSecond::CLDB},
         AdFile{}
     );
     REQUIRE(test_serialization(adfiles));
 }
 
 TEST_CASE("Advertisement Exchange") {
-    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", CrownLinkMode::CLNK};
+    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", TurnsPerSecond::CNLK};
     ReceiveWrapper<AdFile> adfile_out;
 
     CrowServe::Socket sender_socket;
@@ -180,7 +180,7 @@ TEST_CASE("P2P message exchange") {
 
 TEST_CASE("CrowServe integration") {
     auto id = NetAddress{};
-    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", CrownLinkMode::CLNK};
+    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", TurnsPerSecond::CNLK};
 
     CrowServe::Socket crow_serve;
     crow_serve.listen(

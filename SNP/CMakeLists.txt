@@ -19,6 +19,7 @@ set(MODULE_FILES
 	"../CrowServe/CrowServe.cpp"
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
+	"BWInteractions.h"
 )
 
 add_library(SNP SHARED ${MODULE_FILES})
@@ -39,6 +40,8 @@ endif()
 
 set(outname "CrownLink")
 
+set(SCEXE "C:\\Cosmonarchy\\Prerelease\\Cosmonarchy BW.exe")
+
 set_target_properties(SNP
 	PROPERTIES
 		OUTPUT_NAME ${outname}
@@ -56,7 +59,7 @@ set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-	GIT_TAG v1.6.1
+	GIT_TAG v1.7.0
 )
 FetchContent_MakeAvailable(Juice)
 

@@ -5,8 +5,8 @@
 #include <windows.h>
 
 #include "CrownLink.h"
-#define CLNK_ID 0
-#define DBCL_ID 1
+constexpr auto CLNK_ID = 0;
+constexpr auto CLDB_ID = 1;
 
 BOOL WINAPI SnpQuery(
     DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
@@ -19,15 +19,15 @@ BOOL WINAPI SnpQuery(
                 *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
-            } break;
-            case DBCL_ID: {
+            }
+            case CLDB_ID: {
                 g_network_info.caps.turns_per_second = 4;
                 *out_network_code = g_network_info.id;
                 *out_network_name = g_network_info.name;
                 *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
-            } break;
+            }
         }
     }
     return false;
@@ -37,19 +37,15 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
     if (out_funcs) {
         switch (index) {
             case CLNK_ID: {
+                snp::set_turns_per_second(TurnsPerSecond::Standard);
                 *out_funcs = &snp::g_spi_functions;
-                // g_crown_link = std::make_unique<CrownLink>();
-                // g_crown_link->set_mode(CrownLinkMode::CLNK);
                 return true;
-            } break;
-            case DBCL_ID: {
-                auto& snp_config = SnpConfig::instance();
-                snp_config.mode = CrownLinkMode::DBCL;
+            }
+            case CLDB_ID: {
+                snp::set_turns_per_second(TurnsPerSecond::UltraLow);
                 *out_funcs = &snp::g_spi_functions;
-                // g_crown_link = std::make_unique<CrownLink>();
-                // g_crown_link->set_mode(CrownLinkMode::DBCL);
                 return true;
-            } break;
+            }
         }
     }
     return false;
@@ -60,6 +56,10 @@ BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_
     auto& context = snp::SNPContext::instance();
     context.status_ad_used = use_status_lobby;
     return true;
+}
+
+BOOL WINAPI SetTurnsPerSecond(TurnsPerSecond turns_per_second) {
+    return snp::set_turns_per_second(turns_per_second);
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {

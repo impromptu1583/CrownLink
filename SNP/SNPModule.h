@@ -1,5 +1,7 @@
 #pragma once
 #include "Common.h"
+#include "BWInteractions.h"
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -8,13 +10,13 @@ namespace snp {
 constexpr auto MAX_PACKET_SIZE = 500;
 
 struct SNPContext {
-    static SNPContext& instance() { static SNPContext context;
+    static SNPContext& instance() {
+        static SNPContext context;
         return context;
     }
 
     ClientInfo game_app_info;
     std::list<AdFile> game_list;
-
     std::vector<AdFile> lobbies;
 
     s32 next_game_ad_id = 1;
@@ -23,6 +25,11 @@ struct SNPContext {
     bool status_ad_used = true;
 
     std::string status_string{};
+
+    TurnsPerSecond turns_per_second = TurnsPerSecond::Standard;
+
+private:
+    SNPContext() = default;
 };
 
 struct NetworkInfo {
@@ -38,10 +45,11 @@ void update_status_ad();
 void set_status_ad(const std::string &status);
 void clear_status_ad();
 void packet_parser(const GamePacket* game_packet);
+bool set_turns_per_second(TurnsPerSecond turns_per_second);
 
 struct NetFunctions {
     DWORD size; // 112 bytes
-    BOOL(__stdcall* compare_net_addresses)(NetAddress* left, NetAddress* right, DWORD* result);
+    BOOL(__stdcall* compare_net_addresses)(const NetAddress* left, const NetAddress* right, DWORD* result);
     BOOL(__stdcall* destroy)();
     BOOL(__stdcall* free_message)(NetAddress* address, char* data, DWORD size);
     BOOL(__stdcall* free_external_message)(NetAddress* address, char* data, DWORD size);
@@ -51,7 +59,7 @@ struct NetFunctions {
     BOOL(__stdcall* unused_initialize_device)(int, void*, void*, DWORD*, void*);
     BOOL(__stdcall* unused_lock_device_list)(DWORD* out_device_list);
     BOOL(__stdcall* lock_game_list)(DWORD category_bits, DWORD category_mask, AdFile** out_game_list);
-    BOOL(__stdcall* receive_message)(NetAddress** sender, char** message, DWORD* message_size);
+    BOOL(__stdcall* receive_message)(NetAddress** sender, GamePacketData** message, DWORD* message_size);
     BOOL(__stdcall* receive_external_message)(NetAddress** sender, char** message, DWORD* message_size);
     BOOL(__stdcall* bnet_select_game)(
         DWORD flags, ClientInfo* program_info, UserInfo* player_info, BattleInfo* bnet_callbacks,

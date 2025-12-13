@@ -48,7 +48,7 @@ void CrownLink::request_advertisements() {
     m_last_solicitation = std::chrono::steady_clock::now();
 }
 
-bool CrownLink::send(const NetAddress& peer, void* data, size_t size) {
+bool CrownLink::send(const NetAddress& peer, const char* data, size_t size) {
     return m_juice_manager.send_p2p(peer, data, size);
 }
 
@@ -112,7 +112,7 @@ void CrownLink::init_listener() {
     );
 }
 
-void CrownLink::start_advertising(AdFile& ad_data) {
+void CrownLink::start_advertising(const AdFile& ad_data) {
     std::unique_lock lock{m_ad_mutex};
     m_ad_data = ad_data;
 

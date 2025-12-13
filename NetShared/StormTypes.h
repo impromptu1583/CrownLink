@@ -69,6 +69,17 @@ struct Caps {
     u32 turns_in_transit;  // in the appended mpq file seem to be used instead
 };
 
+struct ProviderInfo {
+    ProviderInfo* next;
+    ProviderInfo* prev;
+    char filename[260];
+    u32 provider_index;
+    u32 provider_id;  // 'CNLK'
+    char name[128];
+    char description[128];
+    Caps caps;
+};
+
 struct ClientInfo {
     u32 size;  // 60
     char* program_name;
@@ -197,23 +208,46 @@ inline void from_json(const Json& j, GameInfo& g) {
     g.pExtra = nullptr;
 }
 
-enum class CrownLinkMode {
-    CLNK,  // standard version
-    DBCL   // double brain cells version
+enum TurnsPerSecond {
+    CNLK,    // For Backwards Compatability, = 8
+    CLDB,    // For Backwards Compatability, = 4
+    UltraLow = 4,
+    Low = 6,
+    Standard = 8,
+    Medium = 10,
+    High = 12,
 };
 
-inline std::string to_string(CrownLinkMode value) {
-    switch (value) {
-        EnumStringCase(CrownLinkMode::CLNK);
-        EnumStringCase(CrownLinkMode::DBCL);
+inline bool is_valid(TurnsPerSecond mode) {
+    switch (mode) {
+        case (CNLK): return true;
+        case (CLDB): return true;
+        case (UltraLow): return true;
+        case (Low): return true;
+        case (Standard): return true;
+        case (Medium): return true;
+        case (High): return true;
     }
-    return std::to_string((s32)value);
+    return false;
+}
+
+inline std::string to_string(TurnsPerSecond value) {
+    switch (value) {
+        EnumStringCase(TurnsPerSecond::CNLK);
+        EnumStringCase(TurnsPerSecond::CLDB);
+        EnumStringCase(TurnsPerSecond::UltraLow);
+        EnumStringCase(TurnsPerSecond::Low);
+        EnumStringCase(TurnsPerSecond::Standard);
+        EnumStringCase(TurnsPerSecond::Medium);
+        EnumStringCase(TurnsPerSecond::High);
+    }
+    return std::to_string((u32)value);
 }
 
 struct AdFile {
     GameInfo game_info{};
     char extra_bytes[32]{};
-    CrownLinkMode crownlink_mode{};
+    TurnsPerSecond crownlink_mode{};
     bool mark_for_removal = false;
     std::string original_name{""};
     bool is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host; }
@@ -376,7 +410,7 @@ struct GamePacket {
     NetAddress sender{};
     u32 size = 0;
     u32 timestamp = 0;
-    GamePacketData data;
+    GamePacketData data{};
 
     GamePacket() = default;
     GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
