@@ -15,14 +15,15 @@ struct SNPContext {
         return context;
     }
 
-    ClientInfo game_app_info;
+    ClientInfo game_app_info{};
     std::list<AdFile> game_list;
     std::vector<AdFile> lobbies;
 
     s32 next_game_ad_id = 1;
-    AdFile hosted_game;
-    AdFile status_ad;
+    AdFile hosted_game{};
+    AdFile status_ad{};
     bool status_ad_used = true;
+    bool edit_game_name = true;
 
     std::string status_string{};
 

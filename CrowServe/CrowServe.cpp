@@ -107,7 +107,7 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
     return;
 }
 
-void Socket::set_profile(NetAddress id, NetAddress Token) {
+void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
     std::lock_guard lock{m_mutex};
     m_profile_received = true;
     m_id_received = true;

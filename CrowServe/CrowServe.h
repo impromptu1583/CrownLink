@@ -112,7 +112,7 @@ public:
     void try_init(std::stop_token& stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
-    void set_profile(NetAddress ID, NetAddress Token);
+    void set_profile(const NetAddress& ID, const NetAddress& Token);
     void register_status_callback(StatusCallback callback);
     SocketState state() { return m_state; }
     NetAddress& id() { return m_id; }
@@ -254,9 +254,9 @@ public:
         serialize_cbor(message, message_buffer);
 
         MessageHeader message_header{(const u32)message_buffer.size(), (u32)message.type()};
-        auto bytes_sent = send(m_socket, (const char*)&header, sizeof(header), 0);
-        bytes_sent = send(m_socket, (const char*)&message_header, sizeof(message_header), 0);
-        bytes_sent = send(m_socket, (const char*)message_buffer.data(), message_buffer.size(), 0);
+        auto bytes_sent = send(m_socket, reinterpret_cast<char*>(&header), sizeof(header), 0);
+        bytes_sent = send(m_socket, reinterpret_cast<char*>(&message_header), sizeof(message_header), 0);
+        bytes_sent = send(m_socket, reinterpret_cast<char*>(message_buffer.data()), message_buffer.size(), 0);
         // TODO: combine before sending, check bytes_sent for error
 
         return true;

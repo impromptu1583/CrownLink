@@ -51,10 +51,12 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
     return false;
 }
 
-BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby) {
+BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name) {
     g_crown_link->register_status_callback(callback);
     auto& context = snp::SNPContext::instance();
     context.status_ad_used = use_status_lobby;
+    context.edit_game_name = edit_name;
+
     return true;
 }
 

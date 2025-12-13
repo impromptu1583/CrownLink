@@ -235,6 +235,30 @@ static BOOL __stdcall spi_lock_game_list(DWORD category_bits, DWORD category_mas
             }
         }
 
+        switch (ad.crownlink_mode) {
+            case TurnsPerSecond::UltraLow:
+            case TurnsPerSecond::CLDB: {
+                has_text_prefix = true;
+                ss << "DB";
+                break;
+            }
+            case TurnsPerSecond::Low: {
+                has_text_prefix = true;
+                ss << "T6";
+                break;
+            }
+            case TurnsPerSecond::Medium: {
+                has_text_prefix = true;
+                ss << "T10";
+                break;
+            }
+            case TurnsPerSecond::High: {
+                has_text_prefix = true;
+                ss << "T12";
+                break;
+            }
+        }
+
         if (ad.original_name.empty()) {
             ad.original_name = ad.game_info.game_name;
         }
@@ -246,8 +270,10 @@ static BOOL __stdcall spi_lock_game_list(DWORD category_bits, DWORD category_mas
 
         const auto prefixes = ss.str();
         spdlog::debug("Lobby name updated to {}, length: {}", prefixes, prefixes.size());
-        strncpy(ad.game_info.game_name, prefixes.c_str(), sizeof(ad.game_info.game_name));
-
+        if (context.edit_game_name) {
+            strncpy(ad.game_info.game_name, prefixes.c_str(), sizeof(ad.game_info.game_name));
+        }
+        
         if (last_ad) {
             last_ad->game_info.pNext = &ad.game_info;
         }
