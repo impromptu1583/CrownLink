@@ -9,6 +9,7 @@
 using Json = nlohmann::json;
 
 #include <numeric>
+#include <type_traits>
 
 struct NetAddress {
     u8 bytes[16]{};
@@ -223,13 +224,13 @@ enum TurnsPerSecond : u32 {
 
 inline bool is_valid(TurnsPerSecond mode) {
     switch (mode) {
-        case (CNLK): return true;
-        case (CLDB): return true;
-        case (UltraLow): return true;
-        case (Low): return true;
-        case (Standard): return true;
-        case (Medium): return true;
-        case (High): return true;
+        case CNLK: return true;
+        case CLDB: return true;
+        case UltraLow: return true;
+        case Low: return true;
+        case Standard: return true;
+        case Medium: return true;
+        case High: return true;
     }
     return false;
 }
@@ -388,7 +389,7 @@ enum class ColorByte : u8 {
 };
 
 inline std::ostream& operator<<(std::ostream& out, ColorByte value) {
-    return out << static_cast<u8>(value);
+    return out << static_cast<std::underlying_type_t<ColorByte>>(value);
 }
 
 struct GamePacketHeader {

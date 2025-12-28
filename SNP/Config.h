@@ -1,11 +1,20 @@
 #pragma once
-#include "Logger.h"
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
 
+#include <common.h>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <ostream>
+#include <spdlog.h>
 #include <string>
 
+#include "Logger.h"
 #include "../types.h"
-#include <nlohmann/json.hpp>
+
 using Json = nlohmann::json;
+namespace fs = std::filesystem;
 
 enum class LogLevel {
     None,
@@ -144,7 +153,7 @@ private:
 
 private:
     bool m_config_existed = false;
-    std::filesystem::path m_path;
+    fs::path m_path;
 };
 
 inline SnpConfig& SnpConfig::instance() {

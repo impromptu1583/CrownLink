@@ -6,13 +6,11 @@
 
 CrowServeManager::CrowServeManager() {
     init_listener();
-    m_is_running = true;
 }
 
 CrowServeManager::~CrowServeManager() {
     m_listener_thread.request_stop();
     m_listener_thread.join();
-    m_is_running = false;
 }
 
 void CrowServeManager::init_listener() {
@@ -42,7 +40,7 @@ void CrowServeManager::init_listener() {
             if (!AdvertisementManager::instance().in_games_list()) {
                 g_juice_manager->clear_inactive_agents();
             }
-            if (AdvertisementManager::instance().advertising()) {
+            if (AdvertisementManager::instance().is_advertising()) {
                 AdvertisementManager::instance().send_advertisement();
             } else {
                 auto reply = CrownLinkProtocol::EchoResponse{{}, ""};

@@ -19,7 +19,6 @@ using s64 = signed long long;
 using f32 = float;
 using f64 = double;
 
-using b8 = bool;
 using b32 = u32;
 
 using handle = void*;

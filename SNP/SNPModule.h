@@ -18,7 +18,7 @@ inline NetworkInfo g_network_info{
     'CLNK',
     (char*)"",
 
-    // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if its here anyway
+    // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if it's here anyway
     {sizeof(Caps), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
 };
 

@@ -49,7 +49,7 @@ TEST_CASE("CBOR de/serialization") {
 }
 
 TEST_CASE("Advertisement Exchange") {
-    auto adfile = AdFile{{1, 2, 3, NetAddress{},4,5,6,"test name","test description",nullptr,nullptr,7,8,9}, "test extra bytes", TurnsPerSecond::CNLK};
+    auto adfile = AdFile{{1, 2, 3, NetAddress{}, 4, 5, 6, "test name", "test description", nullptr, nullptr, 7, 8, 9}, "test extra bytes", TurnsPerSecond::CNLK};
     ReceiveWrapper<AdFile> adfile_out;
 
     CrowServe::Socket sender_socket;

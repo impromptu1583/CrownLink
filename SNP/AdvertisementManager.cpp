@@ -9,7 +9,7 @@ AdvertisementManager::AdvertisementManager() {
     create_status_ad();
 }
 
-bool AdvertisementManager::advertising() const {
+bool AdvertisementManager::is_advertising() const {
     std::shared_lock lock{m_ad_mutex};
     return m_is_advertising;
 }
@@ -72,15 +72,15 @@ bool AdvertisementManager::in_games_list() const {
            std::chrono::steady_clock::now() - m_last_solicitation < 2s;
 }
 
-void AdvertisementManager::update_lobbies(std::vector<AdFile>& updated_list) {
+void AdvertisementManager::update_lobbies(std::vector<AdFile>& out_list) {
     std::lock_guard lock{m_gamelist_mutex};
 
     for (auto& known_lobby : m_lobbies) {
         auto it =
-            std::ranges::find_if(updated_list.begin(), updated_list.end(), [&known_lobby](const AdFile& incoming_ad) {
+            std::ranges::find_if(out_list, [&known_lobby](const AdFile& incoming_ad) {
                 return known_lobby.is_same_owner(incoming_ad);
             });
-        if (it != updated_list.end()) {
+        if (it != out_list.end()) {
             known_lobby = *it;
             it->mark_for_removal = true;
         } else {
@@ -98,7 +98,7 @@ void AdvertisementManager::update_lobbies(std::vector<AdFile>& updated_list) {
         m_lobbies.end()
     );
     
-    std::ranges::copy_if(updated_list, std::back_inserter(m_lobbies), [](const AdFile& incoming_ad) {
+    std::ranges::copy_if(out_list, std::back_inserter(m_lobbies), [](const AdFile& incoming_ad) {
         return !incoming_ad.mark_for_removal;
     });
     

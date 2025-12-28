@@ -74,9 +74,9 @@ namespace CrownLink {
 
 class API {
 public:
-    static u32 GetVersionNumber() { return Version(); }
+    static u32 get_version_number() { return Version(); }
 
-    static std::string GetVersionString() {
+    static std::string get_version_string() {
         u32 version = Version();
         u32 major = (version >> 16) & 0xFF;
         u32 minor = (version >> 8) & 0xFF;
@@ -84,23 +84,23 @@ public:
         return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(build);
     }
 
-    static bool SetTurns(TurnsPerSecond turns) { return SetTurnsPerSecond(turns); }
-    static TurnsPerSecond GetTurns() { return GetTurnsPerSecond(); }
+    static bool set_turns_per_second(TurnsPerSecond turns) { return SetTurnsPerSecond(turns); }
+    static TurnsPerSecond get_turns_per_second() { return GetTurnsPerSecond(); }
 
-    static bool SetPassword(const std::string& password) { return SetLobbyPassword(password.c_str()); }
-    static std::string GetPassword() {
+    static bool set_password(const std::string& password) { return SetLobbyPassword(password.c_str()); }
+    static std::string get_password() {
         char buffer[256] = {};
         GetLobbyPassword(buffer, sizeof(buffer));
         return std::string(buffer);
     }
 
-    static bool RegisterCallback(
+    static bool register_callback(
         CrowServe::StatusCallback callback, bool use_status_lobby = false, bool edit_name = false
     ) {
         return RegisterStatusCallback(callback, use_status_lobby, edit_name);
     }
 
-    static bool GetStatus() { return ::GetStatus(); }
+    static bool get_status() { return ::GetStatus(); }
 };
 
 }  // namespace CrownLink

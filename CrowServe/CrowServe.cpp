@@ -1,4 +1,5 @@
 #include "CrowServe.h"
+#include <mutex>
 
 namespace CrowServe {
 
@@ -20,9 +21,9 @@ void deinit_sockets() {
 void Socket::try_init(std::stop_token& stop_token) {
     {
         std::lock_guard lock{m_mutex};
-        m_state.store(SocketState::Connecting);
+        m_state = SocketState::Connecting;
         m_profile_received = false;
-        if (m_status_callback) m_status_callback(m_state.load());
+        if (m_status_callback) m_status_callback(m_state);
     }
 
     addrinfo hints = {};
@@ -35,7 +36,7 @@ void Socket::try_init(std::stop_token& stop_token) {
 
     // TODO implement some kind of max retries or increase sleep value gradually
 
-    while (!stop_token.stop_requested() && m_state.load() != SocketState::Ready) {
+    while (!stop_token.stop_requested() && m_state != SocketState::Ready) {
         if (m_retry_counter > 0) {
             std::this_thread::sleep_for(m_retry_counter * 1s);
         }
@@ -78,8 +79,8 @@ void Socket::try_init(std::stop_token& stop_token) {
         freeaddrinfo(address_info);
 
         std::lock_guard lock{m_mutex};
-        m_state.store(SocketState::Ready);
-        if (m_status_callback) m_status_callback(m_state.load());
+        m_state = SocketState::Ready;
+        if (m_status_callback) m_status_callback(m_state);
         m_retry_counter = 0;
     }
 }
@@ -87,8 +88,8 @@ void Socket::try_init(std::stop_token& stop_token) {
 void Socket::disconnect() {
     shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
-    m_state.store(SocketState::Disconnected);
-    if (m_status_callback) m_status_callback(m_state.load());
+    m_state = SocketState::Disconnected;
+    if (m_status_callback) m_status_callback(m_state);
 }
 
 void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
@@ -118,6 +119,6 @@ void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
 void Socket::register_status_callback(StatusCallback callback) {
     std::lock_guard lock{m_mutex};
     m_status_callback = callback;
-    callback(m_state.load());
+    callback(m_state);
 }
 }  // namespace CrowServe

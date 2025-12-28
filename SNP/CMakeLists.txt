@@ -76,7 +76,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
-# Because Visual Studio is dumb
+# To help visual studio find the includes
 target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP

@@ -26,7 +26,7 @@ public:
     void send_advertisement();
     void stop_advertising();
     bool in_games_list() const;
-    void update_lobbies(std::vector<AdFile>& updated_list);
+    void update_lobbies(std::vector<AdFile>& out_list);
     
     static void create_ad(
         AdFile& ad_file, const char* game_name, const char* game_stat_string, u32 game_state, void* user_data,
@@ -40,7 +40,7 @@ public:
     void set_status_ad(const std::string& status);
     void clear_status_ad();
 
-    bool advertising() const;
+    bool is_advertising() const;
 
     void use_status_add(bool ad_used) { m_status_ad_used = ad_used; };
     void edit_game_name(bool edit) { m_edit_game_name = edit; };
