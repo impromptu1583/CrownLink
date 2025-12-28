@@ -1,12 +1,12 @@
 #pragma once
-#include "JuiceAgent.h"
-#include "../shared_common.h"
-#include "../NetShared/StormTypes.h"
-#include "Logger.h"
-
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+
+#include "JuiceAgent.h"
+#include "../types.h"
+#include "../NetShared/StormTypes.h"
+#include "Logger.h"
 
 class JuiceManager {
 public:
@@ -39,4 +39,4 @@ private:
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };
 
-inline std::unique_ptr<JuiceManager> g_juice_manager;
+//inline std::unique_ptr<JuiceManager> g_juice_manager;

@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "simdutf.h"
 
-#include "../shared_common.h"
+#include "../types.h"
 using Json = nlohmann::json;
 
 #include <numeric>

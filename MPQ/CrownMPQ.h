@@ -1,8 +1,10 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
-#include "../shared_common.h"
+#include "../types.h"
 
 #define STORMLIB_NO_AUTO_LINK
 #include "StormLib.h"

@@ -14,15 +14,15 @@ set(MODULE_FILES
     "../NetShared/StormTypes.h"
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
-	"Common.h"
-	"caps.mpq"
 	"../CrowServe/CrowServe.cpp"
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
 	"BWInteractions.h"
-	"ReceiveQueue.h"
 	"Logger.h"
-	"CrowServeManager.h")
+	"CrowServeManager.h"
+	"Globals.h"
+	"Globals.cpp"
+)
 
 add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
 
@@ -51,7 +51,7 @@ set_target_properties(SNP
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NetShared)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor)
 
 include(FetchContent)
 
@@ -65,15 +65,26 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Juice)
 
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
+target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
+
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.16.0
+)
+FetchContent_MakeAvailable(spdlog)
+
+# Because Visual Studio is dumb
+target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
 target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
 	PUBLIC ws2_32
 	PRIVATE juice-static
+	PUBLIC spdlog::spdlog
 )
 
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
-target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")

@@ -1,24 +1,23 @@
 #pragma once
 #include <juice.h>
-#include "../shared_common.h"
-#include "CrowServeManager.h"
-#include "Logger.h"
-#include "ReceiveQueue.h"
 
+#include <atomic>
+#include <chrono>
+#include <memory>
 #include <mutex>
 #include <regex>
+#include <shared_mutex>
+#include <string>
+
+#include "../types.h"
+#include "Logger.h"
+#include "../CrowServe/CrowServe.h"
 
 struct TurnServer {
     std::string host;
     std::string username;
     std::string password;
     uint16_t port;
-};
-
-enum class JuiceConnectionType {
-    Standard,
-    Relay,
-    Radmin
 };
 
 inline std::string to_string(juice_state value) {

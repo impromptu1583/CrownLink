@@ -1,8 +1,7 @@
 #pragma once
+#include <thread>
 
-#include "../shared_common.h"
 #include "../CrowServe/CrowServe.h"
-#include "Config.h"
 
 class JuiceManager;
 
@@ -26,4 +25,4 @@ private:
     bool m_is_running;
 };
 
-inline std::unique_ptr<CrowServeManager> g_crowserve;
+//inline std::unique_ptr<CrowServeManager> g_crowserve;

@@ -1,6 +1,11 @@
 #pragma once
-#include "Common.h"
 #include "Logger.h"
+
+#include <string>
+
+#include "../types.h"
+#include <nlohmann/json.hpp>
+using Json = nlohmann::json;
 
 enum class LogLevel {
     None,
@@ -139,7 +144,7 @@ private:
 
 private:
     bool m_config_existed = false;
-    fs::path m_path;
+    std::filesystem::path m_path;
 };
 
 inline SnpConfig& SnpConfig::instance() {

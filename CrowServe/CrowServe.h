@@ -1,5 +1,4 @@
 #pragma once
-
 #include <functional>
 #include <iostream>
 #include <mutex>
@@ -21,6 +20,7 @@
 
 #ifdef Windows
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>

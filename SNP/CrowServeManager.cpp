@@ -1,6 +1,8 @@
 #include "CrowServeManager.h"
 #include "AdvertisementManager.h"
 #include "JuiceManager.h"
+#include "Config.h"
+#include "Globals.h"
 
 CrowServeManager::CrowServeManager() {
     init_listener();

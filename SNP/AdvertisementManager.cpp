@@ -1,5 +1,9 @@
 #include "AdvertisementManager.h"
 #include "CrowServeManager.h"
+#include "BWInteractions.h"
+#include "JuiceManager.h"
+#include "Config.h"
+#include "Globals.h"
 
 AdvertisementManager::AdvertisementManager() {
     create_status_ad();
@@ -34,7 +38,7 @@ void AdvertisementManager::request_advertisements() {
 }
 
 void AdvertisementManager::start_advertising(
-    const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size
+    const char* game_name, const char* game_stat_string, u32 game_state, void* user_data, u32 user_data_size
 ) {
     std::unique_lock lock{m_ad_mutex};
 
@@ -108,8 +112,8 @@ void AdvertisementManager::update_lobbies(std::vector<AdFile>& updated_list) {
 }
 
 void AdvertisementManager::create_ad(
-    AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
-    DWORD user_data_size
+    AdFile& ad_file, const char* game_name, const char* game_stat_string, u32 game_state, void* user_data,
+    u32 user_data_size
 ) {
     ad_file = {};
     ad_file.turns_per_second = (TurnsPerSecond)g_turns_per_second;
@@ -137,7 +141,7 @@ static std::string_view extract_map_name(const GameInfo& game_info) {
     return sv;
 }
 
-bool AdvertisementManager::lock_game_list(DWORD category_bits, DWORD category_mask, AdFile** out_game_list) {
+bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, AdFile** out_game_list) {
     request_advertisements();
 
     // Storm will unlock this when it's done reading the games list by calling unlock_game_list

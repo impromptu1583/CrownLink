@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include <iostream>
 
 template <typename T>
 bool deserialize_cbor_into(T& container, std::span<u8> input) {

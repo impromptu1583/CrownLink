@@ -1,4 +1,6 @@
 #include "JuiceAgent.h"
+#include "CrowServeManager.h"
+#include "Globals.h"
 
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {

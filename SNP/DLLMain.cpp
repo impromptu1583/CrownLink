@@ -1,12 +1,17 @@
+#include <juice.h>
+
+#include "AdvertisementManager.h"
+#include "Config.h"
+#include "CrowServeManager.h"
+#include "Globals.h"
 #include "Logger.h"
 #include "SNPModule.h"
-#include "AdvertisementManager.h"
 
 constexpr auto CLNK_ID = 0;
 constexpr auto CLDB_ID = 1;
 
 BOOL WINAPI SnpQuery(
-    DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
+    u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 ) {
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
@@ -30,7 +35,7 @@ BOOL WINAPI SnpQuery(
     return false;
 }
 
-BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
+BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs) {
     if (out_funcs) {
         switch (index) {
             case CLNK_ID: {
@@ -123,7 +128,7 @@ static void dll_exit() {
     WSACleanup();
 }
 
-BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
+BOOL WINAPI DllMain(HINSTANCE instance, u32 reason, LPVOID reserved) {
     switch (reason) {
         case DLL_PROCESS_ATTACH: {
             dll_start();

@@ -1,19 +1,5 @@
 #pragma once
 #include <chrono>
-#include <concepts>
-#include <filesystem>
-#include <format>
-#include <fstream>
-#include <initializer_list>
-#include <iostream>
-#include <mutex>
-#include <optional>
-#include <shared_mutex>
-#include <string>
-#include <unordered_map>
-#include <vector>
-namespace fs = std::filesystem;
-
 using namespace std::literals;
 
 #define EnumStringCase(X) \
@@ -36,6 +22,8 @@ using f64 = double;
 using b8 = bool;
 using b32 = u32;
 
+using handle = void*;
+
 inline constexpr u8  MAJOR_VERSION = 1;
 inline constexpr u8  MINOR_VERSION = 1;
 inline constexpr u8  BUILD_VERSION = 0;
@@ -47,3 +35,9 @@ inline u32 get_tick_count() {
     using namespace std::literals;
     return static_cast<u32>(std::chrono::system_clock::now().time_since_epoch() / 1s);
 }
+
+enum class JuiceConnectionType {
+    Standard,
+    Relay,
+    Radmin
+};

@@ -1,5 +1,4 @@
 #pragma once
-#include "Common.h"
 #include "../NetShared/StormTypes.h"
 
 #define BW_REF(type, name, offset) inline type& name = *(type*)offset

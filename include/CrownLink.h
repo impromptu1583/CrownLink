@@ -49,10 +49,10 @@ constexpr u32 VERSION_BUILD = 0;
 
 extern "C" {
 CROWNLINK_API BOOL WINAPI SnpQuery(
-    DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
+    u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 );
 
-CROWNLINK_API BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs);
+CROWNLINK_API BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs);
 
 CROWNLINK_API u32 WINAPI Version();
 

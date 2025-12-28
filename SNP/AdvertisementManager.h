@@ -1,7 +1,16 @@
 #pragma once
-#include "Config.h"
-#include "BWInteractions.h"
-#include "JuiceManager.h"
+#include <chrono>
+#include <mutex>
+#include <shared_mutex>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+#include "../types.h"
+#include "../NetShared/StormTypes.h"
+
+enum class LogLevel;
+struct SnpConfig;
 
 class AdvertisementManager {
 public:
@@ -12,7 +21,7 @@ public:
 
     void request_advertisements();
     void start_advertising(
-        const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data, DWORD user_data_size
+        const char* game_name, const char* game_stat_string, u32 game_state, void* user_data, u32 user_data_size
     );
     void send_advertisement();
     void stop_advertising();
@@ -20,11 +29,11 @@ public:
     void update_lobbies(std::vector<AdFile>& updated_list);
     
     static void create_ad(
-        AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
-        DWORD user_data_size
+        AdFile& ad_file, const char* game_name, const char* game_stat_string, u32 game_state, void* user_data,
+        u32 user_data_size
     );
 
-    bool lock_game_list(DWORD category_bits, DWORD category_mask, AdFile** out_game_list);
+    bool lock_game_list(u32 category_bits, u32 category_mask, AdFile** out_game_list);
     bool unlock_game_list();
     bool game_info_by_index(u32 index, GameInfo* output);
 

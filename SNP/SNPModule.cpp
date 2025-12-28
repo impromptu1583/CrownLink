@@ -1,6 +1,11 @@
 #include "SNPModule.h"
-
 #include <list>
+#include "AdvertisementManager.h"
+#include "BWInteractions.h"
+#include "Config.h"
+#include "CrowServeManager.h"
+#include "Globals.h"
+#include "JuiceManager.h"
 
 namespace snp {
 
@@ -8,11 +13,11 @@ static void init_logging() {
     const auto& snp_config = SnpConfig::instance();
     spdlog::init_thread_pool(8192, 1);
 
-    const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_wstring();
+    const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_string();
     auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
     standard_sink->set_level(spdlog::level::debug);
 
-    const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_wstring();
+    const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_string();
     auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024 * 1024 * 10, 3);
     trace_sink->set_level(spdlog::level::trace);
 
@@ -54,8 +59,8 @@ static void init_logging() {
     }
 }
 
-static BOOL __stdcall spi_initialize(
-    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, HANDLE event
+static b32 __stdcall spi_initialize(
+    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     g_client_info = *client_info;
@@ -79,11 +84,11 @@ static BOOL __stdcall spi_initialize(
         "Crownlink Initializing, turns_per_second: {}, game version: {}", (u32)g_turns_per_second,
         g_client_info.version_id
     );
-
+    
     return true;
 }
 
-static BOOL __stdcall spi_destroy() {
+static b32 __stdcall spi_destroy() {
     // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer
     // connnection types menu
     try {
@@ -106,18 +111,18 @@ static BOOL __stdcall spi_destroy() {
 //===========================================================================
 
 // Called by storm once per second when on the games list screen
-static BOOL __stdcall spi_lock_game_list(DWORD category_bits, DWORD category_mask, AdFile** out_game_list) {
+static b32 __stdcall spi_lock_game_list(u32 category_bits, u32 category_mask, AdFile** out_game_list) {
     return AdvertisementManager::instance().lock_game_list(category_bits, category_mask, out_game_list);
 }
 
-static BOOL __stdcall spi_unlock_game_list(AdFile* game_list, DWORD* list_cout) {
+static b32 __stdcall spi_unlock_game_list(AdFile* game_list, u32* list_cout) {
     // Called by storm after it is done reading the games list to unlock the mutex
     return AdvertisementManager::instance().unlock_game_list();
 }
 
-static BOOL __stdcall spi_start_advertising_ladder_game(
-    const char* game_name, const char* game_password, const char* game_stat_string, DWORD game_state, DWORD elapsed_time, DWORD game_type,
-    DWORD, DWORD, void* user_data, DWORD user_data_size
+static b32 __stdcall spi_start_advertising_ladder_game(
+    const char* game_name, const char* game_password, const char* game_stat_string, u32 game_state, u32 elapsed_time, u32 game_type,
+    u32, u32, void* user_data, u32 user_data_size
 ) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     AdvertisementManager::instance().start_advertising(game_name, game_stat_string, game_state, user_data, user_data_size);
@@ -127,14 +132,14 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     return true;
 }
 
-static BOOL __stdcall spi_stop_advertising_game() {
+static b32 __stdcall spi_stop_advertising_game() {
     // called by storm when the host cancels their lobby or the game is over
     AdvertisementManager::instance().stop_advertising();
     spdlog::info("Stopped advertising");
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, const char* game_name, const char* password, GameInfo* output) {
+static b32 __stdcall spi_get_game_info(u32 index, const char* game_name, const char* password, GameInfo* output) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
     return AdvertisementManager::instance().game_info_by_index(index, output);
@@ -146,7 +151,7 @@ static BOOL __stdcall spi_get_game_info(DWORD index, const char* game_name, cons
 //
 //===========================================================================
 
-static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_list, char* data, DWORD size) {
+static b32 __stdcall spi_send(u32 address_count, NetAddress** out_address_list, char* data, u32 size) {
     if (!address_count) {
         spdlog::error("spiSend called with no addresses");
         return true;
@@ -168,7 +173,7 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
     return g_juice_manager->send_p2p(peer, data, size);
 }
 
-static BOOL __stdcall spi_receive(NetAddress** peer, GamePacketData** out_data, DWORD* out_size) {
+static b32 __stdcall spi_receive(NetAddress** peer, GamePacketData** out_data, u32* out_size) {
     // when g_receive_event is set storm will repeatedly call this until it returns false, reading one packet each time
     // until the queue is empty
 
@@ -242,7 +247,7 @@ TurnsPerSecond get_turns_per_second() {
     return g_turns_per_second;
 }
 
-static BOOL __stdcall spi_free(GamePacket* loan, char* data, DWORD size) {
+static b32 __stdcall spi_free(GamePacket* loan, char* data, u32 size) {
     // called after storm is done with the packet to free its memory
     if (loan) {
         delete loan;
@@ -250,7 +255,7 @@ static BOOL __stdcall spi_free(GamePacket* loan, char* data, DWORD size) {
     return true;
 }
 
-static BOOL __stdcall spi_compare_net_addresses(const NetAddress* address1, const NetAddress* address2, DWORD* out_result) {
+static b32 __stdcall spi_compare_net_addresses(const NetAddress* address1, const NetAddress* address2, u32* out_result) {
     if (out_result) {
         *out_result = 0;
     }
@@ -262,28 +267,28 @@ static BOOL __stdcall spi_compare_net_addresses(const NetAddress* address1, cons
     return true;
 }
 
-static BOOL __stdcall spi_lock_device_list(DWORD* out_device_list) {
+static b32 __stdcall spi_lock_device_list(u32* out_device_list) {
     *out_device_list = 0;
     return true;
 }
 
-static BOOL __stdcall spi_unlock_device_list(void*) {
+static b32 __stdcall spi_unlock_device_list(void*) {
     return true;
 }
 
-static BOOL __stdcall spi_free_external_message(NetAddress* address, char* data, DWORD size) {
+static b32 __stdcall spi_free_external_message(NetAddress* address, char* data, u32 size) {
     return false;
 }
 
-static BOOL __stdcall spi_get_performance_data(DWORD type, DWORD* out_result, DWORD, DWORD) {
+static b32 __stdcall spi_get_performance_data(u32 type, u32* out_result, u32, u32) {
     return false;
 }
 
-static BOOL __stdcall spi_initialize_device(int, void*, void*, DWORD*, void*) {
+static b32 __stdcall spi_initialize_device(int, void*, void*, u32*, void*) {
     return false;
 }
 
-static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, char** out_data, DWORD* out_size) {
+static b32 __stdcall spi_receive_external_message(NetAddress** out_address, char** out_data, u32* out_size) {
     if (out_address) {
         *out_address = nullptr;
     }
@@ -296,21 +301,21 @@ static BOOL __stdcall spi_receive_external_message(NetAddress** out_address, cha
     return false;
 }
 
-static BOOL __stdcall spi_select_game(
-    DWORD flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, DWORD* player_id
+static b32 __stdcall spi_select_game(
+    u32 flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, u32* player_id
 ) {
     // This is used for battle.net instead of the games list.
     // BW calls this function then waits for battle.net to start a multiplayer game using the appropriate storm ordinal
     return false;
 }
 
-static BOOL __stdcall spi_send_external_message(
-    char* destination, DWORD message_size, char* blank1, char* blank2, char* message
+static b32 __stdcall spi_send_external_message(
+    char* destination, u32 message_size, char* blank1, char* blank2, char* message
 ) {
     return false;
 }
 
-static BOOL __stdcall spi_league_get_name(char* data, DWORD size) {
+static b32 __stdcall spi_league_get_name(char* data, u32 size) {
     return true;
 }
 
