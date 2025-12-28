@@ -250,7 +250,7 @@ inline std::string to_string(TurnsPerSecond value) {
 struct AdFile {
     GameInfo game_info{};
     char extra_bytes[32]{};
-    TurnsPerSecond crownlink_mode{};
+    TurnsPerSecond turns_per_second{};
     bool mark_for_removal = false;
     std::string original_name{""};
     bool is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host; }
@@ -259,7 +259,7 @@ struct AdFile {
 inline bool operator==(const AdFile& a1, const AdFile& a2) {
     return (
         a1.game_info == a2.game_info && memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
-        a1.crownlink_mode == a2.crownlink_mode
+        a1.turns_per_second == a2.turns_per_second
     );
 }
 
@@ -267,13 +267,13 @@ inline void to_json(Json& j, const AdFile& ad_file) {
     j = Json{
         {"game_info", ad_file.game_info},
         {"extra_bytes", Json::binary({ad_file.extra_bytes, ad_file.extra_bytes + 32})},
-        {"crownlink_mode", ad_file.crownlink_mode}
+        {"crownlink_mode", ad_file.turns_per_second}
     };
 }
 
 inline void from_json(const Json& j, AdFile& ad_file) {
     j.at("game_info").get_to(ad_file.game_info);
-    j.at("crownlink_mode").get_to(ad_file.crownlink_mode);
+    j.at("crownlink_mode").get_to(ad_file.turns_per_second);
     auto a = j["extra_bytes"].get_binary();
     std::copy(a.begin(), a.end(), ad_file.extra_bytes);
 

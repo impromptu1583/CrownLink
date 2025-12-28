@@ -39,7 +39,7 @@ void AdvertisementManager::start_advertising(
     std::unique_lock lock{m_ad_mutex};
 
     create_ad(m_ad_data, game_name, game_stat_string, game_state, user_data, user_data_size);
-    m_ad_data.crownlink_mode = g_turns_per_second;
+    m_ad_data.turns_per_second = g_turns_per_second;
     m_is_advertising = true;
 }
 
@@ -112,7 +112,7 @@ void AdvertisementManager::create_ad(
     DWORD user_data_size
 ) {
     ad_file = {};
-    ad_file.crownlink_mode = (TurnsPerSecond)g_turns_per_second;
+    ad_file.turns_per_second = (TurnsPerSecond)g_turns_per_second;
     auto& game_info = ad_file.game_info;
     strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
     strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
@@ -216,7 +216,7 @@ bool AdvertisementManager::lock_game_list(DWORD category_bits, DWORD category_ma
             }
         }
 
-        switch (ad.crownlink_mode) {
+        switch (ad.turns_per_second) {
             case TurnsPerSecond::UltraLow:
             case TurnsPerSecond::CLDB: {
                 has_text_prefix = true;
@@ -285,12 +285,12 @@ bool AdvertisementManager::game_info_by_index(u32 index, GameInfo* output) {
     for (auto& ad : m_lobbies) {
         if (ad.game_info.game_index == index) {
             *output = ad.game_info;
-            if (ad.crownlink_mode == TurnsPerSecond::CNLK) {
+            if (ad.turns_per_second == TurnsPerSecond::CNLK) {
                 g_current_provider->caps.turns_per_second = 8;
-            } else if (ad.crownlink_mode == TurnsPerSecond::CLDB) {
+            } else if (ad.turns_per_second == TurnsPerSecond::CLDB) {
                 g_current_provider->caps.turns_per_second = 4;
             } else {
-                g_current_provider->caps.turns_per_second = ad.crownlink_mode;
+                g_current_provider->caps.turns_per_second = ad.turns_per_second;
             }
             return true;
         }
