@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "Logger.h"
 
 enum class LogLevel {
     None,

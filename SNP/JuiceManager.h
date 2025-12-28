@@ -1,15 +1,17 @@
 #pragma once
-#include "Common.h"
 #include "JuiceAgent.h"
+#include "../shared_common.h"
+#include "../NetShared/StormTypes.h"
+#include "Logger.h"
 
-struct SignalPacket;
+#include <unordered_map>
+#include <memory>
+#include <mutex>
 
 class JuiceManager {
 public:
-    JuiceManager() = default;
-
-    JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
-    JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
+    JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
+    JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
 
     void clear_inactive_agents();
     void disconnect_if_inactive(const NetAddress& address);
@@ -36,3 +38,5 @@ private:
     std::mutex m_mutex;
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };
+
+inline std::unique_ptr<JuiceManager> g_juice_manager;

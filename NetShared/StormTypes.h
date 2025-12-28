@@ -1,4 +1,7 @@
 #pragma once
+
+#define JSON_DIAGNOSTICS 1
+
 #include <nlohmann/json.hpp>
 #include "simdutf.h"
 
@@ -208,7 +211,7 @@ inline void from_json(const Json& j, GameInfo& g) {
     g.pExtra = nullptr;
 }
 
-enum TurnsPerSecond {
+enum TurnsPerSecond : u32 {
     CNLK,    // For Backwards Compatability, = 8
     CLDB,    // For Backwards Compatability, = 4
     UltraLow = 4,
@@ -371,6 +374,21 @@ inline std::string to_string(GamePacketFlags value) {
         out += "Fwd";
     }
     return out;
+}
+
+enum class ColorByte : u8 {
+    Revert = 1,
+    Blue,
+    Green,
+    LightGreen,
+    Gray,
+    White,
+    Red,
+    Black
+};
+
+inline std::ostream& operator<<(std::ostream& out, ColorByte value) {
+    return out << static_cast<u8>(value);
 }
 
 struct GamePacketHeader {

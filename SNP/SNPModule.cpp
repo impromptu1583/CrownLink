@@ -1,7 +1,6 @@
-#include <list>
-
 #include "SNPModule.h"
-#include "CrownLink.h"
+
+#include <list>
 
 namespace snp {
 
@@ -59,24 +58,26 @@ static BOOL __stdcall spi_initialize(
     ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, HANDLE event
 ) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
-    auto& context = SNPContext::instance();
-    context.game_app_info = *client_info;
+    g_client_info = *client_info;
     g_receive_event = event;
     const auto& snp_config = SnpConfig::instance();
     init_logging();
-    create_status_ad();
-    set_status_ad("Initializing");
 
     try {
-        g_crown_link = std::make_unique<CrownLink>();
+        g_receive_queue = std::make_unique<moodycamel::ConcurrentQueue<GamePacket>>();
+        g_juice_manager = std::make_unique<JuiceManager>();
+        g_crowserve = std::make_unique<CrowServeManager>();
     } catch (const std::exception& e) {
         spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);
         return false;
     }
 
+    AdvertisementManager::instance().set_status_ad("Initializing");
+    AdvertisementManager::instance().set_lobby_password(snp_config.lobby_password.c_str());
+
     spdlog::info(
-        "Crownlink Initializing, turns_per_second: {}, game version: {}", to_string(context.turns_per_second),
-        context.game_app_info.version_id
+        "Crownlink Initializing, turns_per_second: {}, game version: {}", (u32)g_turns_per_second,
+        g_client_info.version_id
     );
 
     return true;
@@ -85,9 +86,10 @@ static BOOL __stdcall spi_initialize(
 static BOOL __stdcall spi_destroy() {
     // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer
     // connnection types menu
-
     try {
-        g_crown_link.reset();
+        g_crowserve.reset();
+        g_juice_manager.reset();
+        g_receive_queue.reset();
     } catch (const std::exception& e) {
         spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);
         return false;
@@ -103,273 +105,14 @@ static BOOL __stdcall spi_destroy() {
 //
 //===========================================================================
 
-void update_lobbies(std::vector<AdFile>& updated_list) {
-    std::lock_guard lock{g_advertisement_mutex};
-
-    auto& context = SNPContext::instance();
-    for (AdFile& known_lobby : context.lobbies) {
-        auto it = std::ranges::find_if(updated_list.begin(), updated_list.end(), [&known_lobby](const AdFile& incoming_ad) {
-            return known_lobby.is_same_owner(incoming_ad);
-        });
-        if (it != updated_list.end()) {
-            known_lobby = *it;
-            it->mark_for_removal = true;
-        } else {
-            known_lobby.mark_for_removal = true;
-        }
-    }
-    context.lobbies.erase(
-        std::remove_if(
-            context.lobbies.begin(), context.lobbies.end(),
-            [](const AdFile& ad) {
-                return ad.mark_for_removal;
-            }
-        ),
-        context.lobbies.end()
-    );
-
-    std::ranges::copy_if(updated_list, std::back_inserter(context.lobbies), [](const AdFile& incoming_ad) {
-        return !incoming_ad.mark_for_removal;
-    });
-
-    const auto last_updated = get_tick_count();
-    u32 index = 1;
-    for (AdFile& known_lobby : context.lobbies) {
-        known_lobby.game_info.host_last_time = last_updated;
-        known_lobby.game_info.game_index = ++index;
-        known_lobby.game_info.pExtra = known_lobby.extra_bytes;
-    }
-}
-
-static std::string_view extract_map_name(const GameInfo& game_info) {
-    std::string_view sv{game_info.game_description};
-    sv.remove_prefix(std::min(sv.find('\r') + 1, sv.size()));
-    auto back_trim_pos = sv.find_last_not_of("\t\n\v\f\r ");
-    if (back_trim_pos != sv.npos) {
-        sv.remove_suffix(sv.size() - back_trim_pos - 1);
-    }
-    return sv;
-}
-
-    // Called by storm once per second when on the games list screen
+// Called by storm once per second when on the games list screen
 static BOOL __stdcall spi_lock_game_list(DWORD category_bits, DWORD category_mask, AdFile** out_game_list) {
-    g_crown_link->request_advertisements();
-
-    // Storm will unlock when it's done with the data by calling spi_unlock_game_list()
-    g_advertisement_mutex.lock();
-
-    auto& context = SNPContext::instance();
-
-    if (!context.status_ad_used && context.lobbies.empty()) {
-        // If we return false Storm won't call spi_unlock_game_list() to unlock the mutex
-        g_advertisement_mutex.unlock();
-        return false;
-    }
-
-    const auto& snp_config = SnpConfig::instance();
-
-    AdFile* last_ad = nullptr;
-
-    update_status_ad();
-    last_ad = &context.status_ad;
-
-    std::erase_if(context.lobbies, [](const AdFile& lobby) {
-        return get_tick_count() - lobby.game_info.host_last_time > 2;
-    });
-
-    for (AdFile& ad : context.lobbies) {
-        bool joinable = true;
-        bool has_text_prefix = false;
-        std::stringstream ss;
-
-        if (context.game_app_info.version_id != ad.game_info.version_id) {
-            joinable = false;
-            has_text_prefix = true;
-            ss << ColorByte::Red << "[!Ver]";
-        }
-        if (ad.game_info.game_state == 12) {
-            // Game in progress - these won't be shown anyway but we don't want to initiate p2p
-            joinable = false;
-            ss << ColorByte::Red;
-        }
-
-        // agent_state calls ensure_agent so one will be created if needed,
-        // this kicks off the p2p connection process
-        if (joinable) {
-            switch (g_crown_link->juice_manager().lobby_agent_state(ad)) {
-                case JUICE_STATE_CONNECTING: {
-                    has_text_prefix = true;
-                    ss << ColorByte::Gray << "...";
-                } break;
-                case JUICE_STATE_FAILED: {
-                    has_text_prefix = true;
-                    ss << ColorByte::Gray << "!!";
-                    g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
-                } break;
-                case JUICE_STATE_DISCONNECTED: {
-                    has_text_prefix = true;
-                    ss << ColorByte::Gray << "-";
-                    g_crown_link->juice_manager().send_connection_request(ad.game_info.host);
-                } break;
-                case JUICE_STATE_CONNECTED:
-                case JUICE_STATE_COMPLETED: {
-                    // Use ColorByte to manipulate menu order but revert to standard menu behavior
-                    ss << ColorByte::Green << ColorByte::Revert;
-                    switch (g_crown_link->juice_manager().final_connection_type(ad.game_info.host)) {
-                        case JuiceConnectionType::Relay: {
-                            has_text_prefix = true;
-                            ss << "[R]";
-                        } break;
-                        case JuiceConnectionType::Radmin: {
-                            has_text_prefix = true;
-                            static constexpr char SadEmoji = 131;
-                            ss << std::format("[Radmin {}]", SadEmoji);
-                        } break;
-                        default: {
-                            has_text_prefix = true;
-                            static constexpr char DoubleArrow = 187;
-                            ss << DoubleArrow;
-                        } break;
-                    }
-                }
-            }
-        }
-
-        switch (ad.crownlink_mode) {
-            case TurnsPerSecond::UltraLow:
-            case TurnsPerSecond::CLDB: {
-                has_text_prefix = true;
-                ss << "DB";
-                break;
-            }
-            case TurnsPerSecond::Low: {
-                has_text_prefix = true;
-                ss << "T6";
-                break;
-            }
-            case TurnsPerSecond::Medium: {
-                has_text_prefix = true;
-                ss << "T10";
-                break;
-            }
-            case TurnsPerSecond::High: {
-                has_text_prefix = true;
-                ss << "T12";
-                break;
-            }
-        }
-
-        if (ad.original_name.empty()) {
-            ad.original_name = ad.game_info.game_name;
-        }
-        ss << (has_text_prefix ? " " : "") << ad.original_name;
-
-        if (snp_config.add_map_to_lobby_name) {
-            ss << (joinable ? ColorByte::Blue : ColorByte::Revert) << " " << extract_map_name(ad.game_info);
-        }
-
-        const auto prefixes = ss.str();
-        spdlog::debug("Lobby name updated to {}, length: {}", prefixes, prefixes.size());
-        if (context.edit_game_name) {
-            strncpy(ad.game_info.game_name, prefixes.c_str(), sizeof(ad.game_info.game_name));
-        }
-        
-        if (last_ad) {
-            last_ad->game_info.pNext = &ad.game_info;
-        }
-        last_ad = &ad;
-    }
-
-    if (last_ad) {
-        last_ad->game_info.pNext = nullptr;
-    }
-    if (context.status_ad_used) {
-        *out_game_list = &context.status_ad;
-        return true;
-    } else if (context.lobbies.size()) {
-        *out_game_list = &context.lobbies[0];
-        return true;
-    }
-    *out_game_list = nullptr;
+    return AdvertisementManager::instance().lock_game_list(category_bits, category_mask, out_game_list);
 }
 
 static BOOL __stdcall spi_unlock_game_list(AdFile* game_list, DWORD* list_cout) {
     // Called by storm after it is done reading the games list to unlock the mutex
-    g_advertisement_mutex.unlock();
-    return true;
-}
-
-static void create_ad(
-    AdFile& ad_file, const char* game_name, const char* game_stat_string, DWORD game_state, void* user_data,
-    DWORD user_data_size
-) {
-    auto& context = SNPContext::instance();
-    ad_file = {};
-    ad_file.crownlink_mode = context.turns_per_second;
-    auto& game_info = ad_file.game_info;
-    strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
-    strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
-    game_info.game_state = game_state;
-    game_info.program_id = context.game_app_info.program_id;
-    game_info.version_id = context.game_app_info.version_id;
-    game_info.host_latency = 0x0050;
-    game_info.category_bits = 0x00a7;
-
-    memcpy(ad_file.extra_bytes, user_data, user_data_size);
-    game_info.extra_bytes = user_data_size;
-    game_info.pExtra = ad_file.extra_bytes;
-}
-
-void create_status_ad() {
-    std::lock_guard lock{g_advertisement_mutex};
-    char user_data[32] = {12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                          0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    auto& context = SNPContext::instance();
-    create_ad(context.status_ad, "", ",33,,3,,1e,,1,cb2edaab,5,,Server\rStatus\r", 12, &user_data, sizeof(user_data)
-    );
-    context.status_ad.game_info.game_index = 1;
-    context.status_ad.game_info.pNext = nullptr;
-}
-
-void update_status_ad() {
-    const auto& snp_config = SnpConfig::instance();
-    auto& context = SNPContext::instance();
-    std::string output{};
-    // "start of text" character changes to a heading font and makes sure the status is at the top of the list
-    if (context.status_string.empty()) {
-        if (!snp_config.lobby_password.empty()) {
-            output += std::format("{}Private ", char(ColorByte::Blue));
-        }
-        if (context.turns_per_second == TurnsPerSecond::CLDB || context.turns_per_second == TurnsPerSecond::UltraLow) {
-            if (output.empty()) {
-                output += std::format("{}", char(ColorByte::Blue));
-            }
-            output += "DBC ";
-        }
-        if (!output.empty()) {
-            output += "Mode";
-        }
-    } else {
-        output = std::format("{}{}", char(ColorByte::LightGreen), context.status_string);
-        // intentionally not using a "start of text" character here so the ad is green
-    }
-    if (output.empty()) {
-        context.status_ad.game_info.game_state = 12;  // hide the ad, games list doesn't show games "in progress"
-        return;
-    }
-    context.status_ad.game_info.game_state = 0;  // show the ad
-    strcpy_s(context.status_ad.game_info.game_name, sizeof(context.status_ad.game_info.game_name), output.c_str()
-    );
-}
-
-void set_status_ad(const std::string& status) {
-    auto& context = SNPContext::instance();
-    context.status_string = status;
-}
-
-void clear_status_ad() {
-    auto& context = SNPContext::instance();
-    context.status_string = "";
+    return AdvertisementManager::instance().unlock_game_list();
 }
 
 static BOOL __stdcall spi_start_advertising_ladder_game(
@@ -377,48 +120,24 @@ static BOOL __stdcall spi_start_advertising_ladder_game(
     DWORD, DWORD, void* user_data, DWORD user_data_size
 ) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
-    std::lock_guard lock{g_advertisement_mutex};
-
-    auto& context = SNPContext::instance();
-    create_ad(context.hosted_game, game_name, game_stat_string, game_state, user_data, user_data_size);
-    context.hosted_game.crownlink_mode = context.turns_per_second;
-    g_crown_link->start_advertising(context.hosted_game);
+    AdvertisementManager::instance().start_advertising(game_name, game_stat_string, game_state, user_data, user_data_size);
     spdlog::info("Started advertising");
-
-    set_turns_per_second(context.turns_per_second);
+    set_turns_per_second(g_turns_per_second);
 
     return true;
 }
 
 static BOOL __stdcall spi_stop_advertising_game() {
     // called by storm when the host cancels their lobby or the game is over
-
-    std::lock_guard lock{g_advertisement_mutex};
-    g_crown_link->stop_advertising();
+    AdvertisementManager::instance().stop_advertising();
     spdlog::info("Stopped advertising");
     return true;
 }
 
-static BOOL __stdcall spi_get_game_info(DWORD index, const char* game_name, const char* password, GameInfo* out_game) {
+static BOOL __stdcall spi_get_game_info(DWORD index, const char* game_name, const char* password, GameInfo* output) {
     // called by storm when the user selects a lobby to join from the games list
     // if we return false the user will immediately see a "couldn't join game" message
-    std::lock_guard lock{g_advertisement_mutex};
-
-    auto& context = SNPContext::instance();
-    for (auto& ad : context.lobbies) {
-        if (ad.game_info.game_index == index) {
-            *out_game = ad.game_info;
-            if (ad.crownlink_mode == TurnsPerSecond::CNLK) {
-                g_current_provider->caps.turns_per_second = 8;
-            } else if (ad.crownlink_mode == TurnsPerSecond::CLDB) {
-                g_current_provider->caps.turns_per_second = 4;
-            } else {
-                g_current_provider->caps.turns_per_second = ad.crownlink_mode;
-            }
-            return true;
-        }
-    }
-    return false;
+    return AdvertisementManager::instance().game_info_by_index(index, output);
 }
 
 //===========================================================================
@@ -446,7 +165,7 @@ static BOOL __stdcall spi_send(DWORD address_count, NetAddress** out_address_lis
         )
     );
 
-    return g_crown_link->send(peer, data, size);
+    return g_juice_manager->send_p2p(peer, data, size);
 }
 
 static BOOL __stdcall spi_receive(NetAddress** peer, GamePacketData** out_data, DWORD* out_size) {
@@ -460,7 +179,7 @@ static BOOL __stdcall spi_receive(NetAddress** peer, GamePacketData** out_data, 
     GamePacket* loan = new GamePacket{};
 
     while (true) {
-        if (!g_crown_link->receive_queue().try_dequeue(*loan)) {
+        if (!g_receive_queue || !g_receive_queue->try_dequeue(*loan)) {
             delete loan;
             return false;
         }
@@ -506,8 +225,7 @@ void packet_parser(const GamePacket* game_packet) {
 
 bool set_turns_per_second(TurnsPerSecond turns_per_second) {
     if (is_valid(turns_per_second)) {
-        auto& context = SNPContext::instance();
-        context.turns_per_second = turns_per_second;
+        g_turns_per_second = turns_per_second;
         if (turns_per_second == TurnsPerSecond::CNLK) {
             g_current_provider->caps.turns_per_second = 8;
         } else if (turns_per_second == TurnsPerSecond::CLDB) {
@@ -520,7 +238,11 @@ bool set_turns_per_second(TurnsPerSecond turns_per_second) {
     return false;
 }
 
-static BOOL __stdcall spi_free(NetAddress* loan, char* data, DWORD size) {
+TurnsPerSecond get_turns_per_second() {
+    return g_turns_per_second;
+}
+
+static BOOL __stdcall spi_free(GamePacket* loan, char* data, DWORD size) {
     // called after storm is done with the packet to free its memory
     if (loan) {
         delete loan;

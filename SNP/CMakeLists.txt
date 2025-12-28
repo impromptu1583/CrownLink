@@ -3,14 +3,14 @@
 set(MODULE_FILES
 	"SNPModule.cpp"
 	"SNPModule.h"
-	"SNPModule.def"
-	"CrownLink.cpp"
-	"CrownLink.h"
+	"CrownLink.def"
+	"AdvertisementManager.cpp"
+	"AdvertisementManager.h"
 	"DLLMain.cpp"
-	"JuiceManager.h"
-	"JuiceManager.cpp"
 	"JuiceAgent.h"
 	"JuiceAgent.cpp"
+	"JuiceManager.h"
+	"JuiceManager.cpp"
     "../NetShared/StormTypes.h"
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
@@ -20,11 +20,13 @@ set(MODULE_FILES
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
 	"BWInteractions.h"
-)
+	"ReceiveQueue.h"
+	"Logger.h"
+	"CrowServeManager.h")
 
-add_library(SNP SHARED ${MODULE_FILES})
+add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

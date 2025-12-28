@@ -1,10 +1,7 @@
-#include <winsock2.h>
-
+#include "Logger.h"
 #include "SNPModule.h"
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "AdvertisementManager.h"
 
-#include "CrownLink.h"
 constexpr auto CLNK_ID = 0;
 constexpr auto CLDB_ID = 1;
 
@@ -14,18 +11,18 @@ BOOL WINAPI SnpQuery(
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
             case CLNK_ID: {
-                *out_network_code = g_network_info.id;
-                *out_network_name = g_network_info.name;
-                *out_network_description = g_network_info.description;
-                *out_caps = &g_network_info.caps;
+                *out_network_code = snp::g_network_info.id;
+                *out_network_name = snp::g_network_info.name;
+                *out_network_description = snp::g_network_info.description;
+                *out_caps = &snp::g_network_info.caps;
                 return true;
             }
             case CLDB_ID: {
-                g_network_info.caps.turns_per_second = 4;
-                *out_network_code = g_network_info.id;
-                *out_network_name = g_network_info.name;
-                *out_network_description = g_network_info.description;
-                *out_caps = &g_network_info.caps;
+                snp::g_network_info.caps.turns_per_second = 4;
+                *out_network_code = snp::g_network_info.id;
+                *out_network_name = snp::g_network_info.name;
+                *out_network_description = snp::g_network_info.description;
+                *out_caps = &snp::g_network_info.caps;
                 return true;
             }
         }
@@ -51,17 +48,40 @@ BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
     return false;
 }
 
+u32 WINAPI Version() {
+    return CL_VERSION_NUMBER;
+}
+
 BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name) {
-    g_crown_link->register_status_callback(callback);
-    auto& context = snp::SNPContext::instance();
-    context.status_ad_used = use_status_lobby;
-    context.edit_game_name = edit_name;
+    if (!g_crowserve) return false;
+    g_crowserve->socket().register_status_callback(callback);
+    AdvertisementManager::instance().use_status_add(use_status_lobby);
+    AdvertisementManager::instance().edit_game_name(edit_name);
 
     return true;
 }
 
 BOOL WINAPI SetTurnsPerSecond(TurnsPerSecond turns_per_second) {
     return snp::set_turns_per_second(turns_per_second);
+}
+
+TurnsPerSecond WINAPI GetTurnsPerSecond() {
+    return snp::get_turns_per_second();
+}
+
+BOOL WINAPI SetLobbyPassword(const char* password) {
+    auto& snp_config = SnpConfig::instance();
+    snp_config.lobby_password = password;
+    return true;
+}
+
+void WINAPI GetLobbyPassword(char* output, u32 output_size) {
+    AdvertisementManager::instance().get_lobby_password(output, output_size);
+}
+
+CrowServe::SocketState WINAPI GetStatus() {
+    if (!g_crowserve) return CrowServe::SocketState::Disconnected;
+    return g_crowserve->socket().state();
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {

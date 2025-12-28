@@ -1,7 +1,12 @@
 #pragma once
-#include "Common.h"
+#include <juice.h>
+#include "../shared_common.h"
+#include "CrowServeManager.h"
+#include "Logger.h"
+#include "ReceiveQueue.h"
 
-struct SignalPacket;
+#include <mutex>
+#include <regex>
 
 struct TurnServer {
     std::string host;
@@ -15,6 +20,18 @@ enum class JuiceConnectionType {
     Relay,
     Radmin
 };
+
+inline std::string to_string(juice_state value) {
+    switch (value) {
+        EnumStringCase(JUICE_STATE_DISCONNECTED);
+        EnumStringCase(JUICE_STATE_GATHERING);
+        EnumStringCase(JUICE_STATE_CONNECTING);
+        EnumStringCase(JUICE_STATE_CONNECTED);
+        EnumStringCase(JUICE_STATE_COMPLETED);
+        EnumStringCase(JUICE_STATE_FAILED);
+    }
+    return std::to_string((s32)value);
+}
 
 class JuiceAgent {
 public:

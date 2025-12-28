@@ -1,37 +1,13 @@
 #pragma once
 #include "Common.h"
 #include "BWInteractions.h"
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "JuiceManager.h"
+#include "ReceiveQueue.h"
+#include "AdvertisementManager.h"
 
 namespace snp {
 
 constexpr auto MAX_PACKET_SIZE = 500;
-
-struct SNPContext {
-    static SNPContext& instance() {
-        static SNPContext context;
-        return context;
-    }
-
-    ClientInfo game_app_info{};
-    std::list<AdFile> game_list;
-    std::vector<AdFile> lobbies;
-
-    s32 next_game_ad_id = 1;
-    AdFile hosted_game{};
-    AdFile status_ad{};
-    bool status_ad_used = true;
-    bool edit_game_name = true;
-
-    std::string status_string{};
-
-    TurnsPerSecond turns_per_second = TurnsPerSecond::Standard;
-
-private:
-    SNPContext() = default;
-};
 
 struct NetworkInfo {
     char* name;
@@ -40,19 +16,25 @@ struct NetworkInfo {
     Caps caps;
 };
 
-void update_lobbies(std::vector<AdFile> &updated_list);
-void create_status_ad();
-void update_status_ad();
-void set_status_ad(const std::string &status);
-void clear_status_ad();
+inline NetworkInfo g_network_info{
+    (char*)"CrownLink",
+    'CLNK',
+    (char*)"",
+
+    // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if its here anyway
+    {sizeof(Caps), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
+};
+
 void packet_parser(const GamePacket* game_packet);
 bool set_turns_per_second(TurnsPerSecond turns_per_second);
+
+TurnsPerSecond get_turns_per_second();
 
 struct NetFunctions {
     DWORD size; // 112 bytes
     BOOL(__stdcall* compare_net_addresses)(const NetAddress* left, const NetAddress* right, DWORD* result);
     BOOL(__stdcall* destroy)();
-    BOOL(__stdcall* free_message)(NetAddress* address, char* data, DWORD size);
+    BOOL(__stdcall* free_message)(GamePacket* address, char* data, DWORD size);
     BOOL(__stdcall* free_external_message)(NetAddress* address, char* data, DWORD size);
     BOOL(__stdcall* get_game_info)(DWORD index, const char* game_name_unused, const char* password_unused, GameInfo* output);
     BOOL(__stdcall* unused_get_performance_data)(DWORD type, DWORD* output, DWORD, DWORD);

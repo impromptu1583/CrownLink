@@ -91,7 +91,6 @@ bool init_sockets();
 void deinit_sockets();
 
 using StatusCallback = std::function<void(SocketState)>;
-//using StatusCallback = void(__stdcall*)(SocketState);
 
 class Socket {
 public:
@@ -114,7 +113,7 @@ public:
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void set_profile(const NetAddress& ID, const NetAddress& Token);
     void register_status_callback(StatusCallback callback);
-    SocketState state() { return m_state; }
+    SocketState state() const { return m_state.load(); }
     NetAddress& id() { return m_id; }
 
     template <typename... Args>
@@ -136,7 +135,7 @@ public:
         return std::jthread{[this,
                              handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
-                if (m_state != SocketState::Ready) {
+                if (m_state.load() != SocketState::Ready) {
                     try_init(stop_token);
                     try_log("init done");
                     std::cout << "init done\n";
@@ -242,7 +241,7 @@ public:
     bool send_messages(ProtocolType protocol, T& message) {
         std::lock_guard lock{m_mutex};
 
-        if (m_state != SocketState::Ready) {
+        if (m_state.load() != SocketState::Ready) {
             try_log("Error: attempting to send to server but connection isn't ready");
             std::cout << "socket not ready" << std::endl;
             return false;
@@ -317,12 +316,11 @@ private:
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";
     std::string m_lobby_password = "";
-    SocketState m_state = SocketState::Disconnected;
+    std::atomic<SocketState> m_state{SocketState::Disconnected};
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::mutex m_mutex;
 
     StatusCallback m_status_callback{};
 };
-
 }  // namespace CrowServe
