@@ -72,6 +72,7 @@ TurnsPerSecond WINAPI GetTurnsPerSecond() {
 BOOL WINAPI SetLobbyPassword(const char* password) {
     auto& snp_config = SnpConfig::instance();
     snp_config.lobby_password = password;
+    AdvertisementManager::instance().set_lobby_password(password);
     return true;
 }
 

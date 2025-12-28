@@ -160,7 +160,7 @@ bool JuiceAgent::send_message(const char* data, size_t size) {
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
 
     parent.m_p2p_state = state;
@@ -199,7 +199,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 }
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
-    const auto& parent = *(JuiceAgent*)user_ptr;
+    const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
         auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
         auto& socket = g_crowserve->socket();
@@ -210,7 +210,7 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 }
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
-    const auto& parent = *(JuiceAgent*)user_ptr;
+    const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto done_message = P2P::JuiceDone{{parent.address()}};
     auto& socket = g_crowserve->socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
@@ -218,7 +218,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto packet = GamePacket{parent.m_address, data, size};
     parent.m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
