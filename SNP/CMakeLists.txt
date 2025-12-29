@@ -70,7 +70,10 @@ FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
-set(SPDLOG_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_STATIC OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -84,9 +87,8 @@ target_include_directories(SNP PRIVATE ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
 	PRIVATE ws2_32
 	PRIVATE juice-static
-	PRIVATE spdlog::spdlog
+	PRIVATE spdlog::spdlog_header_only
 )
-
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")

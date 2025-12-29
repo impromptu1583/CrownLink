@@ -2,7 +2,6 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-#include <common.h>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
