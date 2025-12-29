@@ -22,6 +22,7 @@ set(MODULE_FILES
 	"CrowServeManager.h"
 	"Globals.h"
 	"Globals.cpp"
+	"caps.mpq"
 )
 
 add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
@@ -55,7 +56,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor)
 
 include(FetchContent)
 
-# juice
 set (NO_TESTS ON CACHE INTERNAL "Turn off libjuice tests")
 set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
@@ -69,6 +69,8 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
+set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_STATIC ON CACHE BOOL "" FORCE)
 FetchContent_Declare(
     spdlog
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
@@ -78,11 +80,11 @@ FetchContent_MakeAvailable(spdlog)
 
 # To help visual studio find the includes
 target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
-target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
+target_include_directories(SNP PRIVATE ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
-	PUBLIC ws2_32
+	PRIVATE ws2_32
 	PRIVATE juice-static
-	PUBLIC spdlog::spdlog
+	PRIVATE spdlog::spdlog
 )
 
 
