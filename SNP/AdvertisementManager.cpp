@@ -116,6 +116,12 @@ void AdvertisementManager::create_ad(
 ) {
     ad_file = {};
     ad_file.turns_per_second = g_network_info.caps.turns_per_second;
+    if (ad_file.turns_per_second == TurnsPerSecond::Standard) {
+        ad_file.turns_per_second = TurnsPerSecond::CNLK;
+    } else if (ad_file.turns_per_second == TurnsPerSecond::UltraLow) {
+        ad_file.turns_per_second = TurnsPerSecond::CLDB;
+    }
+
     auto& game_info = ad_file.game_info;
     strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
     strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);

@@ -235,7 +235,7 @@ void packet_parser(const GamePacket* game_packet) {
 
 bool set_snp_turns_per_second(TurnsPerSecond turns_per_second) {
     if (is_valid(turns_per_second)) {
-        g_current_provider->caps.turns_per_second = turns_per_second;
+        g_network_info.caps.turns_per_second = turns_per_second;
         set_provider_turns_per_second(turns_per_second);
         return true;
     }
