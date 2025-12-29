@@ -90,11 +90,11 @@ CrowServe::SocketState WINAPI get_status() {
     return g_context->crowserve().socket().state();
 }
 
-BOOL WINAPI set_status_lobby(bool enable) {
+void WINAPI set_status_lobby(bool enable) {
     AdvertisementManager::instance().use_status_add(enable);
 }
 
-BOOL WINAPI set_map_name_edit(bool enable) {
+void WINAPI set_map_name_edit(bool enable) {
     AdvertisementManager::instance().edit_game_name(enable);
 }
 

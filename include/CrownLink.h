@@ -57,7 +57,7 @@ CROWNLINK_API BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs);
 CROWNLINK_API u32 WINAPI version();
 
 CROWNLINK_API BOOL WINAPI
-register_status_callback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name);
+register_status_callback(CrowServe::StatusCallback callback);
 
 CROWNLINK_API BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second);
 
@@ -68,39 +68,8 @@ CROWNLINK_API BOOL WINAPI set_password(const char* password);
 CROWNLINK_API void WINAPI get_password(char* output, u32 output_size);
 
 CROWNLINK_API CrowServe::SocketState WINAPI get_status();
+
+CROWNLINK_API CrowServe::SocketState WINAPI set_status_lobby(bool enable);
+
+CROWNLINK_API CrowServe::SocketState WINAPI set_map_name_edit(bool enable);
 }
-
-namespace CrownLink {
-
-class API {
-public:
-    static u32 get_version_number() { return Version(); }
-
-    static std::string get_version_string() {
-        u32 version = Version();
-        u32 major = (version >> 16) & 0xFF;
-        u32 minor = (version >> 8) & 0xFF;
-        u32 build = version & 0xFF;
-        return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(build);
-    }
-
-    static bool set_turns_per_second(TurnsPerSecond turns) { return SetTurnsPerSecond(turns); }
-    static TurnsPerSecond get_turns_per_second() { return GetTurnsPerSecond(); }
-
-    static bool set_password(const std::string& password) { return SetLobbyPassword(password.c_str()); }
-    static std::string get_password() {
-        char buffer[256] = {};
-        GetLobbyPassword(buffer, sizeof(buffer));
-        return std::string(buffer);
-    }
-
-    static bool register_callback(
-        CrowServe::StatusCallback callback, bool use_status_lobby = false, bool edit_name = false
-    ) {
-        return RegisterStatusCallback(callback, use_status_lobby, edit_name);
-    }
-
-    static bool get_status() { return ::GetStatus(); }
-};
-
-}  // namespace CrownLink
