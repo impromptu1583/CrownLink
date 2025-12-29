@@ -8,3 +8,5 @@ EXPORTS
   set_password              @7
   get_password              @8
   get_status                @9
+  set_status_lobby          @10
+  set_map_name_edit         @11

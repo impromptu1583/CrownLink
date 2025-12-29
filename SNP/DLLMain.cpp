@@ -59,11 +59,9 @@ u32 WINAPI version() {
     return CL_VERSION_NUMBER;
 }
 
-BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name) {
+BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback) {
     if (!g_context) return false;
     g_context->crowserve().socket().set_status_callback(callback);
-    AdvertisementManager::instance().use_status_add(use_status_lobby);
-    AdvertisementManager::instance().edit_game_name(edit_name);
 
     return true;
 }
@@ -91,6 +89,16 @@ CrowServe::SocketState WINAPI get_status() {
     if (!g_context) return CrowServe::SocketState::Disconnected;
     return g_context->crowserve().socket().state();
 }
+
+BOOL WINAPI set_status_lobby(bool enable) {
+    AdvertisementManager::instance().use_status_add(enable);
+}
+
+BOOL WINAPI set_map_name_edit(bool enable) {
+    AdvertisementManager::instance().edit_game_name(enable);
+}
+
+
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {
     switch (log_level) {
