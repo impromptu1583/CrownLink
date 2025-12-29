@@ -61,6 +61,49 @@ struct std::hash<NetAddress> {
     }
 };
 
+enum TurnsPerSecond : u32 {
+    CNLK,  // For Backwards Compatability, = 8
+    CLDB,  // For Backwards Compatability, = 4
+    UltraLow = 4,
+    Low = 6,
+    Standard = 8,
+    Medium = 10,
+    High = 12,
+};
+
+inline bool is_valid(TurnsPerSecond mode) {
+    switch (mode) {
+        case CNLK:
+            return true;
+        case CLDB:
+            return true;
+        case UltraLow:
+            return true;
+        case Low:
+            return true;
+        case Standard:
+            return true;
+        case Medium:
+            return true;
+        case High:
+            return true;
+    }
+    return false;
+}
+
+inline std::string to_string(TurnsPerSecond value) {
+    switch (value) {
+        EnumStringCase(TurnsPerSecond::CNLK);
+        EnumStringCase(TurnsPerSecond::CLDB);
+        EnumStringCase(TurnsPerSecond::UltraLow);
+        EnumStringCase(TurnsPerSecond::Low);
+        EnumStringCase(TurnsPerSecond::Standard);
+        EnumStringCase(TurnsPerSecond::Medium);
+        EnumStringCase(TurnsPerSecond::High);
+    }
+    return std::to_string((u32)value);
+}
+
 struct Caps {
     u32 size;
     u32 flags;  // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
@@ -69,7 +112,7 @@ struct Caps {
     u32 max_players;
     u32 bytes_per_second;
     u32 latency;
-    u32 turns_per_second;  // the turn_per_second and turns_in_transit values
+    TurnsPerSecond turns_per_second;  // the turn_per_second and turns_in_transit values
     u32 turns_in_transit;  // in the appended mpq file seem to be used instead
 };
 
@@ -210,42 +253,6 @@ inline void from_json(const Json& j, GameInfo& g) {
     j.at("version_id").get_to(g.version_id);
     g.pNext = nullptr;
     g.pExtra = nullptr;
-}
-
-enum TurnsPerSecond : u32 {
-    CNLK,    // For Backwards Compatability, = 8
-    CLDB,    // For Backwards Compatability, = 4
-    UltraLow = 4,
-    Low = 6,
-    Standard = 8,
-    Medium = 10,
-    High = 12,
-};
-
-inline bool is_valid(TurnsPerSecond mode) {
-    switch (mode) {
-        case CNLK: return true;
-        case CLDB: return true;
-        case UltraLow: return true;
-        case Low: return true;
-        case Standard: return true;
-        case Medium: return true;
-        case High: return true;
-    }
-    return false;
-}
-
-inline std::string to_string(TurnsPerSecond value) {
-    switch (value) {
-        EnumStringCase(TurnsPerSecond::CNLK);
-        EnumStringCase(TurnsPerSecond::CLDB);
-        EnumStringCase(TurnsPerSecond::UltraLow);
-        EnumStringCase(TurnsPerSecond::Low);
-        EnumStringCase(TurnsPerSecond::Standard);
-        EnumStringCase(TurnsPerSecond::Medium);
-        EnumStringCase(TurnsPerSecond::High);
-    }
-    return std::to_string((u32)value);
 }
 
 struct AdFile {
@@ -436,4 +443,11 @@ struct GamePacket {
         : sender{sender_id}, timestamp{get_tick_count()}, size{(u32)size} {
         memcpy(&data, recv_data, size < 500 ? size : 500);
     };
+};
+
+struct NetworkInfo {
+    char* name;
+    u32 id;
+    char* description;
+    Caps caps;
 };

@@ -34,8 +34,8 @@ public:
     );
 
     bool lock_game_list(u32 category_bits, u32 category_mask, AdFile** out_game_list);
-    bool unlock_game_list();
-    bool game_info_by_index(u32 index, GameInfo* output);
+    bool unlock_game_list() const;
+    std::optional<std::reference_wrapper<const AdFile>> get_ad_by_index(u32 index) const;
 
     void set_status_ad(const std::string& status);
     void clear_status_ad();
@@ -63,7 +63,7 @@ private:
 
     u32 m_ellipsis_counter = 3;
 
-    std::mutex m_gamelist_mutex;
+    mutable std::mutex m_gamelist_mutex;
 
     std::vector<AdFile> m_lobbies;
     AdFile m_status_ad{};

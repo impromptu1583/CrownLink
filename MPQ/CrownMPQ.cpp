@@ -61,8 +61,6 @@ int main(int argc, char* argv[]) {
     std::stringstream clnk_description;
     std::stringstream cldb_description;
 
-
-
     Dat clnk{
         "CNLK", "CrownLink",
         //std::format("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: {}", CL_VERSION_STRING),

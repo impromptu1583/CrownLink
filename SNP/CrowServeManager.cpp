@@ -9,8 +9,12 @@ CrowServeManager::CrowServeManager() {
 }
 
 CrowServeManager::~CrowServeManager() {
-    m_listener_thread.request_stop();
-    m_listener_thread.join();
+    if (m_listener_thread.joinable()) {
+        m_listener_thread.request_stop();
+        m_listener_thread.join();
+        // Brief delay to ensure socket polling has ended
+        std::this_thread::sleep_for(100ms);
+    }
 }
 
 void CrowServeManager::init_listener() {
@@ -22,7 +26,7 @@ void CrowServeManager::init_listener() {
         snp_config.server, snp_config.port, snp_config.lobby_password,
         [&](const CrownLinkProtocol::ClientProfile& message) {
             spdlog::info("received client ID from server: {}", message.peer_id);
-            g_juice_manager->set_ice_credentials(message.ice_credentials);
+            g_context->juice_manager().set_ice_credentials(message.ice_credentials);
             m_socket.set_profile(message.peer_id, message.token);
             for (u32 i = 0; i < message.ice_credentials.turn_servers_count; i++) {
                 auto& ts = message.ice_credentials.turn_servers[i];
@@ -38,7 +42,7 @@ void CrowServeManager::init_listener() {
         [&](const CrownLinkProtocol::AdvertisementsRequest& message) {
             spdlog::trace("Received server heartbeat");
             if (!AdvertisementManager::instance().in_games_list()) {
-                g_juice_manager->clear_inactive_agents();
+                g_context->juice_manager().clear_inactive_agents();
             }
             if (AdvertisementManager::instance().is_advertising()) {
                 AdvertisementManager::instance().send_advertisement();
@@ -55,19 +59,19 @@ void CrowServeManager::init_listener() {
             m_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, reply);
         },
         [&](const P2P::ConnectionRequest& message) {
-            g_juice_manager->handle_crownlink_message(message);
+            g_context->juice_manager().handle_crownlink_message(message);
         },
         [&](const P2P::Pong& message) {
-            g_juice_manager->handle_crownlink_message(message);
+            g_context->juice_manager().handle_crownlink_message(message);
         },
         [&](const P2P::JuiceLocalDescription& message) {
-            g_juice_manager->handle_crownlink_message(message);
+            g_context->juice_manager().handle_crownlink_message(message);
         },
         [&](const P2P::JuiceCandidate& message) {
-            g_juice_manager->handle_crownlink_message(message);
+            g_context->juice_manager().handle_crownlink_message(message);
         },
         [&](const P2P::JuiceDone& message) {
-            g_juice_manager->handle_crownlink_message(message);
+            g_context->juice_manager().handle_crownlink_message(message);
         },
         [](const auto& message) {}
     );

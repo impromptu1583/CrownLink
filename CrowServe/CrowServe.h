@@ -111,7 +111,7 @@ public:
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void set_profile(const NetAddress& ID, const NetAddress& Token);
-    void register_status_callback(StatusCallback callback);
+    void set_status_callback(StatusCallback callback);
     SocketState state() const { return m_state; }
     NetAddress& id() { return m_id; }
 
@@ -132,7 +132,7 @@ public:
         m_port = port;
         m_lobby_password = lobby_password;
         return std::jthread{[this,
-                             handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
+            handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
@@ -220,6 +220,8 @@ public:
                         }
                         message = std::span<u8>{buffer, (u32)bytes_received};
                     }
+                    
+                    if (stop_token.stop_requested()) return;
 
                     switch (ProtocolType(main_header.protocol)) {
                         case ProtocolType::ProtocolCrownLink: {

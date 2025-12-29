@@ -6,6 +6,7 @@
 #include "Globals.h"
 #include "Logger.h"
 #include "SNPModule.h"
+#include "BWInteractions.h"
 
 constexpr auto CLNK_ID = 0;
 constexpr auto CLDB_ID = 1;
@@ -16,18 +17,19 @@ BOOL WINAPI SnpQuery(
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
             case CLNK_ID: {
-                *out_network_code = snp::g_network_info.id;
-                *out_network_name = snp::g_network_info.name;
-                *out_network_description = snp::g_network_info.description;
-                *out_caps = &snp::g_network_info.caps;
+                g_network_info.caps.turns_per_second = TurnsPerSecond::CNLK;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
+                *out_caps = &g_network_info.caps;
                 return true;
             }
             case CLDB_ID: {
-                snp::g_network_info.caps.turns_per_second = 4;
-                *out_network_code = snp::g_network_info.id;
-                *out_network_name = snp::g_network_info.name;
-                *out_network_description = snp::g_network_info.description;
-                *out_caps = &snp::g_network_info.caps;
+                g_network_info.caps.turns_per_second = TurnsPerSecond::CLDB;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
+                *out_caps = &g_network_info.caps;
                 return true;
             }
         }
@@ -39,12 +41,12 @@ BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs) {
     if (out_funcs) {
         switch (index) {
             case CLNK_ID: {
-                snp::set_turns_per_second(TurnsPerSecond::Standard);
+                snp::set_snp_turns_per_second(TurnsPerSecond::CNLK);
                 *out_funcs = &snp::g_spi_functions;
                 return true;
             }
             case CLDB_ID: {
-                snp::set_turns_per_second(TurnsPerSecond::UltraLow);
+                snp::set_snp_turns_per_second(TurnsPerSecond::CLDB);
                 *out_funcs = &snp::g_spi_functions;
                 return true;
             }
@@ -53,41 +55,41 @@ BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs) {
     return false;
 }
 
-u32 WINAPI Version() {
+u32 WINAPI version() {
     return CL_VERSION_NUMBER;
 }
 
-BOOL WINAPI RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name) {
-    if (!g_crowserve) return false;
-    g_crowserve->socket().register_status_callback(callback);
+BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name) {
+    if (!g_context) return false;
+    g_context->crowserve().socket().set_status_callback(callback);
     AdvertisementManager::instance().use_status_add(use_status_lobby);
     AdvertisementManager::instance().edit_game_name(edit_name);
 
     return true;
 }
 
-BOOL WINAPI SetTurnsPerSecond(TurnsPerSecond turns_per_second) {
-    return snp::set_turns_per_second(turns_per_second);
+BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second) {
+    return snp::set_snp_turns_per_second(turns_per_second);
 }
 
-TurnsPerSecond WINAPI GetTurnsPerSecond() {
-    return snp::get_turns_per_second();
+TurnsPerSecond WINAPI get_turns_per_second() {
+    return snp::get_snp_turns_per_second();
 }
 
-BOOL WINAPI SetLobbyPassword(const char* password) {
+BOOL WINAPI set_password(const char* password) {
     auto& snp_config = SnpConfig::instance();
     snp_config.lobby_password = password;
     AdvertisementManager::instance().set_lobby_password(password);
     return true;
 }
 
-void WINAPI GetLobbyPassword(char* output, u32 output_size) {
+void WINAPI get_password(char* output, u32 output_size) {
     AdvertisementManager::instance().get_lobby_password(output, output_size);
 }
 
-CrowServe::SocketState WINAPI GetStatus() {
-    if (!g_crowserve) return CrowServe::SocketState::Disconnected;
-    return g_crowserve->socket().state();
+CrowServe::SocketState WINAPI get_status() {
+    if (!g_context) return CrowServe::SocketState::Disconnected;
+    return g_context->crowserve().socket().state();
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {

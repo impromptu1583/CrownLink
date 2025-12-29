@@ -21,8 +21,6 @@ set(MODULE_FILES
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
-	"Globals.cpp"
-	"caps.mpq"
 )
 
 add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
@@ -38,7 +36,7 @@ endif()
 set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
+  set_property(TARGET SNP PROPERTY CXX_STANDARD 23)
 endif()
 
 set(outname "CrownLink")

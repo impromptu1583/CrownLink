@@ -18,9 +18,9 @@ void AdvertisementManager::request_advertisements() {
     spdlog::trace("Requesting lobbies");
     std::unique_lock lock{m_ad_mutex};
     auto request = CrownLinkProtocol::AdvertisementsRequest{{}, m_lobby_password};
-    g_crowserve->socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, request);
+    g_context->crowserve().socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, request);
 
-    switch (g_crowserve->socket().state()) {
+    switch (g_context->crowserve().socket().state()) {
         case CrowServe::SocketState::Ready: {
             clear_status_ad();
         } break;
@@ -43,24 +43,23 @@ void AdvertisementManager::start_advertising(
     std::unique_lock lock{m_ad_mutex};
 
     create_ad(m_ad_data, game_name, game_stat_string, game_state, user_data, user_data_size);
-    m_ad_data.turns_per_second = g_turns_per_second;
     m_is_advertising = true;
 }
 
 void AdvertisementManager::send_advertisement() {
     std::unique_lock lock{m_ad_mutex};
 
-    if (m_ad_data.game_info.host != g_crowserve->socket().id()) {
-        m_ad_data.game_info.host = g_crowserve->socket().id();
+    if (m_ad_data.game_info.host != g_context->crowserve().socket().id()) {
+        m_ad_data.game_info.host = g_context->crowserve().socket().id();
     }
 
     auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data, m_lobby_password};
-    g_crowserve->socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
+    g_context->crowserve().socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
 }
 
 void AdvertisementManager::stop_advertising() {
     auto message = CrownLinkProtocol::StopAdvertising{};
-    g_crowserve->socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
+    g_context->crowserve().socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
 
     std::unique_lock lock{m_ad_mutex};
     m_is_advertising = false;
@@ -116,13 +115,13 @@ void AdvertisementManager::create_ad(
     u32 user_data_size
 ) {
     ad_file = {};
-    ad_file.turns_per_second = (TurnsPerSecond)g_turns_per_second;
+    ad_file.turns_per_second = g_network_info.caps.turns_per_second;
     auto& game_info = ad_file.game_info;
     strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
     strcpy_s(game_info.game_description, sizeof(game_info.game_description), game_stat_string);
     game_info.game_state = game_state;
-    game_info.program_id = g_client_info.program_id;
-    game_info.version_id = g_client_info.version_id;
+    game_info.program_id = g_context->client_info().program_id;
+    game_info.version_id = g_context->client_info().version_id;
     game_info.host_latency = 0x0050;
     game_info.category_bits = 0x00a7;
 
@@ -167,7 +166,7 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
         bool has_text_prefix = false;
         std::stringstream ss;
 
-        if (g_client_info.version_id != ad.game_info.version_id) {
+        if (g_context->client_info().version_id != ad.game_info.version_id) {
             joinable = false;
             has_text_prefix = true;
             ss << ColorByte::Red << "[!Ver]";
@@ -180,8 +179,8 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
 
         // agent_state calls ensure_agent so one will be created if needed,
         // this kicks off the p2p connection process
-        if (joinable && g_juice_manager) {
-            switch (g_juice_manager->lobby_agent_state(ad)) {
+        if (joinable && g_context) {
+            switch (g_context->juice_manager().lobby_agent_state(ad)) {
                 case JUICE_STATE_CONNECTING: {
                     has_text_prefix = true;
                     ss << ColorByte::Gray << "...";
@@ -189,18 +188,18 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
                 case JUICE_STATE_FAILED: {
                     has_text_prefix = true;
                     ss << ColorByte::Gray << "!!";
-                    g_juice_manager->send_connection_request(ad.game_info.host);
+                    g_context->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_DISCONNECTED: {
                     has_text_prefix = true;
                     ss << ColorByte::Gray << "-";
-                    g_juice_manager->send_connection_request(ad.game_info.host);
+                    g_context->juice_manager().send_connection_request(ad.game_info.host);
                 } break;
                 case JUICE_STATE_CONNECTED:
                 case JUICE_STATE_COMPLETED: {
                     // Use ColorByte to manipulate menu order but revert to standard menu behavior
                     ss << ColorByte::Green << ColorByte::Revert;
-                    switch (g_juice_manager->final_connection_type(ad.game_info.host)) {
+                    switch (g_context->juice_manager().final_connection_type(ad.game_info.host)) {
                         case JuiceConnectionType::Relay: {
                             has_text_prefix = true;
                             ss << "[R]";
@@ -279,27 +278,19 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
     return false;
 }
 
-bool AdvertisementManager::unlock_game_list() {
+bool AdvertisementManager::unlock_game_list() const {
     m_gamelist_mutex.unlock();
     return true;
 }
 
-bool AdvertisementManager::game_info_by_index(u32 index, GameInfo* output) {
+std::optional<std::reference_wrapper<const AdFile>> AdvertisementManager::get_ad_by_index(u32 index) const {
     std::lock_guard lock{m_gamelist_mutex};
     for (auto& ad : m_lobbies) {
         if (ad.game_info.game_index == index) {
-            *output = ad.game_info;
-            if (ad.turns_per_second == TurnsPerSecond::CNLK) {
-                g_current_provider->caps.turns_per_second = 8;
-            } else if (ad.turns_per_second == TurnsPerSecond::CLDB) {
-                g_current_provider->caps.turns_per_second = 4;
-            } else {
-                g_current_provider->caps.turns_per_second = ad.turns_per_second;
-            }
-            return true;
+            return std::ref(ad);
         }
     }
-    return false;
+    return {};
 }
 
 void AdvertisementManager::set_status_ad(const std::string& status) {
@@ -338,7 +329,8 @@ void AdvertisementManager::update_status_ad() {
         if (!snp_config.lobby_password.empty()) {
             output += std::format("{}Private ", char(ColorByte::Blue));
         }
-        if (g_turns_per_second == TurnsPerSecond::CLDB || g_turns_per_second == TurnsPerSecond::UltraLow) {
+        if (g_network_info.caps.turns_per_second == TurnsPerSecond::CLDB ||
+            g_network_info.caps.turns_per_second == TurnsPerSecond::UltraLow) {
             if (output.empty()) {
                 output += std::format("{}", char(ColorByte::Blue));
             }

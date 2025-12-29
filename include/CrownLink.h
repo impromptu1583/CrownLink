@@ -54,20 +54,20 @@ CROWNLINK_API BOOL WINAPI SnpQuery(
 
 CROWNLINK_API BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs);
 
-CROWNLINK_API u32 WINAPI Version();
+CROWNLINK_API u32 WINAPI version();
 
 CROWNLINK_API BOOL WINAPI
-RegisterStatusCallback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name);
+register_status_callback(CrowServe::StatusCallback callback, bool use_status_lobby, bool edit_name);
 
-CROWNLINK_API BOOL WINAPI SetTurnsPerSecond(TurnsPerSecond turns_per_second);
+CROWNLINK_API BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second);
 
-CROWNLINK_API TurnsPerSecond WINAPI GetTurnsPerSecond();
+CROWNLINK_API TurnsPerSecond WINAPI get_turns_per_second();
 
-CROWNLINK_API BOOL WINAPI SetLobbyPassword(const char* password);
+CROWNLINK_API BOOL WINAPI set_password(const char* password);
 
-CROWNLINK_API void WINAPI GetLobbyPassword(char* output, u32 output_size);
+CROWNLINK_API void WINAPI get_password(char* output, u32 output_size);
 
-CROWNLINK_API CrowServe::SocketState WINAPI GetStatus();
+CROWNLINK_API CrowServe::SocketState WINAPI get_status();
 }
 
 namespace CrownLink {

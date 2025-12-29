@@ -13,5 +13,9 @@ BW_REF(ProviderInfo*, g_providers_list, 0x1505ad6c);
 BW_REF(b32, g_providers_listed, 0x1505e630);  // does this change when enum is called?
 
 BW_REF(ProviderInfo*, g_current_provider, 0x1505e62c);
-inline TurnsPerSecond g_turns_per_second = TurnsPerSecond::Standard;
-inline ClientInfo g_client_info{};
+
+inline void set_provider_turns_per_second(TurnsPerSecond turns_per_second) {
+    if (turns_per_second == TurnsPerSecond::CNLK) turns_per_second = TurnsPerSecond::Standard;
+    if (turns_per_second == TurnsPerSecond::CLDB) turns_per_second = TurnsPerSecond::UltraLow;
+    g_current_provider->caps.turns_per_second = turns_per_second;
+}

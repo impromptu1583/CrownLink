@@ -4,28 +4,10 @@
 
 namespace snp {
 
-constexpr auto MAX_PACKET_SIZE = 500;
-
-struct NetworkInfo {
-    char* name;
-    u32 id;
-    char* description;
-    Caps caps;
-};
-
-inline NetworkInfo g_network_info{
-    (char*)"CrownLink",
-    'CLNK',
-    (char*)"",
-
-    // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if it's here anyway
-    {sizeof(Caps), 0x20000003, snp::MAX_PACKET_SIZE, 16, 256, 1000, 50, 8, 2}
-};
-
 void packet_parser(const GamePacket* game_packet);
-bool set_turns_per_second(TurnsPerSecond turns_per_second);
+bool set_snp_turns_per_second(TurnsPerSecond turns_per_second);
 
-TurnsPerSecond get_turns_per_second();
+TurnsPerSecond get_snp_turns_per_second();
 
 struct NetFunctions {
     u32 size; // 112 bytes

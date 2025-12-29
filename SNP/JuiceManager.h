@@ -38,5 +38,3 @@ private:
     std::mutex m_mutex;
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };
-
-//inline std::unique_ptr<JuiceManager> g_juice_manager;

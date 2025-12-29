@@ -42,7 +42,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 
     m_agent = juice_create(&m_config);
 
-    m_controlling = g_crowserve->socket().id() < address;
+    m_controlling = g_context->crowserve().socket().id() < address;
 
     send_connection_request();
 }
@@ -74,7 +74,7 @@ void JuiceAgent::try_initialize(const std::unique_lock<std::shared_mutex>& lock)
             juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
             auto sdp_message = P2P::JuiceLocalDescription{{m_address}, sdp};
-            auto& socket = g_crowserve->socket();
+            auto& socket = g_context->crowserve().socket();
             socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
             spdlog::debug("[{}] Init - local SDP {}", m_address, sdp);
             juice_gather_candidates(m_agent);
@@ -93,7 +93,7 @@ void JuiceAgent::reset_agent(const  std::unique_lock<std::shared_mutex>& lock) {
 
 void JuiceAgent::send_connection_request() {
     auto ping = P2P::ConnectionRequest{{m_address}, m_connreq_count.load()};
-    auto& socket = g_crowserve->socket();
+    auto& socket = g_context->crowserve().socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
     spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_connreq_count.load());
 }
@@ -204,7 +204,7 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
     const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
         auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
-        auto& socket = g_crowserve->socket();
+        auto& socket = g_context->crowserve().socket();
         socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
     } else {
         spdlog::info("[{}] skipped sending radmin candidate: {}", parent.address(), sdp);
@@ -214,7 +214,7 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
     const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto done_message = P2P::JuiceDone{{parent.address()}};
-    auto& socket = g_crowserve->socket();
+    auto& socket = g_context->crowserve().socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
     spdlog::info("[{}] Gathering done", parent.address());
 }
@@ -228,6 +228,8 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
         // spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested,
         // parent.m_packet_count);
     }
-    if (g_receive_queue) g_receive_queue->enqueue(packet);
-    SetEvent(g_receive_event);
+    if (g_context) {
+        g_context->receive_queue().enqueue(packet);
+        SetEvent(g_context->receive_event());
+    }
 }

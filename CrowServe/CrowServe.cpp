@@ -116,7 +116,7 @@ void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
     m_reconnect_token = Token;
 }
 
-void Socket::register_status_callback(StatusCallback callback) {
+void Socket::set_status_callback(StatusCallback callback) {
     std::lock_guard lock{m_mutex};
     m_status_callback = callback;
     callback(m_state);
