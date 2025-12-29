@@ -98,8 +98,6 @@ void WINAPI set_map_name_edit(bool enable) {
     AdvertisementManager::instance().edit_game_name(enable);
 }
 
-
-
 static void juice_logger(juice_log_level_t log_level, const char* message) {
     switch (log_level) {
         case JUICE_LOG_LEVEL_VERBOSE:
