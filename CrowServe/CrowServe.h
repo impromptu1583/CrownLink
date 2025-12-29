@@ -1,11 +1,9 @@
 #pragma once
-
 #include <functional>
 #include <iostream>
 #include <mutex>
 #include <span>
 #include <thread>
-#include <variant>
 
 #include "CrownLinkProtocol.h"
 #include "P2PProtocol.h"
@@ -21,6 +19,7 @@
 
 #ifdef Windows
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
@@ -90,6 +89,8 @@ struct MessageHeader {
 bool init_sockets();
 void deinit_sockets();
 
+using StatusCallback = std::function<void(SocketState)>;
+
 class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
@@ -109,8 +110,9 @@ public:
     void try_init(std::stop_token& stop_token);
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
-    void set_profile(NetAddress ID, NetAddress Token);
-    SocketState state() { return m_state; }
+    void set_profile(const NetAddress& ID, const NetAddress& Token);
+    void set_status_callback(StatusCallback callback);
+    SocketState state() const { return m_state; }
     NetAddress& id() { return m_id; }
 
     template <typename... Args>
@@ -130,7 +132,7 @@ public:
         m_port = port;
         m_lobby_password = lobby_password;
         return std::jthread{[this,
-                             handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
+            handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
@@ -218,6 +220,8 @@ public:
                         }
                         message = std::span<u8>{buffer, (u32)bytes_received};
                     }
+                    
+                    if (stop_token.stop_requested()) return;
 
                     switch (ProtocolType(main_header.protocol)) {
                         case ProtocolType::ProtocolCrownLink: {
@@ -250,9 +254,9 @@ public:
         serialize_cbor(message, message_buffer);
 
         MessageHeader message_header{(const u32)message_buffer.size(), (u32)message.type()};
-        auto bytes_sent = send(m_socket, (const char*)&header, sizeof(header), 0);
-        bytes_sent = send(m_socket, (const char*)&message_header, sizeof(message_header), 0);
-        bytes_sent = send(m_socket, (const char*)message_buffer.data(), message_buffer.size(), 0);
+        auto bytes_sent = send(m_socket, reinterpret_cast<char*>(&header), sizeof(header), 0);
+        bytes_sent = send(m_socket, reinterpret_cast<char*>(&message_header), sizeof(message_header), 0);
+        bytes_sent = send(m_socket, reinterpret_cast<char*>(message_buffer.data()), message_buffer.size(), 0);
         // TODO: combine before sending, check bytes_sent for error
 
         return true;
@@ -313,10 +317,11 @@ private:
     std::string m_host = "127.0.0.1";
     std::string m_port = "33377";
     std::string m_lobby_password = "";
-    SocketState m_state = SocketState::Disconnected;
+    std::atomic<SocketState> m_state{SocketState::Disconnected};
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::mutex m_mutex;
-};
 
+    StatusCallback m_status_callback{};
+};
 }  // namespace CrowServe

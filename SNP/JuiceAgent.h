@@ -1,7 +1,17 @@
 #pragma once
-#include "Common.h"
+#include <juice.h>
 
-struct SignalPacket;
+#include <atomic>
+#include <chrono>
+#include <memory>
+#include <mutex>
+#include <regex>
+#include <shared_mutex>
+#include <string>
+
+#include "../types.h"
+#include "Logger.h"
+#include "../CrowServe/CrowServe.h"
 
 struct TurnServer {
     std::string host;
@@ -10,11 +20,17 @@ struct TurnServer {
     uint16_t port;
 };
 
-enum class JuiceConnectionType {
-    Standard,
-    Relay,
-    Radmin
-};
+inline std::string to_string(juice_state value) {
+    switch (value) {
+        EnumStringCase(JUICE_STATE_DISCONNECTED);
+        EnumStringCase(JUICE_STATE_GATHERING);
+        EnumStringCase(JUICE_STATE_CONNECTING);
+        EnumStringCase(JUICE_STATE_CONNECTED);
+        EnumStringCase(JUICE_STATE_COMPLETED);
+        EnumStringCase(JUICE_STATE_FAILED);
+    }
+    return std::to_string((s32)value);
+}
 
 class JuiceAgent {
 public:
@@ -72,7 +88,7 @@ public:
         }
     };
 
-    bool send_message(void* data, const size_t size);
+    bool send_message(const char* data, const size_t size);
     void send_connection_request();
 
 public:
@@ -88,9 +104,9 @@ public:
     void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; }
 
 private:
-    void mark_active(std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
-    void try_initialize(std::unique_lock<std::shared_mutex>& lock);
-    void reset_agent(std::unique_lock<std::shared_mutex>& lock);
+    void mark_active(const std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
+    void try_initialize(const std::unique_lock<std::shared_mutex>& lock);
+    void reset_agent(const std::unique_lock<std::shared_mutex>& lock);
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);

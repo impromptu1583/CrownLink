@@ -1,0 +1,12 @@
+EXPORTS
+  SnpBind                   @1
+  SnpQuery                  @2
+  version                   @3
+  register_status_callback  @4
+  set_turns_per_second      @5
+  get_turns_per_second      @6
+  set_password              @7
+  get_password              @8
+  get_status                @9
+  set_status_lobby          @10
+  set_map_name_edit         @11

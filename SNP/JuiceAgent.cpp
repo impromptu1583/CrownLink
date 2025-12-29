@@ -1,9 +1,6 @@
 #include "JuiceAgent.h"
-
-#include <regex>
-
-#include "CrownLink.h"
-#include "JuiceManager.h"
+#include "CrowServeManager.h"
+#include "Globals.h"
 
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
@@ -30,12 +27,12 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
             m_servers[i].host = ice_credentials.turn_servers[i].host.c_str();
             m_servers[i].username = ice_credentials.turn_servers[i].username.c_str();
             m_servers[i].password = ice_credentials.turn_servers[i].password.c_str();
-            const auto res = std::from_chars(
+            const auto result = std::from_chars(
                 ice_credentials.turn_servers[i].port.data(),
                 ice_credentials.turn_servers[i].port.data() + ice_credentials.turn_servers[i].port.size(),
                 m_servers[i].port
             );
-            if (res.ec == std::errc::invalid_argument or res.ec == std::errc::result_out_of_range) {
+            if (result.ec == std::errc::invalid_argument or result.ec == std::errc::result_out_of_range) {
                 spdlog::error("Invalid turn port received: {}", ice_credentials.turn_servers[i].port);
             }
         }
@@ -45,7 +42,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
 
     m_agent = juice_create(&m_config);
 
-    m_controlling = g_crown_link->crowserve().id() < address;
+    m_controlling = g_context->crowserve().socket().id() < address;
 
     send_connection_request();
 }
@@ -55,7 +52,7 @@ JuiceAgent::~JuiceAgent() {
     juice_destroy(m_agent);
 }
 
-void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
+void JuiceAgent::try_initialize(const std::unique_lock<std::shared_mutex>& lock) {
     switch (m_p2p_state) {
         case JUICE_STATE_COMPLETED:
         case JUICE_STATE_CONNECTED: {
@@ -77,14 +74,15 @@ void JuiceAgent::try_initialize(std::unique_lock<std::shared_mutex>& lock) {
             juice_get_local_description(m_agent, sdp, sizeof(sdp));
 
             auto sdp_message = P2P::JuiceLocalDescription{{m_address}, sdp};
-            g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
+            auto& socket = g_context->crowserve().socket();
+            socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
             spdlog::debug("[{}] Init - local SDP {}", m_address, sdp);
             juice_gather_candidates(m_agent);
         }
     }
 }
 
-void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
+void JuiceAgent::reset_agent(const  std::unique_lock<std::shared_mutex>& lock) {
     m_remote_description_set = false;
     spdlog::debug("[{}] resetting agent", m_address);
     juice_destroy(m_agent);
@@ -95,7 +93,8 @@ void JuiceAgent::reset_agent(std::unique_lock<std::shared_mutex>& lock) {
 
 void JuiceAgent::send_connection_request() {
     auto ping = P2P::ConnectionRequest{{m_address}, m_connreq_count.load()};
-    g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
+    auto& socket = g_context->crowserve().socket();
+    socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
     spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_connreq_count.load());
 }
 
@@ -119,11 +118,11 @@ bool JuiceAgent::is_active() {
     return std::chrono::steady_clock::now() - m_last_active < 2min;
 }
 
-bool JuiceAgent::send_message(void* data, size_t size) {
+bool JuiceAgent::send_message(const char* data, size_t size) {
     std::unique_lock lock{m_mutex};
     mark_active(lock);
 
-    auto packet = GamePacket{m_address, (char*)data, size};
+    auto packet = GamePacket{m_address, data, size};
     m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
         m_resends_requested++;
@@ -141,11 +140,11 @@ bool JuiceAgent::send_message(void* data, size_t size) {
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
-            if (juice_send(m_agent, (const char*)data, size) == 0) {
+            if (juice_send(m_agent, data, size) == 0) {
                 return true;
             }
             return false;
-        } break;
+        }
         case JUICE_STATE_DISCONNECTED: {
             send_connection_request();
         } break;
@@ -163,7 +162,7 @@ bool JuiceAgent::send_message(void* data, size_t size) {
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     spdlog::debug("[{}] new state: {}", parent.address(), to_string(state));
 
     parent.m_p2p_state = state;
@@ -202,24 +201,26 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 }
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
         auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
-        g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
+        auto& socket = g_context->crowserve().socket();
+        socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
     } else {
         spdlog::info("[{}] skipped sending radmin candidate: {}", parent.address(), sdp);
     }
 }
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto done_message = P2P::JuiceDone{{parent.address()}};
-    g_crown_link->crowserve().send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
+    auto& socket = g_context->crowserve().socket();
+    socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
     spdlog::info("[{}] Gathering done", parent.address());
 }
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
-    auto& parent = *(JuiceAgent*)user_ptr;
+    auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto packet = GamePacket{parent.m_address, data, size};
     parent.m_packet_count++;
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
@@ -227,6 +228,8 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
         // spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested,
         // parent.m_packet_count);
     }
-    g_crown_link->receive_queue().enqueue(packet);
-    SetEvent(g_receive_event);
+    if (g_context) {
+        g_context->receive_queue().enqueue(packet);
+        SetEvent(g_context->receive_event());
+    }
 }

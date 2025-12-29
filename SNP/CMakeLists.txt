@@ -3,27 +3,29 @@
 set(MODULE_FILES
 	"SNPModule.cpp"
 	"SNPModule.h"
-	"SNPModule.def"
-	"CrownLink.cpp"
-	"CrownLink.h"
+	"CrownLink.def"
+	"AdvertisementManager.cpp"
+	"AdvertisementManager.h"
 	"DLLMain.cpp"
-	"JuiceManager.h"
-	"JuiceManager.cpp"
 	"JuiceAgent.h"
 	"JuiceAgent.cpp"
+	"JuiceManager.h"
+	"JuiceManager.cpp"
     "../NetShared/StormTypes.h"
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
-	"Common.h"
-	"caps.mpq"
 	"../CrowServe/CrowServe.cpp"
 	"../CrowServe/P2PProtocol.cpp"
 	"../CrowServe/CrownLinkProtocol.cpp"
+	"BWInteractions.h"
+	"Logger.h"
+	"CrowServeManager.h"
+	"Globals.h"
 )
 
-add_library(SNP SHARED ${MODULE_FILES})
+add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -34,10 +36,12 @@ endif()
 set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET SNP PROPERTY CXX_STANDARD 20)
+  set_property(TARGET SNP PROPERTY CXX_STANDARD 23)
 endif()
 
 set(outname "CrownLink")
+
+set(SCEXE "C:\\Cosmonarchy\\Prerelease\\Cosmonarchy BW.exe")
 
 set_target_properties(SNP
 	PROPERTIES
@@ -46,29 +50,43 @@ set_target_properties(SNP
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NetShared)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor)
 
 include(FetchContent)
 
-# juice
 set (NO_TESTS ON CACHE INTERNAL "Turn off libjuice tests")
 set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
 	Juice
 	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-	GIT_TAG v1.6.1
+	GIT_TAG v1.7.0
 )
 FetchContent_MakeAvailable(Juice)
-
-target_include_directories(SNP PUBLIC ${libjuice_SOURCE_DIR}/include/juice)
-target_link_libraries(SNP
-	PUBLIC ws2_32
-	PRIVATE juice-static
-)
 
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
+
+set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(SPDLOG_FMT_EXTERNAL OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_STATIC OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.16.0
+)
+FetchContent_MakeAvailable(spdlog)
+
+# To help visual studio find the includes
+target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
+target_include_directories(SNP PRIVATE ${libjuice_SOURCE_DIR}/include/juice)
+target_link_libraries(SNP
+	PRIVATE ws2_32
+	PRIVATE juice-static
+	PRIVATE spdlog::spdlog_header_only
+)
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")

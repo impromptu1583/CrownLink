@@ -1,5 +1,19 @@
 #pragma once
-#include "Common.h"
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <ostream>
+#include <spdlog.h>
+#include <string>
+
+#include "Logger.h"
+#include "../types.h"
+
+using Json = nlohmann::json;
+namespace fs = std::filesystem;
 
 enum class LogLevel {
     None,
@@ -19,8 +33,6 @@ struct SnpConfig {
     bool add_map_to_lobby_name = true;
 
     LogLevel log_level = LogLevel::Debug;
-
-    CrownLinkMode mode = CrownLinkMode::CLNK;
 
     static SnpConfig& instance();
 };

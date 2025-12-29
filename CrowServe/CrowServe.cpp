@@ -1,4 +1,5 @@
 #include "CrowServe.h"
+#include <mutex>
 
 namespace CrowServe {
 
@@ -22,6 +23,7 @@ void Socket::try_init(std::stop_token& stop_token) {
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Connecting;
         m_profile_received = false;
+        if (m_status_callback) m_status_callback(m_state);
     }
 
     addrinfo hints = {};
@@ -78,6 +80,7 @@ void Socket::try_init(std::stop_token& stop_token) {
 
         std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
+        if (m_status_callback) m_status_callback(m_state);
         m_retry_counter = 0;
     }
 }
@@ -86,6 +89,7 @@ void Socket::disconnect() {
     shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
     m_state = SocketState::Disconnected;
+    if (m_status_callback) m_status_callback(m_state);
 }
 
 void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
@@ -104,7 +108,7 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
     return;
 }
 
-void Socket::set_profile(NetAddress id, NetAddress Token) {
+void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
     std::lock_guard lock{m_mutex};
     m_profile_received = true;
     m_id_received = true;
@@ -112,4 +116,9 @@ void Socket::set_profile(NetAddress id, NetAddress Token) {
     m_reconnect_token = Token;
 }
 
+void Socket::set_status_callback(StatusCallback callback) {
+    std::lock_guard lock{m_mutex};
+    m_status_callback = callback;
+    callback(m_state);
+}
 }  // namespace CrowServe

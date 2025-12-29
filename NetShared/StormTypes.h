@@ -1,11 +1,15 @@
 #pragma once
+
+#define JSON_DIAGNOSTICS 1
+
 #include <nlohmann/json.hpp>
 #include "simdutf.h"
 
-#include "../shared_common.h"
+#include "../types.h"
 using Json = nlohmann::json;
 
 #include <numeric>
+#include <type_traits>
 
 struct NetAddress {
     u8 bytes[16]{};
@@ -57,6 +61,49 @@ struct std::hash<NetAddress> {
     }
 };
 
+enum TurnsPerSecond : u32 {
+    CNLK,  // For Backwards Compatability, = 8
+    CLDB,  // For Backwards Compatability, = 4
+    UltraLow = 4,
+    Low = 6,
+    Standard = 8,
+    Medium = 10,
+    High = 12,
+};
+
+inline bool is_valid(TurnsPerSecond mode) {
+    switch (mode) {
+        case CNLK:
+            return true;
+        case CLDB:
+            return true;
+        case UltraLow:
+            return true;
+        case Low:
+            return true;
+        case Standard:
+            return true;
+        case Medium:
+            return true;
+        case High:
+            return true;
+    }
+    return false;
+}
+
+inline std::string to_string(TurnsPerSecond value) {
+    switch (value) {
+        EnumStringCase(TurnsPerSecond::CNLK);
+        EnumStringCase(TurnsPerSecond::CLDB);
+        EnumStringCase(TurnsPerSecond::UltraLow);
+        EnumStringCase(TurnsPerSecond::Low);
+        EnumStringCase(TurnsPerSecond::Standard);
+        EnumStringCase(TurnsPerSecond::Medium);
+        EnumStringCase(TurnsPerSecond::High);
+    }
+    return std::to_string((u32)value);
+}
+
 struct Caps {
     u32 size;
     u32 flags;  // 0x20000003. 0x00000001 = page locked buffers, 0x00000002 = basic interface, 0x20000000 = release mode
@@ -65,8 +112,19 @@ struct Caps {
     u32 max_players;
     u32 bytes_per_second;
     u32 latency;
-    u32 turns_per_second;  // the turn_per_second and turns_in_transit values
+    TurnsPerSecond turns_per_second;  // the turn_per_second and turns_in_transit values
     u32 turns_in_transit;  // in the appended mpq file seem to be used instead
+};
+
+struct ProviderInfo {
+    ProviderInfo* next;
+    ProviderInfo* prev;
+    char filename[260];
+    u32 provider_index;
+    u32 provider_id;  // 'CNLK'
+    char name[128];
+    char description[128];
+    Caps caps;
 };
 
 struct ClientInfo {
@@ -197,23 +255,10 @@ inline void from_json(const Json& j, GameInfo& g) {
     g.pExtra = nullptr;
 }
 
-enum class CrownLinkMode {
-    CLNK,  // standard version
-    DBCL   // double brain cells version
-};
-
-inline std::string to_string(CrownLinkMode value) {
-    switch (value) {
-        EnumStringCase(CrownLinkMode::CLNK);
-        EnumStringCase(CrownLinkMode::DBCL);
-    }
-    return std::to_string((s32)value);
-}
-
 struct AdFile {
     GameInfo game_info{};
     char extra_bytes[32]{};
-    CrownLinkMode crownlink_mode{};
+    TurnsPerSecond turns_per_second{};
     bool mark_for_removal = false;
     std::string original_name{""};
     bool is_same_owner(const AdFile& other) const { return game_info.host == other.game_info.host; }
@@ -222,7 +267,7 @@ struct AdFile {
 inline bool operator==(const AdFile& a1, const AdFile& a2) {
     return (
         a1.game_info == a2.game_info && memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
-        a1.crownlink_mode == a2.crownlink_mode
+        a1.turns_per_second == a2.turns_per_second
     );
 }
 
@@ -230,13 +275,13 @@ inline void to_json(Json& j, const AdFile& ad_file) {
     j = Json{
         {"game_info", ad_file.game_info},
         {"extra_bytes", Json::binary({ad_file.extra_bytes, ad_file.extra_bytes + 32})},
-        {"crownlink_mode", ad_file.crownlink_mode}
+        {"crownlink_mode", ad_file.turns_per_second}
     };
 }
 
 inline void from_json(const Json& j, AdFile& ad_file) {
     j.at("game_info").get_to(ad_file.game_info);
-    j.at("crownlink_mode").get_to(ad_file.crownlink_mode);
+    j.at("crownlink_mode").get_to(ad_file.turns_per_second);
     auto a = j["extra_bytes"].get_binary();
     std::copy(a.begin(), a.end(), ad_file.extra_bytes);
 
@@ -339,6 +384,21 @@ inline std::string to_string(GamePacketFlags value) {
     return out;
 }
 
+enum class ColorByte : u8 {
+    Revert = 1,
+    Blue,
+    Green,
+    LightGreen,
+    Gray,
+    White,
+    Red,
+    Black
+};
+
+inline std::ostream& operator<<(std::ostream& out, ColorByte value) {
+    return out << static_cast<std::underlying_type_t<ColorByte>>(value);
+}
+
 struct GamePacketHeader {
     u16 checksum;
     u16 size;
@@ -376,11 +436,18 @@ struct GamePacket {
     NetAddress sender{};
     u32 size = 0;
     u32 timestamp = 0;
-    GamePacketData data;
+    GamePacketData data{};
 
     GamePacket() = default;
     GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
         : sender{sender_id}, timestamp{get_tick_count()}, size{(u32)size} {
         memcpy(&data, recv_data, size < 500 ? size : 500);
     };
+};
+
+struct NetworkInfo {
+    char* name;
+    u32 id;
+    char* description;
+    Caps caps;
 };

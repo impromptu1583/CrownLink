@@ -1,20 +1,22 @@
 #pragma once
-#include "Common.h"
-#include "JuiceAgent.h"
+#include <unordered_map>
+#include <memory>
+#include <mutex>
 
-struct SignalPacket;
+#include "JuiceAgent.h"
+#include "../types.h"
+#include "../NetShared/StormTypes.h"
+#include "Logger.h"
 
 class JuiceManager {
 public:
-    JuiceManager() = default;
-
-    JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
-    JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>&);
+    JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
+    JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
 
     void clear_inactive_agents();
     void disconnect_if_inactive(const NetAddress& address);
-    bool send_p2p(const NetAddress& address, void* data, size_t size);
-    void send_all(void* data, size_t size);
+    bool send_p2p(const NetAddress& address, const char* data, size_t size);
+    void send_all(const char* data, size_t size);
     void send_connection_request(const NetAddress& address);
     void set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials);
 
@@ -34,5 +36,5 @@ public:
 private:
     std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
     std::mutex m_mutex;
-    CrownLinkProtocol::IceCredentials m_ice_credentials;
+    CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };

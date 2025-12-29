@@ -1,58 +1,101 @@
-#include <winsock2.h>
+#include <juice.h>
 
+#include "AdvertisementManager.h"
+#include "Config.h"
+#include "CrowServeManager.h"
+#include "Globals.h"
+#include "Logger.h"
 #include "SNPModule.h"
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#include "BWInteractions.h"
 
-#include "CrownLink.h"
-#define CLNK_ID 0
-#define DBCL_ID 1
+constexpr auto CLNK_ID = 0;
+constexpr auto CLDB_ID = 1;
 
 BOOL WINAPI SnpQuery(
-    DWORD index, DWORD* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
+    u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 ) {
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
             case CLNK_ID: {
-                *out_network_code = g_network_info.dwIdentifier;
-                *out_network_name = g_network_info.pszName;
-                *out_network_description = g_network_info.pszDescription;
+                g_network_info.caps.turns_per_second = TurnsPerSecond::CNLK;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
-            } break;
-            case DBCL_ID: {
-                g_network_info.caps.turns_per_second = 4;
-                *out_network_code = g_network_info.dwIdentifier;
-                *out_network_name = g_network_info.pszName;
-                *out_network_description = g_network_info.pszDescription;
+            }
+            case CLDB_ID: {
+                g_network_info.caps.turns_per_second = TurnsPerSecond::CLDB;
+                *out_network_code = g_network_info.id;
+                *out_network_name = g_network_info.name;
+                *out_network_description = g_network_info.description;
                 *out_caps = &g_network_info.caps;
                 return true;
-            } break;
+            }
         }
     }
     return false;
 }
 
-BOOL WINAPI SnpBind(DWORD index, snp::NetFunctions** out_funcs) {
+BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs) {
     if (out_funcs) {
         switch (index) {
             case CLNK_ID: {
+                snp::set_snp_turns_per_second(TurnsPerSecond::CNLK);
                 *out_funcs = &snp::g_spi_functions;
-                // g_crown_link = std::make_unique<CrownLink>();
-                // g_crown_link->set_mode(CrownLinkMode::CLNK);
                 return true;
-            } break;
-            case DBCL_ID: {
-                auto& snp_config = SnpConfig::instance();
-                snp_config.mode = CrownLinkMode::DBCL;
+            }
+            case CLDB_ID: {
+                snp::set_snp_turns_per_second(TurnsPerSecond::CLDB);
                 *out_funcs = &snp::g_spi_functions;
-                // g_crown_link = std::make_unique<CrownLink>();
-                // g_crown_link->set_mode(CrownLinkMode::DBCL);
                 return true;
-            } break;
+            }
         }
     }
     return false;
+}
+
+u32 WINAPI version() {
+    return CL_VERSION_NUMBER;
+}
+
+BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback) {
+    if (!g_context) return false;
+    g_context->crowserve().socket().set_status_callback(callback);
+
+    return true;
+}
+
+BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second) {
+    return snp::set_snp_turns_per_second(turns_per_second);
+}
+
+TurnsPerSecond WINAPI get_turns_per_second() {
+    return snp::get_snp_turns_per_second();
+}
+
+BOOL WINAPI set_password(const char* password) {
+    auto& snp_config = SnpConfig::instance();
+    snp_config.lobby_password = password;
+    AdvertisementManager::instance().set_lobby_password(password);
+    return true;
+}
+
+void WINAPI get_password(char* output, u32 output_size) {
+    AdvertisementManager::instance().get_lobby_password(output, output_size);
+}
+
+CrowServe::SocketState WINAPI get_status() {
+    if (!g_context) return CrowServe::SocketState::Disconnected;
+    return g_context->crowserve().socket().state();
+}
+
+void WINAPI set_status_lobby(bool enable) {
+    AdvertisementManager::instance().use_status_add(enable);
+}
+
+void WINAPI set_map_name_edit(bool enable) {
+    AdvertisementManager::instance().edit_game_name(enable);
 }
 
 static void juice_logger(juice_log_level_t log_level, const char* message) {
@@ -93,7 +136,7 @@ static void dll_exit() {
     WSACleanup();
 }
 
-BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
+BOOL WINAPI DllMain(HINSTANCE instance, u32 reason, LPVOID reserved) {
     switch (reason) {
         case DLL_PROCESS_ATTACH: {
             dll_start();
