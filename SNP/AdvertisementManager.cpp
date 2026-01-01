@@ -146,6 +146,32 @@ static std::string_view extract_map_name(const GameInfo& game_info) {
     return sv;
 }
 
+ConnectionState AdvertisementManager::connection_type(AdFile& lobby) {
+    if (!g_context) return ConnectionState::Disconnected;
+
+    switch (g_context->juice_manager().lobby_agent_state(lobby)) {
+        case JUICE_STATE_DISCONNECTED:
+            return ConnectionState::Disconnected;
+        case JUICE_STATE_CONNECTING:
+            return ConnectionState::Connecting;
+        case JUICE_STATE_FAILED:
+            return ConnectionState::Failed;
+        case JUICE_STATE_CONNECTED:
+        case JUICE_STATE_COMPLETED: {
+            return g_context->juice_manager().final_connection_type(lobby.game_info.host);
+        }
+    }
+    return ConnectionState::Disconnected;
+}
+
+void AdvertisementManager::prune_lobbies_older_than(u32 seconds) {
+    std::lock_guard lock{m_gamelist_mutex};
+
+    std::erase_if(m_lobbies, [](const AdFile& lobby) {
+        return get_tick_count() - lobby.game_info.host_last_time > 2;
+    });
+}
+
 bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, AdFile** out_game_list) {
     request_advertisements();
 
@@ -163,9 +189,7 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
     update_status_ad();
     auto last_ad = &m_status_ad;
 
-    std::erase_if(m_lobbies, [](const AdFile& lobby) {
-        return get_tick_count() - lobby.game_info.host_last_time > 2;
-    });
+    prune_lobbies_older_than(2);
 
     for (auto& ad : m_lobbies) {
         bool joinable = true;
@@ -206,11 +230,11 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
                     // Use ColorByte to manipulate menu order but revert to standard menu behavior
                     ss << ColorByte::Green << ColorByte::Revert;
                     switch (g_context->juice_manager().final_connection_type(ad.game_info.host)) {
-                        case JuiceConnectionType::Relay: {
+                        case ConnectionState::Relay: {
                             has_text_prefix = true;
                             ss << "[R]";
                         } break;
-                        case JuiceConnectionType::Radmin: {
+                        case ConnectionState::Radmin: {
                             has_text_prefix = true;
                             static constexpr char SadEmoji = 131;
                             ss << std::format("[Radmin {}]", SadEmoji);
@@ -297,6 +321,18 @@ std::optional<std::reference_wrapper<const AdFile>> AdvertisementManager::get_ad
         }
     }
     return {};
+}
+
+void AdvertisementManager::iterate_lobby_list(
+    void (*callback)(AdFile*, ConnectionState peer_state, void*), void* user_data
+) {
+    request_advertisements();
+    
+    std::lock_guard lock{m_gamelist_mutex};
+    prune_lobbies_older_than(1);
+    for (auto& lobby : m_lobbies) {
+        callback(&lobby, connection_type(lobby), user_data);
+    }
 }
 
 void AdvertisementManager::set_status_ad(const std::string& status) {

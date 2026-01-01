@@ -68,10 +68,10 @@ juice_state JuiceManager::lobby_agent_state(const AdFile& ad) {
     return agent.state();
 }
 
-JuiceConnectionType JuiceManager::final_connection_type(const NetAddress& address) {
+ConnectionState JuiceManager::final_connection_type(const NetAddress& address) {
     std::lock_guard lock{m_mutex};
     if (auto agent = maybe_get_agent(address, lock)) {
         return agent->connection_type();
     }
-    return JuiceConnectionType::Standard;
+    return ConnectionState::Standard;
 }

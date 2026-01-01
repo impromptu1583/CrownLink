@@ -35,8 +35,11 @@ inline u32 get_tick_count() {
     return static_cast<u32>(std::chrono::system_clock::now().time_since_epoch() / 1s);
 }
 
-enum class JuiceConnectionType {
+enum class ConnectionState : u32 {
+    Disconnected,
+    Connecting,
+    Failed,
     Standard,
     Relay,
-    Radmin
+    Radmin,
 };

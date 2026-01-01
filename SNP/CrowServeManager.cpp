@@ -11,9 +11,9 @@ CrowServeManager::CrowServeManager() {
 CrowServeManager::~CrowServeManager() {
     if (m_listener_thread.joinable()) {
         m_listener_thread.request_stop();
-        m_listener_thread.join();
-        // Brief delay to ensure socket polling has ended
+        m_socket.disconnect();
         std::this_thread::sleep_for(100ms);
+        m_listener_thread.join();
     }
 }
 

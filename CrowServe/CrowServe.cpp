@@ -19,10 +19,10 @@ void deinit_sockets() {
 }
 
 void Socket::try_init(std::stop_token& stop_token) {
+    m_state = SocketState::Connecting;
+    m_profile_received = false;
     {
-        std::lock_guard lock{m_mutex};
-        m_state = SocketState::Connecting;
-        m_profile_received = false;
+        std::shared_lock lock{m_callback_mutex};
         if (m_status_callback) m_status_callback(m_state);
     }
 
@@ -78,9 +78,11 @@ void Socket::try_init(std::stop_token& stop_token) {
         std::cout << "successfully connected\n";
         freeaddrinfo(address_info);
 
-        std::lock_guard lock{m_mutex};
         m_state = SocketState::Ready;
-        if (m_status_callback) m_status_callback(m_state);
+        {
+            std::shared_lock lock{m_callback_mutex};
+            if (m_status_callback) m_status_callback(m_state);
+        }
         m_retry_counter = 0;
     }
 }
@@ -89,7 +91,10 @@ void Socket::disconnect() {
     shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
     m_state = SocketState::Disconnected;
-    if (m_status_callback) m_status_callback(m_state);
+    {
+        std::shared_lock lock{m_callback_mutex};
+        if (m_status_callback) m_status_callback(m_state);
+    }
 }
 
 void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
@@ -109,16 +114,20 @@ void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error
 }
 
 void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
-    std::lock_guard lock{m_mutex};
-    m_profile_received = true;
+    {
+        std::unique_lock lock{m_id_mutex};
+        m_id = id;
+    }
     m_id_received = true;
-    m_id = id;
     m_reconnect_token = Token;
+    m_profile_received = true;
 }
 
 void Socket::set_status_callback(StatusCallback callback) {
-    std::lock_guard lock{m_mutex};
-    m_status_callback = callback;
+    {
+        std::unique_lock lock{m_callback_mutex};
+        m_status_callback = callback;
+    }
     callback(m_state);
 }
 }  // namespace CrowServe

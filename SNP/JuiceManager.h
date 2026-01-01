@@ -29,7 +29,7 @@ public:
     };
 
     juice_state lobby_agent_state(const AdFile& ad);
-    JuiceConnectionType final_connection_type(const NetAddress& address);
+    ConnectionState final_connection_type(const NetAddress& address);
 
     std::mutex& mutex() { return m_mutex; }
 

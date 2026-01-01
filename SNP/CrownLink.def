@@ -10,3 +10,4 @@ EXPORTS
   get_status                @9
   set_status_lobby          @10
   set_map_name_edit         @11
+  iterate_lobbies           @12

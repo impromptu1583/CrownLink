@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
 #include <iostream>
-#include <mutex>
+#include <shared_mutex>
 #include <span>
 #include <thread>
 
@@ -57,7 +57,7 @@ enum class ProtocolType : u16 {
     ProtocolP2P = 2,
 };
 
-enum class SocketState {
+enum class SocketState : u32{
     Disconnected,
     Connecting,
     Ready
@@ -113,7 +113,10 @@ public:
     void set_profile(const NetAddress& ID, const NetAddress& Token);
     void set_status_callback(StatusCallback callback);
     SocketState state() const { return m_state; }
-    NetAddress& id() { return m_id; }
+    NetAddress id() {
+        std::shared_lock lock{m_id_mutex};
+        return m_id;
+    }
 
     template <typename... Args>
     void try_log(const std::string& message, Args&&... args) const {
@@ -152,8 +155,10 @@ public:
                     request.crownlink_version = 0;
                     if (m_id_received) {
                         request.peer_id_requested = true;
-                        request.requested_id = m_id;
                         request.request_token = m_reconnect_token;
+
+                        std::shared_lock lock{m_id_mutex};
+                        request.requested_id = m_id;
                     }
                     send_messages(ProtocolType::ProtocolCrownLink, request);
                 }
@@ -240,8 +245,6 @@ public:
 
     template <typename T>
     bool send_messages(ProtocolType protocol, T& message) {
-        std::lock_guard lock{m_mutex};
-
         if (m_state != SocketState::Ready) {
             try_log("Error: attempting to send to server but connection isn't ready");
             std::cout << "socket not ready" << std::endl;
@@ -301,7 +304,6 @@ private:
     }
 
 private:
-    bool m_profile_received = false;
     Logger m_external_logger;
 
     SOCKET m_socket = 0;
@@ -311,7 +313,8 @@ private:
 
     NetAddress m_id;
     NetAddress m_reconnect_token;
-    bool m_id_received = false;
+    std::atomic<bool> m_profile_received = false;
+    std::atomic<bool> m_id_received = false;
     u32 m_retry_counter = 0;
 
     std::string m_host = "127.0.0.1";
@@ -320,7 +323,8 @@ private:
     std::atomic<SocketState> m_state{SocketState::Disconnected};
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
-    std::mutex m_mutex;
+    std::shared_mutex m_id_mutex;
+    std::shared_mutex m_callback_mutex;
 
     StatusCallback m_status_callback{};
 };

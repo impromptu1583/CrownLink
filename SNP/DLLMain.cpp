@@ -59,11 +59,16 @@ u32 WINAPI version() {
     return CL_VERSION_NUMBER;
 }
 
+// TODO: improve this - should use c-style user pointer for consistency
 BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback) {
     if (!g_context) return false;
     g_context->crowserve().socket().set_status_callback(callback);
 
     return true;
+}
+
+void WINAPI iterate_lobbies(void (*callback)(AdFile*, ConnectionState peer_state, void*), void* user_data) {
+    AdvertisementManager::instance().iterate_lobby_list(callback, user_data);
 }
 
 BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second) {

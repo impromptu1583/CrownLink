@@ -94,14 +94,14 @@ public:
 public:
     const NetAddress& address() const { return m_address; }
     juice_state state() { return m_p2p_state.load(); }
-    JuiceConnectionType connection_type() { return m_connection_type.load(); }
+    ConnectionState connection_type() { return m_connection_type.load(); }
     void set_player_name(const std::string& name);
     void set_player_name(const char game_name[128]);
     std::string& player_name();
 
     bool is_active();
 
-    void set_connection_type(JuiceConnectionType ct) { m_connection_type = ct; }
+    void set_connection_type(ConnectionState ct) { m_connection_type = ct; }
 
 private:
     void mark_active(const std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
@@ -119,7 +119,7 @@ private:
     bool m_remote_description_set = false;
     bool m_controlling = true;
 
-    std::atomic<JuiceConnectionType> m_connection_type{JuiceConnectionType::Standard};
+    std::atomic<ConnectionState> m_connection_type{ConnectionState::Standard};
     std::atomic<juice_state> m_p2p_state = JUICE_STATE_DISCONNECTED;
     std::atomic<u32> m_connreq_count = get_tick_count();
     u32 m_connreq_processed = 0;

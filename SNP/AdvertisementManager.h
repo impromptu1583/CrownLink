@@ -37,6 +37,8 @@ public:
     bool unlock_game_list() const;
     std::optional<std::reference_wrapper<const AdFile>> get_ad_by_index(u32 index) const;
 
+    void iterate_lobby_list(void (*callback)(AdFile*, ConnectionState peer_state, void*), void* user_data);
+
     void set_status_ad(const std::string& status);
     void clear_status_ad();
 
@@ -52,6 +54,8 @@ private:
     AdvertisementManager();
     void create_status_ad();
     void update_status_ad();
+    ConnectionState connection_type(AdFile& lobby);
+    void prune_lobbies_older_than(u32 seconds);
 
 private:
     AdFile m_ad_data;
@@ -63,7 +67,7 @@ private:
 
     u32 m_ellipsis_counter = 3;
 
-    mutable std::mutex m_gamelist_mutex;
+    mutable std::recursive_mutex m_gamelist_mutex;
 
     std::vector<AdFile> m_lobbies;
     AdFile m_status_ad{};
