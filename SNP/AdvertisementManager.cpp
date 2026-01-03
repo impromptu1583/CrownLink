@@ -148,6 +148,7 @@ static std::string_view extract_map_name(const GameInfo& game_info) {
 
 ConnectionState AdvertisementManager::connection_type(AdFile& lobby) {
     if (!g_context) return ConnectionState::Disconnected;
+    if (lobby.game_info.version_id != g_context->client_info().version_id) return ConnectionState::BadVersion; 
 
     switch (g_context->juice_manager().lobby_agent_state(lobby)) {
         case JUICE_STATE_DISCONNECTED:

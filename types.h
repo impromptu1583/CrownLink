@@ -42,4 +42,5 @@ enum class ConnectionState : u32 {
     Standard,
     Relay,
     Radmin,
+    BadVersion,
 };
