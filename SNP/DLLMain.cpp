@@ -60,9 +60,9 @@ u32 WINAPI version() {
 }
 
 // TODO: improve this - should use c-style user pointer for consistency
-BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback) {
+BOOL WINAPI register_status_callback(CrowServe::StatusCallback callback, void* user_data) {
     if (!g_context) return false;
-    g_context->crowserve().socket().set_status_callback(callback);
+    g_context->crowserve().socket().set_status_callback(callback, user_data);
 
     return true;
 }

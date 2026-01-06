@@ -89,7 +89,7 @@ struct MessageHeader {
 bool init_sockets();
 void deinit_sockets();
 
-using StatusCallback = std::function<void(SocketState)>;
+using StatusCallback = void(*)(SocketState, void*);
 
 class Socket {
 public:
@@ -111,7 +111,7 @@ public:
     void disconnect();
     void log_socket_error(const char* message, s32 bytes_received, s32 error);
     void set_profile(const NetAddress& ID, const NetAddress& Token);
-    void set_status_callback(StatusCallback callback);
+    void set_status_callback(StatusCallback callback, void* user_data);
     SocketState state() const { return m_state; }
     NetAddress id() {
         std::shared_lock lock{m_id_mutex};
@@ -303,6 +303,8 @@ private:
         return {bytes_received, 0};
     }
 
+    void send_status_callback();
+
 private:
     Logger m_external_logger;
 
@@ -327,5 +329,6 @@ private:
     std::shared_mutex m_callback_mutex;
 
     StatusCallback m_status_callback{};
+    void* m_status_callback_userdata{};
 };
 }  // namespace CrowServe

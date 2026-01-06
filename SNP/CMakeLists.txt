@@ -14,16 +14,14 @@ set(MODULE_FILES
     "../NetShared/StormTypes.h"
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
-	"../CrowServe/CrowServe.cpp"
-	"../CrowServe/P2PProtocol.cpp"
-	"../CrowServe/CrownLinkProtocol.cpp"
+	"CrowServeManager.cpp"
 	"BWInteractions.h"
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
 )
 
-add_library(SNP SHARED ${MODULE_FILES} "CrowServeManager.cpp")
+add_library(SNP SHARED ${MODULE_FILES})
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -83,6 +81,7 @@ FetchContent_MakeAvailable(spdlog)
 target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
 target_include_directories(SNP PRIVATE ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
+	PRIVATE CrowServe
 	PRIVATE ws2_32
 	PRIVATE juice-static
 	PRIVATE spdlog::spdlog_header_only

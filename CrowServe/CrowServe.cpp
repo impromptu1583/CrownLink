@@ -21,10 +21,7 @@ void deinit_sockets() {
 void Socket::try_init(std::stop_token& stop_token) {
     m_state = SocketState::Connecting;
     m_profile_received = false;
-    {
-        std::shared_lock lock{m_callback_mutex};
-        if (m_status_callback) m_status_callback(m_state);
-    }
+    send_status_callback();
 
     addrinfo hints = {};
     addrinfo* address_info = nullptr;
@@ -79,10 +76,7 @@ void Socket::try_init(std::stop_token& stop_token) {
         freeaddrinfo(address_info);
 
         m_state = SocketState::Ready;
-        {
-            std::shared_lock lock{m_callback_mutex};
-            if (m_status_callback) m_status_callback(m_state);
-        }
+        send_status_callback();
         m_retry_counter = 0;
     }
 }
@@ -91,10 +85,7 @@ void Socket::disconnect() {
     shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
     m_state = SocketState::Disconnected;
-    {
-        std::shared_lock lock{m_callback_mutex};
-        if (m_status_callback) m_status_callback(m_state);
-    }
+    send_status_callback();
 }
 
 void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
@@ -123,11 +114,17 @@ void Socket::set_profile(const NetAddress& id, const NetAddress& Token) {
     m_profile_received = true;
 }
 
-void Socket::set_status_callback(StatusCallback callback) {
+void Socket::set_status_callback(StatusCallback callback, void* user_data) {
     {
         std::unique_lock lock{m_callback_mutex};
         m_status_callback = callback;
+        m_status_callback_userdata = user_data;
     }
-    callback(m_state);
+    callback(m_state, m_status_callback_userdata);
+}
+
+void Socket::send_status_callback() {
+    std::shared_lock lock{m_callback_mutex};
+    if (m_status_callback) m_status_callback(m_state, m_status_callback_userdata);
 }
 }  // namespace CrowServe

@@ -28,7 +28,7 @@ enum class SocketState {
     Ready
 };
 
-using StatusCallback = std::function<void(SocketState)>;
+using StatusCallback = void(*)(SocketState, void*);
 }
 
 enum class TurnsPerSecond : u32 {
@@ -44,7 +44,7 @@ enum class TurnsPerSecond : u32 {
 namespace CrownLink {
 constexpr u32 VERSION_MAJOR = 1;
 constexpr u32 VERSION_MINOR = 1;
-constexpr u32 VERSION_BUILD = 1;
+constexpr u32 VERSION_BUILD = 2;
 }  // namespace CrownLink
 
 extern "C" {
@@ -57,7 +57,7 @@ CROWNLINK_API BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs);
 CROWNLINK_API u32 WINAPI version();
 
 CROWNLINK_API BOOL WINAPI
-register_status_callback(CrowServe::StatusCallback callback);
+register_status_callback(CrowServe::StatusCallback callback, void* user_data);
 
 CROWNLINK_API BOOL WINAPI set_turns_per_second(TurnsPerSecond turns_per_second);
 
