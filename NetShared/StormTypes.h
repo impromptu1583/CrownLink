@@ -47,8 +47,7 @@ inline void from_json(const Json& j, NetAddress& address) {
     if (j.is_binary()) {
         memcpy(address.bytes, j.get_binary().data(), sizeof(address.bytes));
     } else if (j.is_object()) {
-        auto id = j["Id"];
-        memcpy(address.bytes, id.get_binary().data(), sizeof(address.bytes));
+        memcpy(address.bytes, j["Id"].get_binary().data(), sizeof(address.bytes));
     }
 }
 
