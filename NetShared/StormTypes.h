@@ -44,9 +44,12 @@ inline void to_json(Json& j, const NetAddress& address) {
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
-    // TODO error handling
-    auto id = j["Id"];
-    memcpy(address.bytes, id.get_binary().data(), sizeof(address.bytes));
+    if (j.is_binary()) {
+        memcpy(address.bytes, j.get_binary().data(), sizeof(address.bytes));
+    } else if (j.is_object()) {
+        auto id = j["Id"];
+        memcpy(address.bytes, id.get_binary().data(), sizeof(address.bytes));
+    }
 }
 
 template <>
