@@ -121,9 +121,8 @@ bool JuiceAgent::should_send_duplicate() {
     auto ms_per_turn = 1000 / turns_per_second;
     auto max_latency = ms_per_turn * turns_in_transit;
     auto max_round_trip = max_latency * 2 + 20;
-    // If latency is very high, it's likely poor quality is because of long
-    // transit times, not packet drops, in which case sending duplicates
-    // might be counterproductive
+    // If latency is very high, it's likely poor quality is because of long transit times, not packet drops,
+    // in which case sending duplicates might be counterproductive
     if (m_average_latency > max_round_trip) return false;
 
     return true;

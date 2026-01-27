@@ -439,7 +439,7 @@ struct SystemPlayerJoin_PlayerInfo {
 };
 
 struct GamePacketData {
-    GamePacketHeader header{};
+    GamePacketHeader header;
     char payload[MAX_PAYLOAD_SIZE]{};
 };
 
