@@ -20,6 +20,8 @@ using Json = nlohmann::json;
 #include <type_traits>
 #include <vector>
 
+static constexpr auto MAX_PAYLOAD_SIZE = 500;
+
 struct NetAddress {
     std::array<u8, 16> bytes{};
 
@@ -300,6 +302,7 @@ enum class GamePacketType : u8 {
     Message,
     Turn,
     Types,
+    CrownLink = 50,
 };
 
 inline std::string to_string(GamePacketType value) {
@@ -312,6 +315,8 @@ inline std::string to_string(GamePacketType value) {
             return {"Turn"};
         case GamePacketType::Types:
             return {"Types"};
+        case GamePacketType::CrownLink:
+            return {"CrownLink"};
     }
     return std::to_string((u8)value);
 }
@@ -434,8 +439,8 @@ struct SystemPlayerJoin_PlayerInfo {
 };
 
 struct GamePacketData {
-    GamePacketHeader header;
-    char payload[500]{};
+    GamePacketHeader header{};
+    char payload[MAX_PAYLOAD_SIZE]{};
 };
 
 struct GamePacket {

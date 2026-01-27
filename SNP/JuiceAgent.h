@@ -12,6 +12,12 @@
 #include "../types.h"
 #include "Logger.h"
 #include "../CrowServe/CrowServe.h"
+#include "../Ema.h"
+
+static constexpr auto PING_EVERY = 15;
+static constexpr auto LATENCY_SAMPLES = 10;
+static constexpr auto QUALITY_SAMPLES = 50;
+static constexpr f64 DUPLICATE_SEND_THRESHOLD = 0.7;
 
 struct TurnServer {
     std::string host;
@@ -89,6 +95,7 @@ public:
     };
 
     bool send_message(const char* data, const size_t size);
+    bool send_custom_message(GamePacketSubType sub_type, const char* data, size_t data_size);
     void send_connection_request();
 
 public:
@@ -98,6 +105,7 @@ public:
     void set_player_name(const std::string& name);
     void set_player_name(const char game_name[128]);
     std::string& player_name();
+    bool should_send_duplicate();
 
     bool is_active();
 
@@ -107,6 +115,10 @@ private:
     void mark_active(const std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
     void try_initialize(const std::unique_lock<std::shared_mutex>& lock);
     void reset_agent(const std::unique_lock<std::shared_mutex>& lock);
+
+    void send_ping();
+    void handle_ping(const GamePacket& game_packet);
+    void handle_ping_response(const GamePacket& game_packet);
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
@@ -131,8 +143,9 @@ private:
     std::string m_player_name;
     std::shared_mutex m_mutex;
 
-    u32 m_resends_requested = 0;
-    u32 m_packet_count = 0;
+    EMA m_average_latency = EMA{LATENCY_SAMPLES};
+    EMA m_average_quality = EMA{QUALITY_SAMPLES, 1.0};
+    u32 m_send_count = 0;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };
