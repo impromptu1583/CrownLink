@@ -17,6 +17,8 @@ public:
     bool should_send_duplicate() const {
         if (m_average_quality > DUPLICATE_SEND_THRESHOLD) return false;
 
+        // TODO: Add dll export to allow client to pass updated values
+        // For now use defaults
         auto turns_per_second = 8;
         auto turns_in_transit = 2;
         auto ms_per_turn = 1000 / turns_per_second;
