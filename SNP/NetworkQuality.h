@@ -14,19 +14,7 @@ public:
     void record_ping_response(s64 rtt_ms) { m_average_latency.update(rtt_ms); }
 
     bool should_send_ping() const { return m_send_count % PING_EVERY == 0; }
-    bool should_send_duplicate() const {
-        if (m_average_quality > DUPLICATE_SEND_THRESHOLD) return false;
-
-        // TODO: Add dll export to allow client to pass updated values
-        // For now use defaults
-        auto turns_per_second = 8;
-        auto turns_in_transit = 2;
-        auto ms_per_turn = 1000 / turns_per_second;
-        auto max_latency = ms_per_turn * turns_in_transit;
-        auto max_round_trip = max_latency * 2 + 20;
-
-        return m_average_latency <= max_round_trip;
-    }
+    bool should_send_duplicate() const;
 
     f32 get_quality() const { return m_average_quality; }
     f32 get_latency() const { return m_average_latency; }

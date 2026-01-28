@@ -19,7 +19,9 @@ set(MODULE_FILES
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
-	"NetworkQuality.h")
+	"NetworkQuality.h"
+	"NetworkQuality.cpp"
+)
 
 add_library(SNP SHARED ${MODULE_FILES})
 
