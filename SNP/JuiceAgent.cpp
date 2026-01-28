@@ -187,10 +187,10 @@ static s64 now_ms() {
 
 void JuiceAgent::send_ping() {
     auto timestamp = now_ms();
-    Json j{{"timestamp_ms", timestamp}};
-    auto time_data = j.dump();
-
-    send_custom_message(GamePacketSubType::Ping, time_data.c_str(), time_data.size());
+    s64 network_timestamp = htonll(timestamp);
+    send_custom_message(
+        GamePacketSubType::Ping, reinterpret_cast<const char*>(&network_timestamp), sizeof(network_timestamp)
+    );
 }
 
 void JuiceAgent::handle_ping(const GamePacket& game_packet) {
@@ -200,41 +200,29 @@ void JuiceAgent::handle_ping(const GamePacket& game_packet) {
 
 void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
     auto payload_size = game_packet.data.header.size - sizeof(GamePacketHeader);
-    try {
-        if (payload_size == 0 || payload_size >= MAX_PAYLOAD_SIZE) {
-            spdlog::warn("[{}] Invalid ping response payload size: {}", m_address, payload_size);
-            return;
-        }
 
-        std::string payload_str(game_packet.data.payload, payload_size);
-        auto decoded = Json::parse(payload_str);
-
-        if (!decoded.contains("timestamp_ms") || !decoded["timestamp_ms"].is_number()) {
-            spdlog::warn("[{}] Ping response missing or invalid timestamp_ms field", m_address);
-            return;
-        }
-
-        auto timestamp = decoded.at("timestamp_ms").get<s64>();
-        auto current_time = now_ms();
-
-        auto delta = current_time - timestamp;
-        if (delta < 0 || delta > 30000) { 
-            spdlog::warn("[{}] Invalid ping timestamp delta: {}ms", m_address, delta);
-            return;
-        }
-
-        m_average_latency.update(delta);
-        spdlog::debug(
-            "[{}] ping: {}ms, average rtt: {}ms, average quality: {}",
-            m_address, delta, (f32)m_average_latency, (f32)m_average_quality
-        );
-    } catch (const Json::parse_error& e) {
-        spdlog::warn("[{}] Failed to parse ping response JSON: {}", m_address, e.what());
-    } catch (const Json::type_error& e) {
-        spdlog::warn("[{}] Invalid JSON type in ping response: {}", m_address, e.what());
-    } catch (const std::exception& e) {
-        spdlog::warn("[{}] Unexpected error parsing ping response: {}", m_address, e.what());
+    if (payload_size != sizeof(s64)) {
+        spdlog::warn("[{}] Invalid ping response payload size: {}", m_address, payload_size);
+        return;
     }
+
+    s64 network_timestamp;
+    std::memcpy(&network_timestamp, game_packet.data.payload, sizeof(s64));
+    auto timestamp = ntohll(network_timestamp);
+
+    auto current_time = now_ms();
+    auto delta = current_time - timestamp;
+
+    if (delta < 0 || delta > 30000) {
+        spdlog::warn("[{}] Invalid ping timestamp delta: {}ms", m_address, delta);
+        return;
+    }
+
+    m_average_latency.update(delta);
+    spdlog::debug(
+        "[{}] ping: {}ms, average rtt: {}ms, average quality: {}", m_address, delta, (f32)m_average_latency,
+        (f32)m_average_quality
+    );
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
