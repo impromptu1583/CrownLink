@@ -10,28 +10,37 @@ using Json = nlohmann::json;
 
 #include <numeric>
 #include <type_traits>
+#include <algorithm>
+#include <vector>
+#include <cstring>
+#include <cstdio>
+#include <iostream>
+#include <format>
+#include <span>
+#include <string_view>
+#include <array>
+#include <ranges>
 
 struct NetAddress {
-    u8 bytes[16]{};
+    std::array<u8, 16> bytes{};
 
     bool operator==(const NetAddress&) const = default;
     bool operator<(const NetAddress& other) const {
-        if (memcmp(bytes, other.bytes, sizeof(NetAddress)) < 0) {
-            return true;
-        }
-        return false;
+        return std::ranges::lexicographical_compare(bytes, other.bytes);
     };
 
-    bool is_zero() const { return std::accumulate(std::begin(bytes), std::end(bytes), 0) == 0; }
+    bool is_zero() const {
+        return std::ranges::all_of(bytes, [](u8 b) {
+            return b == 0;
+        });
+    }
 
     std::string uuid_string() const {
-        char str[37] = {};
-        sprintf(
-            str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0], bytes[1], bytes[2],
-            bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11], bytes[12],
-            bytes[13], bytes[14], bytes[15]
+        return std::format(
+            "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9],
+            bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
         );
-        return str;
     }
 
     friend std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
@@ -40,24 +49,22 @@ struct NetAddress {
 };
 
 inline void to_json(Json& j, const NetAddress& address) {
-    j = Json{{"Id", Json::binary_t(std::vector<u8>{address.bytes, address.bytes + sizeof(NetAddress)})}};
+    j = Json::binary_t(std::vector<u8>(address.bytes.begin(), address.bytes.end()));
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
-    if (j.is_binary()) {
-        memcpy(address.bytes, j.get_binary().data(), sizeof(address.bytes));
-    } else if (j.is_object()) {
-        memcpy(address.bytes, j["Id"].get_binary().data(), sizeof(address.bytes));
-    }
+    const auto& binary_data = j.get_binary();
+    const auto copy_size = std::min(binary_data.size(), address.bytes.size());
+    std::copy_n(binary_data.begin(), copy_size, address.bytes.data());
 }
 
 template <>
 struct std::hash<NetAddress> {
     size_t operator()(const NetAddress& address) const {
         size_t hash = 0;
-        for (char c : address.bytes) {
+        for (u8 c : address.bytes) {
             hash <<= 1;
-            hash ^= std::hash<char>{}(c);
+            hash ^= std::hash<u8>{}(c);
         }
         return hash;
     }
