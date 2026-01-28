@@ -12,12 +12,7 @@
 #include "../types.h"
 #include "Logger.h"
 #include "../CrowServe/CrowServe.h"
-#include "../Ema.h"
-
-static constexpr auto PING_EVERY = 15;
-static constexpr auto LATENCY_SAMPLES = 10;
-static constexpr auto QUALITY_SAMPLES = 50;
-static constexpr f64 DUPLICATE_SEND_THRESHOLD = 0.7;
+#include "NetworkQuality.h"
 
 struct TurnServer {
     std::string host;
@@ -105,7 +100,6 @@ public:
     void set_player_name(const std::string& name);
     void set_player_name(const char game_name[128]);
     std::string& player_name();
-    bool should_send_duplicate();
 
     bool is_active();
 
@@ -143,9 +137,7 @@ private:
     std::string m_player_name;
     std::shared_mutex m_mutex;
 
-    EMA m_average_latency = EMA{LATENCY_SAMPLES};
-    EMA m_average_quality = EMA{QUALITY_SAMPLES, 1.0};
-    u32 m_send_count = 0;
+    NetworkQualityTracker m_quality_tracker;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

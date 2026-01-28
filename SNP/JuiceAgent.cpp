@@ -113,28 +113,14 @@ std::string& JuiceAgent::player_name() {
     return m_player_name;
 }
 
-bool JuiceAgent::should_send_duplicate() {
-    if (m_average_quality > DUPLICATE_SEND_THRESHOLD) return false;
-
-    auto turns_per_second = g_network_info.caps.turns_per_second ? g_network_info.caps.turns_per_second : 8;
-    auto turns_in_transit = g_network_info.caps.turns_in_transit ? g_network_info.caps.turns_in_transit : 2;
-    auto ms_per_turn = 1000 / turns_per_second;
-    auto max_latency = ms_per_turn * turns_in_transit;
-    auto max_round_trip = max_latency * 2 + 20;
-    // If latency is very high, it's likely poor quality is because of long transit times, not packet drops,
-    // in which case sending duplicates might be counterproductive
-    if (m_average_latency > max_round_trip) return false;
-
-    return true;
-}
-
 bool JuiceAgent::is_active() {
     std::shared_lock lock{m_mutex};
     return std::chrono::steady_clock::now() - m_last_active < 2min;
 }
 
 bool JuiceAgent::send_message(const char* data, size_t size) {
-    if (++m_send_count % PING_EVERY == 0) send_ping();
+    m_quality_tracker.record_packet_sent();
+    if (m_quality_tracker.should_send_ping()) send_ping();
 
     std::unique_lock lock{m_mutex};
     mark_active(lock);
@@ -142,7 +128,7 @@ bool JuiceAgent::send_message(const char* data, size_t size) {
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
-            if (should_send_duplicate()) {
+            if (m_quality_tracker.should_send_duplicate()) {
                 juice_send(m_agent, data, size);
                 spdlog::trace("[{}] Poor quality network, duplicate sent", m_address);
             }
@@ -212,16 +198,11 @@ void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
 
     auto current_time = now_ms();
     auto delta = current_time - timestamp;
+    m_quality_tracker.record_ping_response(delta);
 
-    if (delta < 0 || delta > 30000) {
-        spdlog::warn("[{}] Invalid ping timestamp delta: {}ms", m_address, delta);
-        return;
-    }
-
-    m_average_latency.update(delta);
     spdlog::debug(
-        "[{}] ping: {}ms, average rtt: {}ms, average quality: {}", m_address, delta, (f32)m_average_latency,
-        (f32)m_average_quality
+        "[{}] ping: {}ms, average rtt: {}ms, average quality: {}",
+        m_address, delta, m_quality_tracker.get_latency(), m_quality_tracker.get_quality()
     );
 }
 
@@ -297,9 +278,9 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
     }
 
     if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
-        parent.m_average_quality.update(0.0);
+        parent.m_quality_tracker.record_resend_request();
     } else {
-        parent.m_average_quality.update(1.0);
+        parent.m_quality_tracker.record_successful_packet();
     }
 
     if (g_context) {
