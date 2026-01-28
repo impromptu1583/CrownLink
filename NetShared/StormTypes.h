@@ -27,13 +27,11 @@ inline bool is_zero(const NetAddress& address) {
 }
 
 inline std::string uuid_string(const NetAddress& address) {
-    char str[37] = {};
-    sprintf(
-        str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2],
-        address[3], address[4], address[5], address[6], address[7], address[8], address[9], address[10], address[11],
-        address[12], address[13], address[14], address[15]
+    return std::format(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        address[0], address[1], address[2], address[3], address[4], address[5], address[6], address[7], address[8],
+        address[9], address[10], address[11], address[12], address[13], address[14], address[15]
     );
-    return str;
 }
 
 namespace std {
