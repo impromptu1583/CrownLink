@@ -1,8 +1,9 @@
+#include <condition_variable>
 #include <catch2/catch_all.hpp>
 
 #include "CrowServe.h"
 #include "Cbor.h"
-#include <condition_variable>
+#include "../NetShared/StormTypes.h"
 
 template <typename T>
 struct ReceiveWrapper {

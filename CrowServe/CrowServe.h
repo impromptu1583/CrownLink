@@ -95,7 +95,7 @@ class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
 
-    Socket() { init_sockets(); };
+    Socket() : m_id{}, m_reconnect_token{} { init_sockets(); };
 
     Socket(const Socket&) = delete;
     Socket(Socket&&) = delete;
@@ -313,8 +313,8 @@ private:
     s64 m_missed_heartbeats = 0;
     std::chrono::steady_clock::time_point m_last_message = std::chrono::steady_clock::now();
 
-    NetAddress m_id;
-    NetAddress m_reconnect_token;
+    NetAddress m_id{};
+    NetAddress m_reconnect_token{};
     std::atomic<bool> m_profile_received = false;
     std::atomic<bool> m_id_received = false;
     u32 m_retry_counter = 0;

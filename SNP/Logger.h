@@ -5,13 +5,14 @@
 #include <windows.h>
 #include <filesystem>
 
+#include "../NetShared/StormTypes.h"
+
 inline const std::filesystem::path g_starcraft_dir = [] {
     wchar_t buffer[MAX_PATH];
     GetModuleFileNameW(0, buffer, MAX_PATH);
     return std::filesystem::path{buffer}.parent_path();
 }();
 
-struct NetAddress;
 namespace P2P {
 enum class MessageType;
 }

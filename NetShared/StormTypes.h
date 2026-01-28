@@ -10,58 +10,63 @@ using Json = nlohmann::json;
 
 #include <numeric>
 #include <type_traits>
+#include <array>
+#include <algorithm>
+#include <iostream>
 
-struct NetAddress {
-    u8 bytes[16]{};
+using NetAddress = std::array<u8, 16>;
 
-    bool operator==(const NetAddress&) const = default;
-    bool operator<(const NetAddress& other) const {
-        if (memcmp(bytes, other.bytes, sizeof(NetAddress)) < 0) {
-            return true;
-        }
-        return false;
-    };
+inline bool operator<(const NetAddress& lhs, const NetAddress& rhs) {
+    return std::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+}
 
-    bool is_zero() const { return std::accumulate(std::begin(bytes), std::end(bytes), 0) == 0; }
+inline bool is_zero(const NetAddress& address) {
+    return std::all_of(address.begin(), address.end(), [](u8 byte) {
+        return byte == 0;
+    });
+}
 
-    std::string uuid_string() const {
-        char str[37] = {};
-        sprintf(
-            str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0], bytes[1], bytes[2],
-            bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11], bytes[12],
-            bytes[13], bytes[14], bytes[15]
-        );
-        return str;
-    }
-
-    friend std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
-        return out << address.uuid_string();
-    }
-};
+inline std::string uuid_string(const NetAddress& address) {
+    char str[37] = {};
+    sprintf(
+        str, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2],
+        address[3], address[4], address[5], address[6], address[7], address[8], address[9], address[10], address[11],
+        address[12], address[13], address[14], address[15]
+    );
+    return str;
+}
 
 inline void to_json(Json& j, const NetAddress& address) {
-    j = Json{{"Id", Json::binary_t(std::vector<u8>{address.bytes, address.bytes + sizeof(NetAddress)})}};
+    j = Json{{"Id", Json::binary_t(std::vector<u8>{address.begin(), address.end()})}};
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
     if (j.is_binary()) {
-        memcpy(address.bytes, j.get_binary().data(), sizeof(address.bytes));
+        const auto& binary_data = j.get_binary();
+        std::copy_n(binary_data.begin(), std::min(binary_data.size(), address.size()), address.begin());
     } else if (j.is_object()) {
-        memcpy(address.bytes, j["Id"].get_binary().data(), sizeof(address.bytes));
+        const auto& binary_data = j["Id"].get_binary();
+        std::copy_n(binary_data.begin(), std::min(binary_data.size(), address.size()), address.begin());
     }
 }
 
+namespace std {
+inline std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
+    return out << uuid_string(address);
+}
+
 template <>
-struct std::hash<NetAddress> {
+struct hash<NetAddress> {
     size_t operator()(const NetAddress& address) const {
         size_t hash = 0;
-        for (char c : address.bytes) {
+        for (u8 c : address) {
             hash <<= 1;
-            hash ^= std::hash<char>{}(c);
+            hash ^= std::hash<u8>{}(c);
         }
         return hash;
     }
 };
+}
 
 enum TurnsPerSecond : u32 {
     CNLK,  // For Backwards Compatability, = 8

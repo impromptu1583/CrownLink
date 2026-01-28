@@ -221,7 +221,7 @@ void packet_parser(const GamePacket* game_packet) {
                 &player_info, game_packet->data.payload,
                 payload_size < sizeof(SystemPlayerJoin_PlayerInfo) ? payload_size : sizeof(SystemPlayerJoin_PlayerInfo)
             );
-            if (player_info.address.is_zero()) {
+            if (is_zero(player_info.address)) {
                 player_info.address = game_packet->sender;
                 spdlog::trace("address was zero, copying from game info");
             }
