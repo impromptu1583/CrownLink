@@ -95,7 +95,7 @@ class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
 
-    Socket() : m_id{}, m_reconnect_token{} { init_sockets(); };
+    Socket() { init_sockets(); };
 
     Socket(const Socket&) = delete;
     Socket(Socket&&) = delete;
