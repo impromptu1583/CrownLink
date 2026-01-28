@@ -8,16 +8,17 @@
 #include "../types.h"
 using Json = nlohmann::json;
 
-#include <type_traits>
 #include <algorithm>
-#include <vector>
-#include <cstring>
-#include <iostream>
-#include <format>
-#include <span>
-#include <string_view>
 #include <array>
+#include <cstring>
+#include <format>
+#include <iostream>
 #include <ranges>
+#include <span>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
 struct NetAddress {
     std::array<u8, 16> bytes{};
