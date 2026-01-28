@@ -8,12 +8,10 @@
 #include "../types.h"
 using Json = nlohmann::json;
 
-#include <numeric>
 #include <type_traits>
 #include <algorithm>
 #include <vector>
 #include <cstring>
-#include <cstdio>
 #include <iostream>
 #include <format>
 #include <span>
