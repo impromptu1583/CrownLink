@@ -36,7 +36,7 @@ inline std::string uuid_string(const NetAddress& address) {
 
 namespace std {
 inline void to_json(Json& j, const NetAddress& address) {
-    j = Json{{"Id", Json::binary_t(std::vector<u8>{address.begin(), address.end()})}};
+    j = Json::binary_t(std::vector<u8>{address.begin(), address.end()});
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
