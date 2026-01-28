@@ -40,13 +40,8 @@ inline void to_json(Json& j, const NetAddress& address) {
 }
 
 inline void from_json(const Json& j, NetAddress& address) {
-    if (j.is_binary()) {
-        const auto& binary_data = j.get_binary();
-        std::copy_n(binary_data.begin(), std::min(binary_data.size(), address.size()), address.begin());
-    } else if (j.is_object()) {
-        const auto& binary_data = j["Id"].get_binary();
-        std::copy_n(binary_data.begin(), std::min(binary_data.size(), address.size()), address.begin());
-    }
+    const auto& binary_data = j.get_binary();
+    std::copy_n(binary_data.begin(), std::min(binary_data.size(), address.size()), address.begin());
 }
 
 inline std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
