@@ -29,9 +29,7 @@ struct NetAddress {
     };
 
     bool is_zero() const {
-        return std::ranges::all_of(bytes, [](u8 b) {
-            return b == 0;
-        });
+        return std::ranges::all_of(bytes, [](u8 b) { return b == 0; });
     }
 
     std::string uuid_string() const {
@@ -61,7 +59,7 @@ template <>
 struct std::hash<NetAddress> {
     size_t operator()(const NetAddress& address) const {
         size_t hash = 0;
-        for (u8 c : address.bytes) {
+        for (auto c : address.bytes) {
             hash <<= 1;
             hash ^= std::hash<u8>{}(c);
         }
