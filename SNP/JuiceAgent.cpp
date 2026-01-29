@@ -2,6 +2,8 @@
 #include "CrowServeManager.h"
 #include "Globals.h"
 
+#include <algorithm>
+
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
     memset(&m_config, 0, sizeof(m_config));
@@ -158,8 +160,8 @@ bool JuiceAgent::send_custom_message(GamePacketSubType sub_type, const char* dat
         .type = GamePacketType::CrownLink,
         .sub_type = sub_type,
     }};
-    std::memcpy(packet_data.payload, data, data_size);
-    
+    std::copy_n(data, data_size, packet_data.payload);
+
     std::unique_lock lock{m_mutex};
     mark_active(lock);
     return juice_send(m_agent, (const char*)&packet_data, packet_data.header.size) == 0;
@@ -192,8 +194,8 @@ void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
         return;
     }
 
-    s64 network_timestamp;
-    std::memcpy(&network_timestamp, game_packet.data.payload, sizeof(s64));
+    const auto network_timestamp = *(s64*)game_packet.data.payload;
+
     auto timestamp = ntohll(network_timestamp);
 
     auto current_time = now_ms();

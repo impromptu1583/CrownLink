@@ -3,11 +3,12 @@
 #include <optional>
 #include <atomic>
 
+// Exponential Moving Average
 class EMA {
 public:
     EMA(s32 n, std::optional<f32> initial_value = {}) : alpha{(f32)2.0 / (n + 1)} { 
         if (initial_value) {
-            average = initial_value.value();
+            average = *initial_value;
             initialized = true;
         }
     }
