@@ -44,7 +44,7 @@ enum class TurnsPerSecond : u32 {
 namespace CrownLink {
 constexpr u32 VERSION_MAJOR = 1;
 constexpr u32 VERSION_MINOR = 1;
-constexpr u32 VERSION_BUILD = 4;
+constexpr u32 VERSION_BUILD = 5;
 }  // namespace CrownLink
 
 extern "C" {

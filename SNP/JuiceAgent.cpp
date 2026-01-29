@@ -2,6 +2,8 @@
 #include "CrowServeManager.h"
 #include "Globals.h"
 
+#include <algorithm>
+
 JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
     : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
     memset(&m_config, 0, sizeof(m_config));
@@ -119,31 +121,20 @@ bool JuiceAgent::is_active() {
 }
 
 bool JuiceAgent::send_message(const char* data, size_t size) {
+    m_quality_tracker.record_packet_sent();
+    if (m_quality_tracker.should_send_ping()) send_ping();
+
     std::unique_lock lock{m_mutex};
     mark_active(lock);
-
-    auto packet = GamePacket{m_address, data, size};
-    m_packet_count++;
-    if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
-        m_resends_requested++;
-        // spdlog::debug("[{}] we requested a packet be resent, R{}/P{}", m_address, m_resends_requested,
-        // m_packet_count);
-    }
-    if (m_packet_count > 80) {
-        spdlog::debug(
-            "[{}] Connection stats: {} packets, {} resend requests", m_address, m_packet_count, m_resends_requested
-        );
-        m_packet_count = 0;
-        m_resends_requested = 0;
-    }
 
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
-            if (juice_send(m_agent, data, size) == 0) {
-                return true;
+            if (m_quality_tracker.should_send_duplicate()) {
+                juice_send(m_agent, data, size);
+                spdlog::trace("[{}] Poor quality network, duplicate sent", m_address);
             }
-            return false;
+            return juice_send(m_agent, data, size) == 0;
         }
         case JUICE_STATE_DISCONNECTED: {
             send_connection_request();
@@ -159,6 +150,66 @@ bool JuiceAgent::send_message(const char* data, size_t size) {
     }
     spdlog::debug("[{}] Trying to send message but P2P State was {}", m_address, to_string(m_p2p_state));
     return false;
+}
+
+bool JuiceAgent::send_custom_message(GamePacketSubType sub_type, const char* data, size_t data_size) {
+    if (data_size > MAX_PAYLOAD_SIZE) return false;
+    if (m_p2p_state != JUICE_STATE_CONNECTED && m_p2p_state != JUICE_STATE_COMPLETED) return false;
+    GamePacketData packet_data{{
+        .size = u16(data_size + sizeof(GamePacketHeader)),
+        .type = GamePacketType::CrownLink,
+        .sub_type = sub_type,
+    }};
+    std::copy_n(data, data_size, packet_data.payload);
+
+    std::unique_lock lock{m_mutex};
+    mark_active(lock);
+    return juice_send(m_agent, (const char*)&packet_data, packet_data.header.size) == 0;
+}
+
+static s64 now_ms() {
+    auto now = std::chrono::steady_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch());
+    return duration.count();
+}
+
+void JuiceAgent::send_ping() {
+    auto timestamp = now_ms();
+    s64 network_timestamp = htonll(timestamp);
+    send_custom_message(
+        GamePacketSubType::Ping, reinterpret_cast<const char*>(&network_timestamp), sizeof(network_timestamp)
+    );
+}
+
+void JuiceAgent::handle_ping(const GamePacket& game_packet) {
+    auto payload_size = game_packet.data.header.size - sizeof(GamePacketHeader);
+    send_custom_message(GamePacketSubType::PingResponse, game_packet.data.payload, payload_size);
+}
+
+void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
+    auto payload_size = game_packet.data.header.size - sizeof(GamePacketHeader);
+
+    if (payload_size != sizeof(s64)) {
+        spdlog::warn("[{}] Invalid ping response payload size: {}", m_address, payload_size);
+        return;
+    }
+
+    const auto network_timestamp = *(s64*)game_packet.data.payload;
+
+    auto timestamp = ntohll(network_timestamp);
+
+    auto current_time = now_ms();
+    auto delta = current_time - timestamp;
+    if (delta < 0 || delta > 30000) {
+        spdlog::warn("[{}] Invalid ping timestamp delta: {}ms", m_address, delta);
+        return;
+    }
+    m_quality_tracker.record_ping_response(delta);
+
+    spdlog::debug(
+        "[{}] ping: {}ms, average rtt: {}ms, average quality: {}",
+        m_address, delta, m_quality_tracker.get_latency(), m_quality_tracker.get_quality()
+    );
 }
 
 void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr) {
@@ -222,12 +273,22 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     auto packet = GamePacket{parent.m_address, data, size};
-    parent.m_packet_count++;
-    if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
-        parent.m_resends_requested++;
-        // spdlog::debug("[{}] peer request we resend a packet, R{}/P{}", parent.m_address, parent.m_resends_requested,
-        // parent.m_packet_count);
+    auto& header = packet.data.header;
+    if (header.type == GamePacketType::CrownLink) {
+        if (header.sub_type == GamePacketSubType::Ping) {
+            parent.handle_ping(packet);
+        } else if (header.sub_type == GamePacketSubType::PingResponse) {
+            parent.handle_ping_response(packet);
+        }
+        return;
     }
+
+    if ((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest) {
+        parent.m_quality_tracker.record_resend_request();
+    } else {
+        parent.m_quality_tracker.record_successful_packet();
+    }
+
     if (g_context) {
         g_context->receive_queue().enqueue(packet);
         SetEvent(g_context->receive_event());

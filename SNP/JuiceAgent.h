@@ -12,6 +12,7 @@
 #include "../types.h"
 #include "Logger.h"
 #include "../CrowServe/CrowServe.h"
+#include "NetworkQuality.h"
 
 struct TurnServer {
     std::string host;
@@ -89,6 +90,7 @@ public:
     };
 
     bool send_message(const char* data, const size_t size);
+    bool send_custom_message(GamePacketSubType sub_type, const char* data, size_t data_size);
     void send_connection_request();
 
 public:
@@ -107,6 +109,10 @@ private:
     void mark_active(const std::unique_lock<std::shared_mutex>& lock) { m_last_active = std::chrono::steady_clock::now(); };
     void try_initialize(const std::unique_lock<std::shared_mutex>& lock);
     void reset_agent(const std::unique_lock<std::shared_mutex>& lock);
+
+    void send_ping();
+    void handle_ping(const GamePacket& game_packet);
+    void handle_ping_response(const GamePacket& game_packet);
 
     static void on_state_changed(juice_agent_t* agent, juice_state_t state, void* user_ptr);
     static void on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr);
@@ -131,8 +137,7 @@ private:
     std::string m_player_name;
     std::shared_mutex m_mutex;
 
-    u32 m_resends_requested = 0;
-    u32 m_packet_count = 0;
+    NetworkQualityTracker m_quality_tracker;
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };
