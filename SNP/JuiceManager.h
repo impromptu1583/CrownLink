@@ -8,6 +8,65 @@
 #include "../NetShared/StormTypes.h"
 #include "Logger.h"
 
+enum class SendStrategy{
+    PreferP2P,
+    PreferRelay,
+    Best,
+    Redundant,
+    AdaptiveRedundant,
+};
+
+class AgentPair {
+public:
+    AgentPair(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials);
+    ~AgentPair();
+
+    AgentPair(const AgentPair&) = delete;
+    AgentPair& operator=(const AgentPair&) = delete;
+
+    bool send_p2p(const NetAddress& address, const char* data, size_t size);
+    void send_connection_request(const NetAddress& address);
+
+    juice_state best_agent_state();
+
+    template <typename T>
+    void handle_crownlink_message(const T& message) {
+        JuiceAgentType type = message.header.agent_Type;
+        switch (message.header.agent_type) { 
+            case JuiceAgentType::P2POnly: {
+                m_p2p_agent->handle_crownlink_message(message);
+            } break;
+            case JuiceAgentType::RelayOnly: {
+                if (m_relay_agent) m_relay_agent->handle_crownlink_message(message);
+            } break;
+            case JuiceAgentType::RelayFallback: {
+                if (!m_legacy_agent) {
+                    spdlog::debug("[{}] Legacy agent detected, adjusting connetion mode");
+                    m_legacy_agent = true;
+                    m_p2p_agent->set_connection_type(JuiceAgentType::RelayFallback);
+                    m_relay_agent.reset();
+                }
+                m_p2p_agent->handle_crownlink_message(message);
+            } break;
+        }
+    }
+
+private:
+    bool send_with_preference(std::unique_ptr<JuiceAgent>& primary, std::unique_ptr<JuiceAgent>& backup, const char* data, size_t size);
+    bool send_redundant(const char* data, size_t size);
+    bool send_best(const char* data, size_t size);
+    bool send_legacy(const char* data, size_t size);
+    bool either_agent_state(juice_state state);
+
+private:
+    SendStrategy m_send_strategy = SendStrategy::AdaptiveRedundant;
+
+    std::unique_ptr<JuiceAgent> m_p2p_agent;
+    std::unique_ptr<JuiceAgent> m_relay_agent;
+
+    std::atomic<bool> m_legacy_agent = false;
+};
+
 class JuiceManager {
 public:
     JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);

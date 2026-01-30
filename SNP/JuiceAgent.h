@@ -14,12 +14,6 @@
 #include "../CrowServe/CrowServe.h"
 #include "NetworkQuality.h"
 
-enum class JuiceAgentType {
-    RelayFallback, // Legacy behavior
-    P2POnly,
-    RelayOnly,
-};
-
 struct TurnServer {
     std::string host;
     std::string username;
@@ -104,9 +98,11 @@ public:
 public:
     const NetAddress& address() const { return m_address; }
     juice_state state() { return m_p2p_state.load(); }
+    bool connected() { return m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED; }
     ConnectionState connection_type() { return m_connection_type.load(); }
     void set_player_name(const std::string& name);
     void set_player_name(const char game_name[128]);
+    void set_agent_type(JuiceAgentType agent_type);
     std::string& player_name();
 
     bool is_active();
@@ -132,7 +128,7 @@ private:
     bool should_use_candidate(const std::string& candidate) const;
 
 private:
-    JuiceAgentType m_agent_type;
+    std::atomic<JuiceAgentType> m_agent_type;
 
     bool m_is_relayed = false;
     bool m_is_radmin = false;

@@ -8,7 +8,7 @@ JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredenti
     : m_p2p_state{JUICE_STATE_DISCONNECTED}, m_address{address}, m_agent_type{agent_type} {
     memset(&m_config, 0, sizeof(m_config));
 
-    m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
+    m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_POLL;
     m_config.stun_server_host = ice_credentials.stun_host.c_str();
     const auto res = std::from_chars(
         ice_credentials.stun_port.data(), ice_credentials.stun_port.data() + ice_credentials.stun_port.size(),
@@ -78,7 +78,7 @@ void JuiceAgent::try_initialize(const std::unique_lock<std::shared_mutex>& lock)
                 m_last_local_sdp = sdp;
             }
 
-            auto sdp_message = P2P::JuiceLocalDescription{{m_address}, m_last_local_sdp};
+            auto sdp_message = P2P::JuiceLocalDescription{{m_address, m_agent_type}, m_last_local_sdp};
             auto& socket = g_context->crowserve().socket();
             socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
             spdlog::debug("[{}] Init - local SDP {}", m_address, m_last_local_sdp);
@@ -99,7 +99,7 @@ void JuiceAgent::reset_agent(const  std::unique_lock<std::shared_mutex>& lock) {
 }
 
 void JuiceAgent::send_connection_request() {
-    auto connection_request = P2P::ConnectionRequest{{m_address}, m_attempt_counter_ours.load()};
+    auto connection_request = P2P::ConnectionRequest{{m_address, m_agent_type}, m_attempt_counter_ours.load()};
     auto& socket = g_context->crowserve().socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, connection_request);
     spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_attempt_counter_ours.load());
@@ -113,6 +113,12 @@ void JuiceAgent::set_player_name(const std::string& name) {
 void JuiceAgent::set_player_name(const char game_name[128]) {
     std::unique_lock lock{m_mutex};
     m_player_name = std::string{game_name};
+}
+
+void JuiceAgent::set_agent_type(JuiceAgentType agent_type) {
+    std::unique_lock lock{m_mutex};
+    m_agent_type = agent_type;
+    reset_agent(lock);
 }
 
 std::string& JuiceAgent::player_name() {
@@ -259,7 +265,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
     if (parent.should_use_candidate(sdp)) {
-        auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
+        auto candidate_message = P2P::JuiceCandidate{{parent.address(), parent.m_agent_type}, sdp};
         auto& socket = g_context->crowserve().socket();
         socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
     }
@@ -267,7 +273,7 @@ void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_
 
 void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
     const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
-    auto done_message = P2P::JuiceDone{{parent.address()}};
+    auto done_message = P2P::JuiceDone{{parent.address(), parent.m_agent_type}};
     auto& socket = g_context->crowserve().socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, done_message);
     spdlog::info("[{}] Gathering done", parent.address());
