@@ -14,6 +14,12 @@
 #include "../CrowServe/CrowServe.h"
 #include "NetworkQuality.h"
 
+enum class JuiceAgentType {
+    RelayFallback, // Legacy behavior
+    P2POnly,
+    RelayOnly,
+};
+
 struct TurnServer {
     std::string host;
     std::string username;
@@ -35,7 +41,7 @@ inline std::string to_string(juice_state value) {
 
 class JuiceAgent {
 public:
-    JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials);
+    JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials, JuiceAgentType agent_type = JuiceAgentType::RelayFallback);
     ~JuiceAgent();
 
     JuiceAgent(const JuiceAgent&) = delete;
@@ -82,7 +88,9 @@ public:
             send_connection_request();
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
             spdlog::debug("[{}] Received candidate:\n{}", m_address, message.candidate);
-            juice_add_remote_candidate(m_agent, message.candidate.c_str());
+            if (should_use_candidate(message.candidate)) {
+                juice_add_remote_candidate(m_agent, message.candidate.c_str());
+            }
         } else if constexpr (std::is_same_v<T, P2P::JuiceDone>) {
             spdlog::debug("[{}] Remote gathering done", m_address);
             juice_set_remote_gathering_done(m_agent);
@@ -119,7 +127,13 @@ private:
     static void on_gathering_done(juice_agent_t* agent, void* user_ptr);
     static void on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr);
 
+    bool is_radmin_candidate(const std::string& candidate) const;
+    bool is_relay_candidate(const std::string& candidate) const;
+    bool should_use_candidate(const std::string& candidate) const;
+
 private:
+    JuiceAgentType m_agent_type;
+
     bool m_is_relayed = false;
     bool m_is_radmin = false;
     bool m_controlling = true;

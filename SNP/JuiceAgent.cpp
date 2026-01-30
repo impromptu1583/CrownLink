@@ -4,8 +4,8 @@
 
 #include <algorithm>
 
-JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials)
-    : m_p2p_state(JUICE_STATE_DISCONNECTED), m_address{address} {
+JuiceAgent::JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials, JuiceAgentType agent_type)
+    : m_p2p_state{JUICE_STATE_DISCONNECTED}, m_address{address}, m_agent_type{agent_type} {
     memset(&m_config, 0, sizeof(m_config));
 
     m_config.concurrency_mode = JUICE_CONCURRENCY_MODE_THREAD;
@@ -258,12 +258,10 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
 
 void JuiceAgent::on_candidate(juice_agent_t* agent, const char* sdp, void* user_ptr) {
     const auto& parent = *static_cast<JuiceAgent*>(user_ptr);
-    if (!std::regex_match(sdp, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"))) {
+    if (parent.should_use_candidate(sdp)) {
         auto candidate_message = P2P::JuiceCandidate{{parent.address()}, sdp};
         auto& socket = g_context->crowserve().socket();
         socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, candidate_message);
-    } else {
-        spdlog::info("[{}] skipped sending radmin candidate: {}", parent.address(), sdp);
     }
 }
 
@@ -298,4 +296,20 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
         g_context->receive_queue().enqueue(packet);
         SetEvent(g_context->receive_event());
     }
+}
+
+bool JuiceAgent::is_radmin_candidate(const std::string& candidate) const {
+    return std::regex_match(candidate, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"));
+}
+
+bool JuiceAgent::is_relay_candidate(const std::string& candidate) const {
+    return candidate.find("typ relay") != std::string::npos;
+}
+
+bool JuiceAgent::should_use_candidate(const std::string& candidate) const {
+    if (is_radmin_candidate(candidate)) return false;
+    auto is_relay = is_relay_candidate(candidate);
+    if (m_agent_type == JuiceAgentType::RelayOnly) return is_relay;
+    if (m_agent_type == JuiceAgentType::P2POnly) return !is_relay;
+    return true;
 }
