@@ -72,32 +72,37 @@ void JuiceAgent::try_initialize(const std::unique_lock<std::shared_mutex>& lock)
             [[fallthrough]];
 
         case JUICE_STATE_DISCONNECTED: {
-            char sdp[JUICE_MAX_SDP_STRING_LEN]{};
-            juice_get_local_description(m_agent, sdp, sizeof(sdp));
+            if (m_last_local_sdp.empty()) {
+                char sdp[JUICE_MAX_SDP_STRING_LEN]{};
+                juice_get_local_description(m_agent, sdp, sizeof(sdp));
+                m_last_local_sdp = sdp;
+            }
 
-            auto sdp_message = P2P::JuiceLocalDescription{{m_address}, sdp};
+            auto sdp_message = P2P::JuiceLocalDescription{{m_address}, m_last_local_sdp};
             auto& socket = g_context->crowserve().socket();
             socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, sdp_message);
-            spdlog::debug("[{}] Init - local SDP {}", m_address, sdp);
+            spdlog::debug("[{}] Init - local SDP {}", m_address, m_last_local_sdp);
             juice_gather_candidates(m_agent);
         }
     }
 }
 
 void JuiceAgent::reset_agent(const  std::unique_lock<std::shared_mutex>& lock) {
-    m_remote_description_set = false;
     spdlog::debug("[{}] resetting agent", m_address);
     juice_destroy(m_agent);
+    m_attempt_counter_ours++;
+    m_last_local_sdp.clear();
+    m_last_remote_sdp.clear();
     m_p2p_state = JUICE_STATE_DISCONNECTED;
     m_agent = juice_create(&m_config);
     spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state.load()));
 }
 
 void JuiceAgent::send_connection_request() {
-    auto ping = P2P::ConnectionRequest{{m_address}, m_connreq_count.load()};
+    auto connection_request = P2P::ConnectionRequest{{m_address}, m_attempt_counter_ours.load()};
     auto& socket = g_context->crowserve().socket();
-    socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, ping);
-    spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_connreq_count.load());
+    socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, connection_request);
+    spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_attempt_counter_ours.load());
 }
 
 void JuiceAgent::set_player_name(const std::string& name) {
@@ -246,7 +251,7 @@ void JuiceAgent::on_state_changed(juice_agent_t* agent, juice_state_t state, voi
             spdlog::error("[{}] Could not establish P2P connection", parent.address());
         } break;
         case JUICE_STATE_GATHERING: {
-            parent.m_connreq_count++;
+            parent.m_attempt_counter_ours++;
         } break;
     }
 }

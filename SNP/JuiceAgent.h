@@ -48,19 +48,17 @@ public:
         if constexpr (std::is_same_v<T, P2P::ConnectionRequest>) {
             spdlog::debug(
                 "[{}] Received Connection Request, counter: {}, ours: {}, processed {} state: {}", m_address,
-                message.counter, m_connreq_count.load(), m_connreq_processed, to_string(m_p2p_state)
+                message.counter, m_attempt_counter_ours.load(), m_attempt_counter_theirs, to_string(m_p2p_state)
             );
-            if (m_connreq_processed > message.counter) {
-                spdlog::debug("[{}] counter lower than processed, old message received?", m_address);
+            if (m_p2p_state == JUICE_STATE_FAILED) reset_agent(lock);
+            if (m_attempt_counter_theirs > message.counter) {
+                spdlog::debug("[{}] Counter lower than processed, old message received?", m_address);
                 return;
             }
-            if (m_connreq_processed < message.counter) {
-                // this is a new conn request
-                spdlog::debug("[{}] counters didn't match, resetting", m_address);
-                reset_agent(lock);
-                m_connreq_processed = message.counter;
-            } else if (m_p2p_state == JUICE_STATE_FAILED) {
-                reset_agent(lock);
+            if (m_attempt_counter_theirs < message.counter) {
+                spdlog::debug("[{}] New connection attempt from peer, resetting session", m_address);
+                if (m_p2p_state > JUICE_STATE_DISCONNECTED) reset_agent(lock);
+                m_attempt_counter_theirs = message.counter;
             }
             if (!m_controlling) {
                 send_connection_request();  // no u
@@ -69,17 +67,19 @@ public:
             try_initialize(lock);
         } else if constexpr (std::is_same_v<T, P2P::JuiceLocalDescription>) {
             spdlog::debug("[{}] Received remote description:\n{}", m_address, message.sdp);
-            if (m_remote_description_set) {
-                spdlog::debug("[{}] Remote description was set previously, resetting", m_address);
-                reset_agent(lock);
-                m_connreq_count++;
-                send_connection_request();
+
+            if (m_last_remote_sdp.empty()) {
+                m_last_remote_sdp = message.sdp;
+                juice_set_remote_description(m_agent, message.sdp.c_str());
+                try_initialize(lock);
                 return;
             }
-
-            m_remote_description_set = true;
-            juice_set_remote_description(m_agent, message.sdp.c_str());
-            try_initialize(lock);
+            
+            if (m_last_remote_sdp == message.sdp) return;  // Duplicate request
+            
+            spdlog::debug("[{}] Received remote sdp is different from previously set, resetting", m_address);
+            reset_agent(lock);
+            send_connection_request();
         } else if constexpr (std::is_same_v<T, P2P::JuiceCandidate>) {
             spdlog::debug("[{}] Received candidate:\n{}", m_address, message.candidate);
             juice_add_remote_candidate(m_agent, message.candidate.c_str());
@@ -122,13 +122,15 @@ private:
 private:
     bool m_is_relayed = false;
     bool m_is_radmin = false;
-    bool m_remote_description_set = false;
     bool m_controlling = true;
+
+    std::string m_last_local_sdp;
+    std::string m_last_remote_sdp;
 
     std::atomic<ConnectionState> m_connection_type{ConnectionState::Standard};
     std::atomic<juice_state> m_p2p_state = JUICE_STATE_DISCONNECTED;
-    std::atomic<u32> m_connreq_count = get_tick_count();
-    u32 m_connreq_processed = 0;
+    std::atomic<u32> m_attempt_counter_ours = get_tick_count();
+    u32 m_attempt_counter_theirs = 0;
 
     NetAddress m_address;
     juice_config_t m_config;
