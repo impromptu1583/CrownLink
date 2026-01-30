@@ -24,14 +24,18 @@ public:
     AgentPair(const AgentPair&) = delete;
     AgentPair& operator=(const AgentPair&) = delete;
 
-    bool send_p2p(const NetAddress& address, const char* data, size_t size);
-    void send_connection_request(const NetAddress& address);
+    bool send_p2p(const char* data, size_t size);
+    void send_connection_request();
+    void set_player_name(const std::string& name);
+
+    bool is_active();
+    const NetAddress& address() const { return m_address; }
 
     juice_state best_agent_state();
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
-        JuiceAgentType type = message.header.agent_Type;
+        JuiceAgentType type = message.header.agent_type;
         switch (message.header.agent_type) { 
             case JuiceAgentType::P2POnly: {
                 m_p2p_agent->handle_crownlink_message(message);
@@ -43,7 +47,7 @@ public:
                 if (!m_legacy_agent) {
                     spdlog::debug("[{}] Legacy agent detected, adjusting connetion mode");
                     m_legacy_agent = true;
-                    m_p2p_agent->set_connection_type(JuiceAgentType::RelayFallback);
+                    m_p2p_agent->set_agent_type(JuiceAgentType::RelayFallback);
                     m_relay_agent.reset();
                 }
                 m_p2p_agent->handle_crownlink_message(message);
@@ -59,18 +63,18 @@ private:
     bool either_agent_state(juice_state state);
 
 private:
+    NetAddress m_address;
     SendStrategy m_send_strategy = SendStrategy::AdaptiveRedundant;
 
     std::unique_ptr<JuiceAgent> m_p2p_agent;
     std::unique_ptr<JuiceAgent> m_relay_agent;
-
     std::atomic<bool> m_legacy_agent = false;
 };
 
 class JuiceManager {
 public:
-    JuiceAgent* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
-    JuiceAgent& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
+    AgentPair* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
+    AgentPair& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
 
     void clear_inactive_agents();
     void disconnect_if_inactive(const NetAddress& address);
@@ -93,7 +97,7 @@ public:
     std::mutex& mutex() { return m_mutex; }
 
 private:
-    std::unordered_map<NetAddress, std::unique_ptr<JuiceAgent>> m_agents;
+    std::unordered_map<NetAddress, std::unique_ptr<AgentPair>> m_agents;
     std::mutex m_mutex;
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
 };

@@ -237,12 +237,12 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
                         } break;
                         case ConnectionState::Radmin: {
                             has_text_prefix = true;
-                            static constexpr char SadEmoji = 131;
+                            static constexpr char SadEmoji = static_cast<char>(131);
                             ss << std::format("[Radmin {}]", SadEmoji);
                         } break;
                         default: {
                             has_text_prefix = true;
-                            static constexpr char DoubleArrow = 187;
+                            static constexpr char DoubleArrow = static_cast<char>(187);
                             ss << DoubleArrow;
                         } break;
                     }

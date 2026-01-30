@@ -3,6 +3,7 @@
 AgentPair::AgentPair(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials) {
     m_p2p_agent = std::make_unique<JuiceAgent>(address, ice_credentials, JuiceAgentType::P2POnly);
     m_relay_agent = std::make_unique<JuiceAgent>(address, ice_credentials, JuiceAgentType::RelayOnly);
+    m_address = address;
 }
 
 AgentPair::~AgentPair() {}
@@ -27,6 +28,8 @@ bool AgentPair::send_redundant(const char* data, size_t size) {
     if (m_relay_agent && m_relay_agent->connected()) {
         relay_sent = m_relay_agent->send_message(data, size);
     }
+    spdlog::debug("[{}] Sent redundant, p2p successful: {} relay successful: {}", 
+        address(), p2p_sent, relay_sent);
     return p2p_sent || relay_sent;
 }
 
@@ -42,7 +45,7 @@ bool AgentPair::send_legacy(const char* data, size_t size) {
     return false;
 }
 
-bool AgentPair::send_p2p(const NetAddress& address, const char* data, size_t size) {
+bool AgentPair::send_p2p(const char* data, size_t size) {
     if (m_legacy_agent) return send_legacy(data, size);
 
     switch (m_send_strategy) {
@@ -64,11 +67,24 @@ bool AgentPair::send_p2p(const NetAddress& address, const char* data, size_t siz
             return send_redundant(data, size);
         } break;
     }
+    return false;
 }
 
-void AgentPair::send_connection_request(const NetAddress& address) {
+void AgentPair::send_connection_request() {
     if (m_p2p_agent) m_p2p_agent->send_connection_request();
-    if (m_relay_agent) m_relay_agent->send_connection_request();
+    if (!m_legacy_agent && m_relay_agent) m_relay_agent->send_connection_request();
+}
+
+void AgentPair::set_player_name(const std::string& name) {
+    // TODO: Move name tracking to AgentPair
+    if (m_p2p_agent) m_p2p_agent->set_player_name(name);
+    if (m_relay_agent) m_relay_agent->set_player_name(name);
+}
+
+bool AgentPair::is_active() {
+    auto p2p_active = m_p2p_agent && m_p2p_agent->is_active();
+    auto relay_active = m_relay_agent && m_relay_agent->is_active();
+    return p2p_active || relay_active;
 }
 
 bool AgentPair::either_agent_state(juice_state state) {
@@ -86,19 +102,19 @@ juice_state AgentPair::best_agent_state() {
     return JUICE_STATE_FAILED;
 }
 
-JuiceAgent* JuiceManager::maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock) {
+AgentPair* JuiceManager::maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock) {
     if (const auto it = m_agents.find(address); it != m_agents.end()) {
         return it->second.get();
     }
     return nullptr;
 }
 
-JuiceAgent& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock) {
+AgentPair& JuiceManager::ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock) {
     if (const auto it = m_agents.find(address); it != m_agents.end()) {
         return *it->second;
     }
 
-    const auto [new_it, _] = m_agents.emplace(address, std::make_unique<JuiceAgent>(address, m_ice_credentials));
+    const auto [new_it, _] = m_agents.emplace(address, std::make_unique<AgentPair>(address, m_ice_credentials));
     return *new_it->second;
 }
 
@@ -124,7 +140,7 @@ void JuiceManager::disconnect_if_inactive(const NetAddress& address) {
 bool JuiceManager::send_p2p(const NetAddress& address, const char* data, size_t size) {
     std::lock_guard lock{m_mutex};
     auto& agent = ensure_agent(address, lock);
-    auto success = agent.send_message(data, size);
+    auto success = agent.send_p2p(data, size);
     return success;
 }
 
@@ -142,8 +158,8 @@ void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& 
 void JuiceManager::send_all(const char* data, const size_t size) {
     std::lock_guard lock{m_mutex};
     for (auto& [name, agent] : m_agents) {
-        spdlog::debug("Sending message peer {} with status: {}\n", agent->address(), to_string(agent->state()));
-        agent->send_message(data, size);
+        spdlog::debug("Sending message peer {} with status: {}\n", agent->address(), to_string(agent->best_agent_state()));
+        agent->send_p2p(data, size);
     }
 }
 
@@ -151,13 +167,10 @@ juice_state JuiceManager::lobby_agent_state(const AdFile& ad) {
     std::lock_guard lock{m_mutex};
     auto& agent = ensure_agent(ad.game_info.host, lock);
     agent.set_player_name(ad.game_info.game_name);
-    return agent.state();
+    return agent.best_agent_state();
 }
 
 ConnectionState JuiceManager::final_connection_type(const NetAddress& address) {
-    std::lock_guard lock{m_mutex};
-    if (auto agent = maybe_get_agent(address, lock)) {
-        return agent->connection_type();
-    }
+    // TODO: Revisit this
     return ConnectionState::Standard;
 }

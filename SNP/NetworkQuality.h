@@ -9,9 +9,9 @@ static constexpr f64 DUPLICATE_SEND_THRESHOLD = 0.7;
 class NetworkQualityTracker {
 public:
     void record_packet_sent() { ++m_send_count; }
-    void record_successful_packet() { m_average_quality.update(1.0); }
-    void record_resend_request() { m_average_quality.update(0.0); }
-    void record_ping_response(s64 rtt_ms) { m_average_latency.update(rtt_ms); }
+    void record_successful_packet() { m_average_quality.update(1.0f); }
+    void record_resend_request() { m_average_quality.update(0.0f); }
+    void record_ping_response(s64 rtt_ms) { m_average_latency.update(static_cast<f32>(rtt_ms)); }
 
     bool should_send_ping() const { return m_send_count % PING_EVERY == 0; }
     bool should_send_duplicate() const;
@@ -21,7 +21,6 @@ public:
       
 private:
     EMA m_average_latency{LATENCY_SAMPLES};
-    EMA m_average_quality{QUALITY_SAMPLES, 1.0};
+    EMA m_average_quality{QUALITY_SAMPLES, 1.0f};
     u32 m_send_count = 0;
-
 };
