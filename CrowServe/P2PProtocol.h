@@ -5,8 +5,8 @@
 
 enum class JuiceAgentType {
     RelayFallback,  // Legacy behavior
-    P2POnly,
-    RelayOnly,
+    P2P,
+    Relay,
 };
 
 namespace P2P {

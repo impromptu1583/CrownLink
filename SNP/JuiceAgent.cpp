@@ -291,7 +291,7 @@ bool JuiceAgent::is_relay_candidate(const std::string& candidate) const {
 bool JuiceAgent::should_use_candidate(const std::string& candidate) const {
     if (is_radmin_candidate(candidate)) return false;
     auto is_relay = is_relay_candidate(candidate);
-    if (m_agent_type == JuiceAgentType::RelayOnly) return is_relay;
-    if (m_agent_type == JuiceAgentType::P2POnly) return !is_relay;
+    if (m_agent_type == JuiceAgentType::Relay) return is_relay;
+    if (m_agent_type == JuiceAgentType::P2P) return !is_relay;
     return true;
 }

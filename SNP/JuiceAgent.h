@@ -38,8 +38,8 @@ inline std::string to_string(juice_state value) {
 inline std::string to_string(JuiceAgentType type) {
     switch (type) {
         case JuiceAgentType::RelayFallback: return "RelayFallback";
-        case JuiceAgentType::P2POnly: return "P2POnly";
-        case JuiceAgentType::RelayOnly: return "RelayOnly";
+        case JuiceAgentType::P2P: return "P2P";
+        case JuiceAgentType::Relay: return "Relay";
     }
     return std::to_string((s32)type);
 }

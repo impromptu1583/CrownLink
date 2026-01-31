@@ -64,10 +64,10 @@ public:
     template <typename T>
     void handle_crownlink_message(const T& message) {
         switch (message.header.agent_type) { 
-            case JuiceAgentType::P2POnly: {
+            case JuiceAgentType::P2P: {
                 m_p2p_agent->handle_crownlink_message(message);
             } break;
-            case JuiceAgentType::RelayOnly: {
+            case JuiceAgentType::Relay: {
                 if (m_relay_agent) m_relay_agent->handle_crownlink_message(message);
             } break;
             case JuiceAgentType::RelayFallback: {

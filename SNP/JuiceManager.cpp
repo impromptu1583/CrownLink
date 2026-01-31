@@ -1,8 +1,8 @@
 #include "JuiceManager.h"
 
 AgentPair::AgentPair(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials) {
-    m_p2p_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::P2POnly);
-    m_relay_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::RelayOnly);
+    m_p2p_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::P2P);
+    m_relay_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::Relay);
     m_address = address;
 }
 
@@ -115,11 +115,11 @@ void AgentPair::send_connection_request() {
 
 void AgentPair::send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size) {
     switch (agent_type) {
-        case JuiceAgentType::P2POnly:
+        case JuiceAgentType::P2P:
         case JuiceAgentType::RelayFallback:
             if (m_p2p_agent) m_p2p_agent->send_custom_message(sub_type, data, data_size);
             break;
-        case JuiceAgentType::RelayOnly:
+        case JuiceAgentType::Relay:
             if (m_relay_agent) m_relay_agent->send_custom_message(sub_type, data, data_size);
             break;
     }
