@@ -110,10 +110,7 @@ public:
     bool connected() { return m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED; }
     f32 average_latency() { return m_average_latency; }
     ConnectionState connection_type() { return m_connection_type.load(); }
-    void set_player_name(const std::string& name);
-    void set_player_name(const char game_name[128]);
     void set_agent_type(JuiceAgentType agent_type);
-    std::string& player_name();
 
     bool is_active();
     void send_ping();
@@ -157,7 +154,6 @@ private:
     juice_config_t m_config;
     juice_turn_server m_servers[2];
     juice_agent_t* m_agent;
-    std::string m_player_name;
     std::shared_mutex m_mutex;
 
     EMA m_average_latency{LATENCY_SAMPLES};

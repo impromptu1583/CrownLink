@@ -113,12 +113,6 @@ void AgentPair::send_connection_request() {
     if (!m_legacy_agent && m_relay_agent) m_relay_agent->send_connection_request();
 }
 
-void AgentPair::set_player_name(const std::string& name) {
-    // TODO: Move name tracking to AgentPair
-    if (m_p2p_agent) m_p2p_agent->set_player_name(name);
-    if (m_relay_agent) m_relay_agent->set_player_name(name);
-}
-
 void AgentPair::send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size) {
     switch (agent_type) {
         case JuiceAgentType::P2POnly:
@@ -265,7 +259,6 @@ void JuiceManager::send_all(const char* data, const size_t size) {
 juice_state JuiceManager::lobby_agent_state(const AdFile& ad) {
     std::lock_guard lock{m_mutex};
     auto& agent = ensure_agent(ad.game_info.host, lock);
-    agent.set_player_name(ad.game_info.game_name);
     return agent.best_agent_state();
 }
 

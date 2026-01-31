@@ -105,25 +105,10 @@ void JuiceAgent::send_connection_request() {
     spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_attempt_counter_ours.load());
 }
 
-void JuiceAgent::set_player_name(const std::string& name) {
-    std::unique_lock lock{m_mutex};
-    m_player_name = name;
-}
-
-void JuiceAgent::set_player_name(const char game_name[128]) {
-    std::unique_lock lock{m_mutex};
-    m_player_name = std::string{game_name};
-}
-
 void JuiceAgent::set_agent_type(JuiceAgentType agent_type) {
     std::unique_lock lock{m_mutex};
     m_agent_type = agent_type;
     reset_agent(lock);
-}
-
-std::string& JuiceAgent::player_name() {
-    std::shared_lock lock{m_mutex};
-    return m_player_name;
 }
 
 bool JuiceAgent::is_active() {

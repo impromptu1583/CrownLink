@@ -47,7 +47,6 @@ public:
 
     bool send_p2p(const char* data, size_t size);
     void send_connection_request();
-    void set_player_name(const std::string& name);
     void send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size);
     void update_quality(bool resend_requested);
 
