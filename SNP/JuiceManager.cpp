@@ -220,12 +220,13 @@ void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& 
 
 void JuiceManager::queue_custom_packet(const CustomPacketData& packet) {
     m_custom_packet_queue.enqueue(packet);
+    SetEvent(m_custom_packet_ready);
 }
 
 void JuiceManager::start_custom_packet_thread() {
     m_custom_packet_thread_running = true;
     m_custom_packet_thread = std::jthread([this](std::stop_token stop) {
-        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_ABOVE_NORMAL);
 
         CustomPacketData packet;
         while (!stop.stop_requested() && m_custom_packet_thread_running) {
@@ -238,7 +239,7 @@ void JuiceManager::start_custom_packet_thread() {
                     );
                 }
             } else {
-                std::this_thread::sleep_for(std::chrono::microseconds(10));
+                WaitForSingleObject(m_custom_packet_ready, 5000);
             }
         }
     });
@@ -246,6 +247,7 @@ void JuiceManager::start_custom_packet_thread() {
 
 void JuiceManager::stop_custom_packet_thread() {
     m_custom_packet_thread_running = false;
+    SetEvent(m_custom_packet_ready);
     if (m_custom_packet_thread.joinable()) {
         m_custom_packet_thread.request_stop();
         m_custom_packet_thread.join();

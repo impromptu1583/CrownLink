@@ -1,5 +1,5 @@
 #pragma once
-#include "../Ema.h"
+#include "Ema.h"
 
 static constexpr auto PING_EVERY = 15;
 static constexpr auto LATENCY_SAMPLES = 10;

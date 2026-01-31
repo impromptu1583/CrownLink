@@ -58,7 +58,6 @@ public:
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
-        JuiceAgentType type = message.header.agent_type;
         switch (message.header.agent_type) { 
             case JuiceAgentType::P2POnly: {
                 m_p2p_agent->handle_crownlink_message(message);
@@ -101,8 +100,14 @@ private:
 
 class JuiceManager {
 public:
-    JuiceManager() { start_custom_packet_thread(); }
-    ~JuiceManager() { stop_custom_packet_thread(); }
+    JuiceManager() {
+        m_custom_packet_ready = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        start_custom_packet_thread();
+    }
+    ~JuiceManager() {
+        stop_custom_packet_thread();
+        CloseHandle(m_custom_packet_ready);
+    }
 
     JuiceManager(const JuiceManager&) = delete;
     JuiceManager& operator=(const JuiceManager&) = delete;
@@ -138,8 +143,9 @@ private:
     std::unordered_map<NetAddress, std::unique_ptr<AgentPair>> m_agents;
     std::mutex m_mutex;
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
-    
+
     moodycamel::ConcurrentQueue<CustomPacketData> m_custom_packet_queue;
+    HANDLE m_custom_packet_ready;
     std::jthread m_custom_packet_thread;
     std::atomic<bool> m_custom_packet_thread_running = false;
 };
