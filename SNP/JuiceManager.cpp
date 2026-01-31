@@ -1,8 +1,8 @@
 #include "JuiceManager.h"
 
 AgentPair::AgentPair(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials) {
-    m_p2p_agent = std::make_unique<JuiceAgent>(address, ice_credentials, JuiceAgentType::P2POnly);
-    m_relay_agent = std::make_unique<JuiceAgent>(address, ice_credentials, JuiceAgentType::RelayOnly);
+    m_p2p_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::P2POnly);
+    m_relay_agent = std::make_unique<JuiceAgent>(*this, address, ice_credentials, JuiceAgentType::RelayOnly);
     m_address = address;
 }
 
@@ -28,8 +28,6 @@ bool AgentPair::send_redundant(const char* data, size_t size) {
     if (m_relay_agent && m_relay_agent->connected()) {
         relay_sent = m_relay_agent->send_message(data, size);
     }
-    spdlog::debug("[{}] Sent redundant, p2p successful: {} relay successful: {}", 
-        address(), p2p_sent, relay_sent);
     return p2p_sent || relay_sent;
 }
 
@@ -47,7 +45,10 @@ bool AgentPair::send_legacy(const char* data, size_t size) {
 
 bool AgentPair::send_p2p(const char* data, size_t size) {
     m_send_counter++;
-    if (m_send_counter % PING_EVERY == 0) send_pings();
+    if (m_send_counter % PING_EVERY == 0) {
+        send_pings();
+        spdlog::debug("[{}] Average quality: {}", m_address, (f32)m_average_quality);
+    }
     if (m_legacy_agent) return send_legacy(data, size);
 
     switch (m_send_strategy) {
@@ -92,6 +93,14 @@ void AgentPair::send_custom_packet(JuiceAgentType agent_type, GamePacketSubType 
         case JuiceAgentType::RelayOnly:
             if (m_relay_agent) m_relay_agent->send_custom_message(sub_type, data, data_size);
             break;
+    }
+}
+
+void AgentPair::update_quality(bool resend_requested) {
+    if (resend_requested) {
+        m_average_quality.update(0.0f);
+    } else {
+        m_average_quality.update(1.0f);
     }
 }
 

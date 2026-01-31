@@ -42,9 +42,11 @@ inline std::string to_string(JuiceAgentType type) {
     return std::to_string((s32)type);
 }
 
+class AgentPair;
+
 class JuiceAgent {
 public:
-    JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials, JuiceAgentType agent_type = JuiceAgentType::RelayFallback);
+    JuiceAgent(AgentPair& parent, const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials, JuiceAgentType agent_type = JuiceAgentType::RelayFallback);
     ~JuiceAgent();
 
     JuiceAgent(const JuiceAgent&) = delete;
@@ -103,8 +105,6 @@ public:
     bool send_message(const char* data, const size_t size);
     bool send_custom_message(GamePacketSubType sub_type, const char* data, size_t data_size);
     void send_connection_request();
-
-public:
     const NetAddress& address() const { return m_address; }
     juice_state state() { return m_p2p_state.load(); }
     bool connected() { return m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED; }
@@ -137,6 +137,7 @@ private:
     bool should_use_candidate(const std::string& candidate) const;
 
 private:
+    AgentPair& m_parent;
     std::atomic<JuiceAgentType> m_agent_type;
 
     bool m_is_relayed = false;
@@ -158,7 +159,7 @@ private:
     std::string m_player_name;
     std::shared_mutex m_mutex;
 
-    NetworkQualityTracker m_quality_tracker;
+    EMA m_average_latency{LATENCY_SAMPLES};
 
     std::chrono::steady_clock::time_point m_last_active = std::chrono::steady_clock::now();
 };

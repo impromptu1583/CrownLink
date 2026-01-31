@@ -7,6 +7,7 @@
 #include "../types.h"
 #include "../NetShared/StormTypes.h"
 #include "Logger.h"
+#include "../NetworkQuality.h"
 
 #include <concurrentqueue.h>
 
@@ -48,6 +49,7 @@ public:
     void send_connection_request();
     void set_player_name(const std::string& name);
     void send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size);
+    void update_quality(bool resend_requested);
 
     bool is_active();
     const NetAddress& address() const { return m_address; }
@@ -88,6 +90,7 @@ private:
     NetAddress m_address;
     SendStrategy m_send_strategy = SendStrategy::AdaptiveRedundant;
     u32 m_send_counter = 0;
+    EMA m_average_quality{QUALITY_SAMPLES, 1.0f};
 
     std::unique_ptr<JuiceAgent> m_p2p_agent;
     std::unique_ptr<JuiceAgent> m_relay_agent;
