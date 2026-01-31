@@ -108,10 +108,10 @@ public:
     bool send_custom_message(GamePacketSubType sub_type, const char* data, size_t data_size);
     void send_connection_request();
     const NetAddress& address() const { return m_address; }
-    juice_state state() { return m_p2p_state.load(); }
+    juice_state state() { return m_p2p_state; }
     bool connected() { return m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED; }
     f32 average_latency() { return m_average_latency; }
-    ConnectionState connection_type() { return m_connection_type.load(); }
+    ConnectionState connection_type() { return m_connection_type; }
     void set_agent_type(JuiceAgentType agent_type);
 
     bool is_active();

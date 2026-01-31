@@ -95,11 +95,11 @@ void JuiceAgent::reset_agent(const  std::unique_lock<std::shared_mutex>& lock) {
     m_last_remote_sdp.clear();
     m_p2p_state = JUICE_STATE_DISCONNECTED;
     m_agent = juice_create(&m_config);
-    spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state.load()));
+    spdlog::debug("[{}] P2P agent new state: {}", m_address, to_string(m_p2p_state));
 }
 
 void JuiceAgent::send_connection_request() {
-    auto connection_request = P2P::ConnectionRequest{{m_address, m_agent_type}, m_attempt_counter_ours.load()};
+    auto connection_request = P2P::ConnectionRequest{{m_address, m_agent_type}, m_attempt_counter_ours};
     auto& socket = g_context->crowserve().socket();
     socket.send_messages(CrowServe::ProtocolType::ProtocolP2P, connection_request);
     spdlog::debug("[{}] Sent connection request, counter: {}", m_address, m_attempt_counter_ours.load());
