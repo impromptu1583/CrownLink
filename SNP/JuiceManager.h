@@ -81,8 +81,10 @@ public:
 private:
     bool send_with_preference(std::unique_ptr<JuiceAgent>& primary, std::unique_ptr<JuiceAgent>& backup, const char* data, size_t size);
     bool send_redundant(const char* data, size_t size);
+    std::unique_ptr<JuiceAgent>& get_best();
     bool send_best(const char* data, size_t size);
     bool send_legacy(const char* data, size_t size);
+    bool should_send_redundant();
     bool either_agent_state(juice_state state);
     void send_pings();
 

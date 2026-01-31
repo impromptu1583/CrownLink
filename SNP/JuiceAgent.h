@@ -108,6 +108,7 @@ public:
     const NetAddress& address() const { return m_address; }
     juice_state state() { return m_p2p_state.load(); }
     bool connected() { return m_p2p_state == JUICE_STATE_CONNECTED || m_p2p_state == JUICE_STATE_COMPLETED; }
+    f32 average_latency() { return m_average_latency; }
     ConnectionState connection_type() { return m_connection_type.load(); }
     void set_player_name(const std::string& name);
     void set_player_name(const char game_name[128]);

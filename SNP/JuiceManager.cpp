@@ -31,8 +31,22 @@ bool AgentPair::send_redundant(const char* data, size_t size) {
     return p2p_sent || relay_sent;
 }
 
+std::unique_ptr<JuiceAgent>& AgentPair::get_best() {
+    if (m_legacy_agent) return m_p2p_agent;
+    if (!m_relay_agent || !m_relay_agent->connected()) return m_p2p_agent;
+    if (!m_p2p_agent || !m_p2p_agent->connected()) return m_relay_agent;
+
+    auto p2p_rtt = m_p2p_agent->average_latency();
+    auto relay_rtt = m_relay_agent->average_latency();
+    auto rtt_delta = p2p_rtt - relay_rtt;
+    if (std::abs(rtt_delta) < LATENCY_THRESHOLD) return m_p2p_agent;
+    if (rtt_delta > 0) return m_relay_agent;
+    return m_p2p_agent;
+}
+
 bool AgentPair::send_best(const char* data, size_t size) {
-    // TODO
+    auto& best_agent = get_best();
+    if (best_agent) return best_agent->send_message(data, size);
     return false;
 }
 
@@ -41,6 +55,26 @@ bool AgentPair::send_legacy(const char* data, size_t size) {
         return m_p2p_agent->send_message(data, size);
     }
     return false;
+}
+
+bool AgentPair::should_send_redundant() {
+    if (m_legacy_agent) return false;
+    if (!m_p2p_agent || !m_p2p_agent->connected() || 
+        !m_relay_agent || !m_relay_agent->connected()) return false;
+
+    auto p2p_rtt = m_p2p_agent->average_latency();
+    auto relay_rtt = m_relay_agent->average_latency();
+
+    // Don't send redundant if either connection is very high latency as it's likely counterproductive
+    if (p2p_rtt > MAXIMUM_LATENCY_FOR_REDUNDANT || relay_rtt > MAXIMUM_LATENCY_FOR_REDUNDANT) return false;
+
+    if (m_average_quality > DUPLICATE_SEND_THRESHOLD) return false;
+    
+    spdlog::debug(
+        "[{}] Sending redundant. Quality: {}, RTT[p2p:{}, relay{}]",
+        m_address, (f32)m_average_quality, p2p_rtt, relay_rtt
+    );
+    return true;
 }
 
 bool AgentPair::send_p2p(const char* data, size_t size) {
@@ -59,15 +93,16 @@ bool AgentPair::send_p2p(const char* data, size_t size) {
             return send_with_preference(m_relay_agent, m_p2p_agent, data, size);
         } break;
         case SendStrategy::Best: {
-            // TODO switch to send_best when implemented
-            return send_redundant(data, size);
+            return send_best(data, size);
         } break;
         case SendStrategy::Redundant: {
             return send_redundant(data, size);
         } break;
         case SendStrategy::AdaptiveRedundant: {
-            // TODO send_best or send_redundant depending on quality
-            return send_redundant(data, size);
+            if (should_send_redundant()) {
+                return send_redundant(data, size);
+            }
+            return send_best(data, size);
         } break;
     }
     return false;
