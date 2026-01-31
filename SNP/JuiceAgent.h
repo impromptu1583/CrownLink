@@ -12,7 +12,9 @@
 #include "../types.h"
 #include "Logger.h"
 #include "../CrowServe/CrowServe.h"
-#include "NetworkQuality.h"
+#include "Ema.h"
+
+static constexpr auto LATENCY_SAMPLES = 10;
 
 struct TurnServer {
     std::string host;
