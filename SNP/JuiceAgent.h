@@ -33,6 +33,15 @@ inline std::string to_string(juice_state value) {
     return std::to_string((s32)value);
 }
 
+inline std::string to_string(JuiceAgentType type) {
+    switch (type) {
+        case JuiceAgentType::RelayFallback: return "RelayFallback";
+        case JuiceAgentType::P2POnly: return "P2POnly";
+        case JuiceAgentType::RelayOnly: return "RelayOnly";
+    }
+    return std::to_string((s32)type);
+}
+
 class JuiceAgent {
 public:
     JuiceAgent(const NetAddress& address, CrownLinkProtocol::IceCredentials& m_ice_credentials, JuiceAgentType agent_type = JuiceAgentType::RelayFallback);
@@ -106,6 +115,7 @@ public:
     std::string& player_name();
 
     bool is_active();
+    void send_ping();
 
     void set_connection_type(ConnectionState ct) { m_connection_type = ct; }
 
@@ -114,7 +124,6 @@ private:
     void try_initialize(const std::unique_lock<std::shared_mutex>& lock);
     void reset_agent(const std::unique_lock<std::shared_mutex>& lock);
 
-    void send_ping();
     void handle_ping(const GamePacket& game_packet);
     void handle_ping_response(const GamePacket& game_packet);
 

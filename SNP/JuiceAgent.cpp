@@ -133,7 +133,6 @@ bool JuiceAgent::is_active() {
 
 bool JuiceAgent::send_message(const char* data, size_t size) {
     m_quality_tracker.record_packet_sent();
-    if (m_quality_tracker.should_send_ping()) send_ping();
 
     std::unique_lock lock{m_mutex};
     mark_active(lock);
@@ -194,7 +193,10 @@ void JuiceAgent::send_ping() {
 
 void JuiceAgent::handle_ping(const GamePacket& game_packet) {
     auto payload_size = game_packet.data.header.size - sizeof(GamePacketHeader);
-    send_custom_message(GamePacketSubType::PingResponse, game_packet.data.payload, payload_size);
+    CustomPacketData response{
+        m_address, m_agent_type, GamePacketSubType::PingResponse, game_packet.data.payload, payload_size
+    };
+    g_context->juice_manager().queue_custom_packet(response);
 }
 
 void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
@@ -218,8 +220,8 @@ void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
     m_quality_tracker.record_ping_response(delta);
 
     spdlog::debug(
-        "[{}] ping: {}ms, average rtt: {}ms, average quality: {}",
-        m_address, delta, m_quality_tracker.get_latency(), m_quality_tracker.get_quality()
+        "[{}][{}] ping: {}ms, average rtt: {}ms, average quality: {}",
+        m_address, to_string(m_agent_type), delta, m_quality_tracker.get_latency(), m_quality_tracker.get_quality()
     );
 }
 

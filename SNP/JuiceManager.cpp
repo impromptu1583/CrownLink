@@ -46,6 +46,8 @@ bool AgentPair::send_legacy(const char* data, size_t size) {
 }
 
 bool AgentPair::send_p2p(const char* data, size_t size) {
+    m_send_counter++;
+    if (m_send_counter % PING_EVERY == 0) send_pings();
     if (m_legacy_agent) return send_legacy(data, size);
 
     switch (m_send_strategy) {
@@ -81,6 +83,18 @@ void AgentPair::set_player_name(const std::string& name) {
     if (m_relay_agent) m_relay_agent->set_player_name(name);
 }
 
+void AgentPair::send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size) {
+    switch (agent_type) {
+        case JuiceAgentType::P2POnly:
+        case JuiceAgentType::RelayFallback:
+            if (m_p2p_agent) m_p2p_agent->send_custom_message(sub_type, data, data_size);
+            break;
+        case JuiceAgentType::RelayOnly:
+            if (m_relay_agent) m_relay_agent->send_custom_message(sub_type, data, data_size);
+            break;
+    }
+}
+
 bool AgentPair::is_active() {
     auto p2p_active = m_p2p_agent && m_p2p_agent->is_active();
     auto relay_active = m_relay_agent && m_relay_agent->is_active();
@@ -91,6 +105,11 @@ bool AgentPair::either_agent_state(juice_state state) {
     if (m_p2p_agent && m_p2p_agent->state() == state) return true;
     if (m_relay_agent && m_relay_agent->state() == state) return true;
     return false;
+}
+
+void AgentPair::send_pings() {
+    if (m_p2p_agent && m_p2p_agent->connected()) m_p2p_agent->send_ping();
+    if (m_relay_agent && m_relay_agent->connected()) m_relay_agent->send_ping();
 }
 
 juice_state AgentPair::best_agent_state() {
@@ -153,6 +172,40 @@ void JuiceManager::send_connection_request(const NetAddress& address) {
 void JuiceManager::set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials) {
     std::lock_guard lock{m_mutex};
     m_ice_credentials = ice_credentials;
+}
+
+void JuiceManager::queue_custom_packet(const CustomPacketData& packet) {
+    m_custom_packet_queue.enqueue(packet);
+}
+
+void JuiceManager::start_custom_packet_thread() {
+    m_custom_packet_thread_running = true;
+    m_custom_packet_thread = std::jthread([this](std::stop_token stop) {
+        SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST);
+
+        CustomPacketData packet;
+        while (!stop.stop_requested() && m_custom_packet_thread_running) {
+            if (m_custom_packet_queue.try_dequeue(packet)) {
+                // Send custom packet through the appropriate agent
+                std::lock_guard lock{m_mutex};
+                if (auto* agent_pair = maybe_get_agent(packet.address, lock)) {
+                    agent_pair->send_custom_packet(
+                        packet.agent_type, packet.sub_type, packet.data.data(), packet.data_size
+                    );
+                }
+            } else {
+                std::this_thread::sleep_for(std::chrono::microseconds(10));
+            }
+        }
+    });
+}
+
+void JuiceManager::stop_custom_packet_thread() {
+    m_custom_packet_thread_running = false;
+    if (m_custom_packet_thread.joinable()) {
+        m_custom_packet_thread.request_stop();
+        m_custom_packet_thread.join();
+    }
 }
 
 void JuiceManager::send_all(const char* data, const size_t size) {

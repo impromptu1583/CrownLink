@@ -8,12 +8,32 @@
 #include "../NetShared/StormTypes.h"
 #include "Logger.h"
 
+#include <concurrentqueue.h>
+
 enum class SendStrategy{
     PreferP2P,
     PreferRelay,
     Best,
     Redundant,
     AdaptiveRedundant,
+};
+
+struct CustomPacketData {
+    NetAddress address;
+    JuiceAgentType agent_type;
+    GamePacketSubType sub_type;
+    std::array<char, MAX_PAYLOAD_SIZE> data;
+    size_t data_size;
+
+    CustomPacketData() = default;
+    CustomPacketData(
+        const NetAddress& addr, JuiceAgentType type, GamePacketSubType subtype, const char* payload, size_t size
+    )
+        : address(addr), agent_type(type), sub_type(subtype), data_size(size) {
+        if (size <= MAX_PAYLOAD_SIZE) {
+            std::copy_n(payload, size, data.data());
+        }
+    }
 };
 
 class AgentPair {
@@ -27,6 +47,7 @@ public:
     bool send_p2p(const char* data, size_t size);
     void send_connection_request();
     void set_player_name(const std::string& name);
+    void send_custom_packet(JuiceAgentType agent_type, GamePacketSubType sub_type, const char* data, size_t data_size);
 
     bool is_active();
     const NetAddress& address() const { return m_address; }
@@ -61,10 +82,12 @@ private:
     bool send_best(const char* data, size_t size);
     bool send_legacy(const char* data, size_t size);
     bool either_agent_state(juice_state state);
+    void send_pings();
 
 private:
     NetAddress m_address;
     SendStrategy m_send_strategy = SendStrategy::AdaptiveRedundant;
+    u32 m_send_counter = 0;
 
     std::unique_ptr<JuiceAgent> m_p2p_agent;
     std::unique_ptr<JuiceAgent> m_relay_agent;
@@ -73,6 +96,12 @@ private:
 
 class JuiceManager {
 public:
+    JuiceManager() { start_custom_packet_thread(); }
+    ~JuiceManager() { stop_custom_packet_thread(); }
+
+    JuiceManager(const JuiceManager&) = delete;
+    JuiceManager& operator=(const JuiceManager&) = delete;
+
     AgentPair* maybe_get_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
     AgentPair& ensure_agent(const NetAddress& address, const std::lock_guard<std::mutex>& lock);
 
@@ -82,6 +111,10 @@ public:
     void send_all(const char* data, size_t size);
     void send_connection_request(const NetAddress& address);
     void set_ice_credentials(const CrownLinkProtocol::IceCredentials& ice_credentials);
+
+    void queue_custom_packet(const CustomPacketData& packet);
+    void start_custom_packet_thread();
+    void stop_custom_packet_thread();
 
     template <typename T>
     void handle_crownlink_message(const T& message) {
@@ -100,4 +133,8 @@ private:
     std::unordered_map<NetAddress, std::unique_ptr<AgentPair>> m_agents;
     std::mutex m_mutex;
     CrownLinkProtocol::IceCredentials m_ice_credentials{};
+    
+    moodycamel::ConcurrentQueue<CustomPacketData> m_custom_packet_queue;
+    std::jthread m_custom_packet_thread;
+    std::atomic<bool> m_custom_packet_thread_running = false;
 };
