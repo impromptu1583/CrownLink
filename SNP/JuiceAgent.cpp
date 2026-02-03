@@ -175,6 +175,8 @@ void JuiceAgent::handle_ping(const GamePacket& game_packet) {
     CustomPacketData response{
         m_address, m_agent_type, GamePacketSubType::PingResponse, game_packet.data.payload, payload_size
     };
+    // This is called from a callback, so queue the response instead of sending
+    // directly to avoid mutex contention
     g_context->juice_manager().queue_custom_packet(response);
 }
 
@@ -282,7 +284,7 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
 }
 
 bool JuiceAgent::is_radmin_candidate(const std::string& candidate) const {
-    static const std::regex radmin_regex(".+26\\.\\d+\\.\\d+\\.\\d+.+");
+    static const std::regex radmin_regex{".+26\\.\\d+\\.\\d+\\.\\d+.+"};
     return std::regex_match(candidate, radmin_regex);
 }
 
