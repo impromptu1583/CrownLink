@@ -13,7 +13,7 @@
 
 static constexpr auto PING_EVERY = 15;
 static constexpr auto QUALITY_SAMPLES = 50;
-static constexpr f32 DUPLICATE_SEND_THRESHOLD = 0.8;
+static constexpr f32 DUPLICATE_SEND_THRESHOLD = 0.8f;
 static constexpr f32 LATENCY_THRESHOLD = 10.0f;
 static constexpr f32 MAXIMUM_LATENCY_FOR_REDUNDANT = 1000 / 8 * 5;  // turns/sec * 5
 
@@ -29,14 +29,14 @@ struct CustomPacketData {
     NetAddress address;
     JuiceAgentType agent_type;
     GamePacketSubType sub_type;
-    std::array<char, MAX_PAYLOAD_SIZE> data;
-    size_t data_size;
+    std::array<char, MAX_PAYLOAD_SIZE> data{};
+    size_t data_size = 0;
 
     CustomPacketData() = default;
     CustomPacketData(
         const NetAddress& addr, JuiceAgentType type, GamePacketSubType subtype, const char* payload, size_t size
     )
-        : address(addr), agent_type(type), sub_type(subtype), data_size(size) {
+        : address(addr), agent_type(type), sub_type(subtype), data{}, data_size(size) {
         if (size <= MAX_PAYLOAD_SIZE) {
             std::copy_n(payload, size, data.data());
         }
