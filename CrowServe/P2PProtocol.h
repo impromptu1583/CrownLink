@@ -3,6 +3,12 @@
 #include "../NetShared/StormTypes.h"
 #include "common.h"
 
+enum class JuiceAgentType {
+    RelayFallback,  // Legacy behavior
+    P2P,
+    Relay,
+};
+
 namespace P2P {
 
 enum class MessageType {
@@ -17,8 +23,9 @@ std::ostream& operator<<(std::ostream& out, MessageType message_type);
 
 struct Header {
     NetAddress peer_id;
+    JuiceAgentType agent_type;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id, agent_type)
 
 struct ConnectionRequest {
     Header header;
