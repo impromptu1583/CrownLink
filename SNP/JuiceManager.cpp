@@ -241,7 +241,7 @@ void JuiceManager::start_custom_packet_thread() {
                     );
                 }
             } else {
-                WaitForSingleObject(m_custom_packet_ready, 5000);
+                WaitForSingleObject(m_custom_packet_ready, 5 * 1000);
             }
         }
     });

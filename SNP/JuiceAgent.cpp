@@ -194,7 +194,7 @@ void JuiceAgent::handle_ping_response(const GamePacket& game_packet) {
 
     auto current_time = now_ms();
     auto delta = current_time - timestamp;
-    if (delta < 0 || delta > 30000) {
+    if (delta < 0 || delta > (30 * 1000)) {
         spdlog::warn("[{}] Invalid ping timestamp delta: {}ms", m_address, delta);
         return;
     }
