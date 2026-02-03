@@ -43,6 +43,12 @@ struct CustomPacketData {
     }
 };
 
+struct AgentPairStats {
+    u32 p2p;
+    u32 relay;
+    u32 redundant;
+};
+
 class AgentPair {
 public:
     AgentPair(const NetAddress& address, CrownLinkProtocol::IceCredentials& ice_credentials);
@@ -97,6 +103,7 @@ private:
     SendStrategy m_send_strategy = SendStrategy::AdaptiveRedundant;
     u32 m_send_counter = 0;
     EMA m_average_quality{QUALITY_SAMPLES, 1.0f};
+    AgentPairStats m_stats{};
 
     std::unique_ptr<JuiceAgent> m_p2p_agent;
     std::unique_ptr<JuiceAgent> m_relay_agent;

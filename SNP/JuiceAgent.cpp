@@ -272,7 +272,8 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
         return;
     }
 
-    parent.m_parent.update_quality((u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest);
+    auto resend_requested = (u8)packet.data.header.flags & (u8)GamePacketFlags::ResendRequest;
+    parent.m_parent.update_quality(resend_requested);
 
     if (g_context) {
         g_context->receive_queue().enqueue(packet);

@@ -46,6 +46,8 @@ std::unique_ptr<JuiceAgent>& AgentPair::get_best() {
 
 bool AgentPair::send_best(const char* data, size_t size) {
     auto& best_agent = get_best();
+    if (best_agent == m_p2p_agent) m_stats.p2p++;
+    if (best_agent == m_relay_agent) m_stats.relay++;
     if (best_agent) return best_agent->send_message(data, size);
     return false;
 }
@@ -71,7 +73,7 @@ bool AgentPair::should_send_redundant() {
     if (m_average_quality > DUPLICATE_SEND_THRESHOLD) return false;
     
     spdlog::debug(
-        "[{}] Sending redundant. Quality: {}, RTT[p2p:{}, relay{}]",
+        "[{}] Sending redundant. Quality: {}, RTT[p2p:{}, relay:{}]",
         m_address, (f32)m_average_quality, p2p_rtt, relay_rtt
     );
     return true;
@@ -82,6 +84,10 @@ bool AgentPair::send_p2p(const char* data, size_t size) {
     if (m_send_counter % PING_EVERY == 0) {
         send_pings();
         spdlog::debug("[{}] Average quality: {}", m_address, (f32)m_average_quality);
+    }
+    if (m_send_counter % 160 == 0) {
+        spdlog::info("[{}] Pair Stats: p2p: {} relay: {} redundant: {} quality: {}", 
+            m_address, m_stats.p2p, m_stats.relay, m_stats.redundant, (f32)m_average_quality);
     }
     if (m_legacy_agent) return send_legacy(data, size);
 
@@ -96,10 +102,12 @@ bool AgentPair::send_p2p(const char* data, size_t size) {
             return send_best(data, size);
         } break;
         case SendStrategy::Redundant: {
+            m_stats.redundant++;
             return send_redundant(data, size);
         } break;
         case SendStrategy::AdaptiveRedundant: {
             if (should_send_redundant()) {
+                m_stats.redundant++;
                 return send_redundant(data, size);
             }
             return send_best(data, size);
