@@ -85,7 +85,7 @@ bool AgentPair::send_p2p(const char* data, size_t size) {
         send_pings();
         spdlog::debug("[{}] Average quality: {}", m_address, (f32)m_average_quality);
     }
-    if (m_send_counter % 160 == 0) {
+    if (m_send_counter % STAT_PRINT_EVERY == 0) {
         spdlog::info("[{}] Pair Stats: p2p: {} relay: {} redundant: {} quality: {}", 
             m_address, m_stats.p2p, m_stats.relay, m_stats.redundant, (f32)m_average_quality);
     }

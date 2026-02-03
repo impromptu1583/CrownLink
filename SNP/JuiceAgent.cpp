@@ -282,7 +282,8 @@ void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, vo
 }
 
 bool JuiceAgent::is_radmin_candidate(const std::string& candidate) const {
-    return std::regex_match(candidate, std::regex(".+26\\.\\d+\\.\\d+\\.\\d+.+"));
+    static const std::regex radmin_regex(".+26\\.\\d+\\.\\d+\\.\\d+.+");
+    return std::regex_match(candidate, radmin_regex);
 }
 
 bool JuiceAgent::is_relay_candidate(const std::string& candidate) const {

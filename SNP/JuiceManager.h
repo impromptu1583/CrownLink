@@ -12,6 +12,7 @@
 #include <concurrentqueue.h>
 
 static constexpr auto PING_EVERY = 15;
+static constexpr auto STAT_PRINT_EVERY = 160;
 static constexpr auto QUALITY_SAMPLES = 50;
 static constexpr f32 DUPLICATE_SEND_THRESHOLD = 0.8f;
 static constexpr f32 LATENCY_THRESHOLD = 10.0f;

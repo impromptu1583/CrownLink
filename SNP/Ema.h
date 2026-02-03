@@ -28,5 +28,5 @@ public:
 private:
     std::atomic<f32> average = 0.0;
     std::atomic<bool> initialized = false;
-    f32 alpha;
+    const f32 alpha;
 };
