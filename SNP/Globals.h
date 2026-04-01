@@ -8,7 +8,7 @@
 #include "../types.h"
 #include "../NetShared/StormTypes.h"
 
-constexpr auto MAX_PACKET_SIZE = 500;
+constexpr auto MAX_PACKET_SIZE = 512;
 inline NetworkInfo g_network_info{
     (char*)"CrownLink",
     'CLNK',

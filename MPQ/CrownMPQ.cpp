@@ -65,14 +65,14 @@ int main(int argc, char* argv[]) {
         "CNLK", "CrownLink",
         //std::format("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: {}", CL_VERSION_STRING),
         build_description("Standard Mode"),
-        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 504, 16, 256, 100000, 50, 8, 2}
+        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 512, 16, 256, 100000, 50, 8, 2}
     };
     clnk.write(ss);
     Dat cldb{
         "CLDB", std::format("CrownLink Double Brain Cells"),
         build_description("Extreme Latency Mode"),
 
-        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 504, 16, 256, 100000, 50, 4, 2}
+        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 512, 16, 256, 100000, 50, 4, 2}
     };
     cldb.write(ss);
     save_mpq(file_path, ss.str());
