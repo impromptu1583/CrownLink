@@ -71,9 +71,7 @@ static u32 g_bound_provider_index = 0;
 // storm's live copy of the bound provider's caps, handed out by the SNetEnumProviders callback
 static Caps* g_storm_caps = nullptr;
 
-static b32 __stdcall on_provider_listed(
-    u32 provider_id, const char* provider_name, const char* provider_description, Caps* caps
-) {
+static b32 __stdcall on_provider_listed(u32 provider_id, const char* provider_name, const char* provider_description, Caps* caps) {
     if (g_bound_provider_index < std::size(provider_ids) && provider_id == provider_ids[g_bound_provider_index]) {
         g_storm_caps = caps;
     }
@@ -92,7 +90,6 @@ static void capture_provider_caps() {
     }
     const auto declared_rate = static_cast<TurnsPerSecond>(g_storm_caps->turns_per_second);
     if (is_valid(declared_rate)) {
-        // caps.dat is the source of truth at bind, overwriting any pre-bind launcher turns_per_second change
         g_network_info.caps.turns_per_second = g_storm_caps->turns_per_second;
     } else {
         spdlog::warn(
@@ -113,9 +110,7 @@ static bool set_provider_turns_per_second(TurnsPerSecond turns_per_second) {
     return true;
 }
 
-static b32 __stdcall spi_initialize(
-    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event
-) {
+static b32 __stdcall spi_initialize(ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     const auto& snp_config = SnpConfig::instance();
     init_logging();
@@ -172,10 +167,8 @@ static b32 __stdcall spi_unlock_game_list(AdFile* game_list, u32* list_count) {
     return AdvertisementManager::instance().unlock_game_list();
 }
 
-static b32 __stdcall spi_start_advertising_ladder_game(
-    const char* game_name, const char* game_password, const char* game_stat_string, u32 game_state, u32 elapsed_time, u32 game_type,
-    u32 time_to_ack_turn, u32 ladder_data, void* user_data, u32 user_data_size
-) {
+static b32 __stdcall spi_start_advertising_ladder_game(const char* game_name, const char* game_password, const char* game_stat_string,
+    u32 game_state, u32 elapsed_time, u32 game_type, u32 time_to_ack_turn, u32 ladder_data, void* user_data, u32 user_data_size) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     AdvertisementManager::instance().start_advertising(game_name, game_stat_string, game_state, user_data, user_data_size);
     set_provider_turns_per_second(static_cast<TurnsPerSecond>(g_network_info.caps.turns_per_second));
@@ -318,9 +311,7 @@ static b32 __stdcall spi_free_external_message(NetAddress* address, char* data, 
     return false;
 }
 
-static b32 __stdcall spi_get_performance_data(
-    u32 counter_id, u32* value, u64* measurement_time, u64* measurement_frequency
-) {
+static b32 __stdcall spi_get_performance_data(u32 counter_id, u32* value, u64* measurement_time, u64* measurement_frequency) {
     return false;
 }
 
@@ -344,9 +335,7 @@ static b32 __stdcall spi_receive_external_message(NetAddress** out_address, char
     return false;
 }
 
-static b32 __stdcall spi_select_game(
-    u32 flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, u32* player_id
-) {
+static b32 __stdcall spi_select_game(u32 flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, u32* player_id) {
     // This is used for battle.net instead of the games list.
     // BW calls this function then waits for battle.net to start a multiplayer game using the appropriate storm ordinal
     return false;

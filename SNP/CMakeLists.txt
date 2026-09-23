@@ -105,6 +105,3 @@ add_custom_command( TARGET SNP
 install(TARGETS SNP
 	DESTINATION "C:/Cosmonarchy/Starcraft/"
 )
-
-# del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\CrownLink\out\build\x86-debug\SNP\CrownLink.snp
-# del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\CrownLink\out\build\x86-release\SNP\CrownLink.snp

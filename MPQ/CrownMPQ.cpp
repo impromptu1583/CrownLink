@@ -35,12 +35,11 @@ static int save_mpq(const fs::path& filename, const std::string& dat) {
 }
 
 static std::string build_description(const char* subtitle = "") {
-    // 9 total lines
+    // 9 total lines are available in the Starcraft description box
     std::stringstream ss;
-    ss << (char)0x4 << "P2P Lobbies for Cosmonarchy!\n" << (char)0x1; // line 1
-    ss << subtitle << std::endl; // line 2
-    ss << "\n\n\n\n\n\n"; // lines 3-8
-    ss << "Version: " << CL_VERSION_STRING; // line 9
+    ss << "Version: " << CL_VERSION_STRING << std::endl;
+    ss << (char)0x4 << "Peer to peer networking using ICE\n" << (char)0x1;
+    ss << subtitle << std::endl;
     return ss.str();
 }
 
@@ -65,8 +64,8 @@ int main(int argc, char* argv[]) {
     };
     clnk.write(ss);
     Dat cldb{
-        "CLDB", "CrownLink Double Brain Cells",
-        build_description("Extreme Latency Mode"),
+        "CLDB", "CrownLink High Latency",
+        build_description("Use this version when network conditions are poor, causing stuttering."),
         Caps{sizeof(Caps), caps_flags, MaxPacketSize, 16, 256, 100000, 50,
             std::to_underlying(TurnsPerSecond::UltraLow), 2}
     };
