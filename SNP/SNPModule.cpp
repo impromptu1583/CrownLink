@@ -129,7 +129,7 @@ static b32 __stdcall spi_initialize(ClientInfo* client_info, UserInfo* user_info
     AdvertisementManager::instance().set_lobby_password(snp_config.lobby_password.c_str());
 
     spdlog::info(
-        "Crownlink Initializing, turns_per_second: {}, game version: {}",
+        "CrownLink v{} initializing, turns_per_second: {}, game version: {}", CL_VERSION_STRING,
         g_network_info.caps.turns_per_second,
         g_context->client_info().version_id
     );
