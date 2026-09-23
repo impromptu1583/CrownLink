@@ -15,7 +15,6 @@ set(MODULE_FILES
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
 	"CrowServeManager.cpp"
-	"BWInteractions.h"
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
@@ -84,6 +83,7 @@ target_link_libraries(SNP
 	PRIVATE ws2_32
 	PRIVATE juice-static
 	PRIVATE spdlog::spdlog_header_only
+	PRIVATE storm::storm
 )
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
@@ -105,6 +105,3 @@ add_custom_command( TARGET SNP
 install(TARGETS SNP
 	DESTINATION "C:/Cosmonarchy/Starcraft/"
 )
-
-# del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\CrownLink\out\build\x86-debug\SNP\CrownLink.snp
-# del "C:\Cosmonarchy\Starcraft\CrownLink.snp" && mklink "C:\Cosmonarchy\Starcraft\CrownLink.snp" "C:\Users\Jesse\source\repos\CrownLink\out\build\x86-release\SNP\CrownLink.snp

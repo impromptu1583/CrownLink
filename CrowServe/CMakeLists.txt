@@ -22,6 +22,7 @@ add_library(CrowServe STATIC
     P2PProtocol.cpp
 )
 target_link_libraries(CrowServe PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(CrowServe PUBLIC storm::headers)
 
 if(WIN32)
   target_link_libraries(CrowServe PRIVATE wsock32 ws2_32)

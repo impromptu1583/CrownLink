@@ -1,6 +1,5 @@
 #include "AdvertisementManager.h"
 #include "CrowServeManager.h"
-#include "BWInteractions.h"
 #include "JuiceManager.h"
 #include "Config.h"
 #include "Globals.h"
@@ -116,11 +115,6 @@ void AdvertisementManager::create_ad(
 ) {
     ad_file = {};
     ad_file.turns_per_second = g_network_info.caps.turns_per_second;
-    if (ad_file.turns_per_second == TurnsPerSecond::Standard) {
-        ad_file.turns_per_second = TurnsPerSecond::CNLK;
-    } else if (ad_file.turns_per_second == TurnsPerSecond::UltraLow) {
-        ad_file.turns_per_second = TurnsPerSecond::CLDB;
-    }
 
     auto& game_info = ad_file.game_info;
     strcpy_s(game_info.game_name, sizeof(game_info.game_name), game_name);
@@ -250,9 +244,8 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
             }
         }
 
-        switch (ad.turns_per_second) {
-            case TurnsPerSecond::UltraLow:
-            case TurnsPerSecond::CLDB: {
+        switch (static_cast<TurnsPerSecond>(ad.turns_per_second)) {
+            case TurnsPerSecond::UltraLow: {
                 has_text_prefix = true;
                 ss << "DB";
                 break;
@@ -372,8 +365,7 @@ void AdvertisementManager::update_status_ad() {
         if (!snp_config.lobby_password.empty()) {
             output += std::format("{}Private ", char(ColorByte::Blue));
         }
-        if (g_network_info.caps.turns_per_second == TurnsPerSecond::CLDB ||
-            g_network_info.caps.turns_per_second == TurnsPerSecond::UltraLow) {
+        if (static_cast<TurnsPerSecond>(g_network_info.caps.turns_per_second) == TurnsPerSecond::UltraLow) {
             if (output.empty()) {
                 output += std::format("{}", char(ColorByte::Blue));
             }

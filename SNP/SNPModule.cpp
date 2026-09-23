@@ -1,8 +1,8 @@
 #include "SNPModule.h"
 #include <list>
 #include <utility>
+#include <storm/storm.hpp>
 #include "AdvertisementManager.h"
-#include "BWInteractions.h"
 #include "Config.h"
 #include "CrowServeManager.h"
 #include "Globals.h"
@@ -60,12 +60,61 @@ static void init_logging() {
     }
 }
 
-static b32 __stdcall spi_initialize(
-    ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event
-) {
+//===========================================================================
+//
+// Provider caps
+//
+//===========================================================================
+
+static u32 g_bound_provider_index = 0;
+
+// storm's live copy of the bound provider's caps, handed out by the SNetEnumProviders callback
+static Caps* g_storm_caps = nullptr;
+
+static b32 __stdcall on_provider_listed(u32 provider_id, const char* provider_name, const char* provider_description, Caps* caps) {
+    if (g_bound_provider_index < std::size(provider_ids) && provider_id == provider_ids[g_bound_provider_index]) {
+        g_storm_caps = caps;
+    }
+    return true;
+}
+
+void record_bound_provider(u32 index) {
+    g_bound_provider_index = index;
+}
+
+// Captures storm's live caps and adopts the turns_per_second declared in caps.dat
+static void capture_provider_caps() {
+    if (!SNetEnumProviders(nullptr, on_provider_listed) || !g_storm_caps) {
+        spdlog::warn("Failed to capture provider caps via SNetEnumProviders");
+        return;
+    }
+    const auto declared_rate = static_cast<TurnsPerSecond>(g_storm_caps->turns_per_second);
+    if (is_valid(declared_rate)) {
+        g_network_info.caps.turns_per_second = g_storm_caps->turns_per_second;
+    } else {
+        spdlog::warn(
+            "caps.dat declares invalid turns_per_second {}, keeping {}", g_storm_caps->turns_per_second,
+            to_string(get_snp_turns_per_second())
+        );
+    }
+}
+
+// The game reads these caps through SNetGetProviderCaps, so patching them is what changes the turn rate
+static bool set_provider_turns_per_second(TurnsPerSecond turns_per_second) {
+    if (!g_storm_caps) {
+        spdlog::warn("Provider caps not captured, not applying turns_per_second {}", to_string(turns_per_second));
+        return false;
+    }
+    g_storm_caps->turns_per_second = std::to_underlying(turns_per_second);
+    spdlog::debug("set tps to {}", g_storm_caps->turns_per_second);
+    return true;
+}
+
+static b32 __stdcall spi_initialize(ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
     const auto& snp_config = SnpConfig::instance();
     init_logging();
+    capture_provider_caps();
 
     try {
         g_context = std::make_unique<Context>();
@@ -81,7 +130,7 @@ static b32 __stdcall spi_initialize(
 
     spdlog::info(
         "Crownlink Initializing, turns_per_second: {}, game version: {}",
-        std::to_underlying(g_network_info.caps.turns_per_second),
+        g_network_info.caps.turns_per_second,
         g_context->client_info().version_id
     );
     
@@ -113,18 +162,16 @@ static b32 __stdcall spi_lock_game_list(u32 category_bits, u32 category_mask, Ad
     return AdvertisementManager::instance().lock_game_list(category_bits, category_mask, out_game_list);
 }
 
-static b32 __stdcall spi_unlock_game_list(AdFile* game_list, u32* list_cout) {
+static b32 __stdcall spi_unlock_game_list(AdFile* game_list, u32* list_count) {
     // Called by storm after it is done reading the games list to unlock the mutex
     return AdvertisementManager::instance().unlock_game_list();
 }
 
-static b32 __stdcall spi_start_advertising_ladder_game(
-    const char* game_name, const char* game_password, const char* game_stat_string, u32 game_state, u32 elapsed_time, u32 game_type,
-    u32, u32, void* user_data, u32 user_data_size
-) {
+static b32 __stdcall spi_start_advertising_ladder_game(const char* game_name, const char* game_password, const char* game_stat_string,
+    u32 game_state, u32 elapsed_time, u32 game_type, u32 time_to_ack_turn, u32 ladder_data, void* user_data, u32 user_data_size) {
     // called by storm when the user creates a new lobby and also when the lobby info changes (e.g. player joins/leaves)
     AdvertisementManager::instance().start_advertising(game_name, game_stat_string, game_state, user_data, user_data_size);
-    set_provider_turns_per_second(g_network_info.caps.turns_per_second);
+    set_provider_turns_per_second(static_cast<TurnsPerSecond>(g_network_info.caps.turns_per_second));
     spdlog::info("Started advertising");
 
     return true;
@@ -144,7 +191,12 @@ static b32 __stdcall spi_get_game_info(u32 index, const char* game_name, const c
     if (maybe_ad) {
         auto& adfile = maybe_ad->get();
         *output = adfile.game_info;
-        set_provider_turns_per_second(adfile.turns_per_second);
+        if (!set_snp_turns_per_second(static_cast<TurnsPerSecond>(adfile.turns_per_second))) {
+            spdlog::warn(
+                "Lobby advertised unsupported turns_per_second {}, keeping {}", adfile.turns_per_second,
+                to_string(get_snp_turns_per_second())
+            );
+        }
         return true;
     }
     return false;
@@ -211,31 +263,9 @@ static b32 __stdcall spi_receive(NetAddress** peer, GamePacketData** out_data, u
     }
     return true;
 }
-// TODO - template this out, helper functions, use a queue to send to a separate thread
-void packet_parser(const GamePacket* game_packet) {
-    auto payload_size = game_packet->data.header.size - sizeof(GamePacketHeader);
-    switch (game_packet->data.header.sub_type) {
-        case GamePacketSubType::PlayerInfo: {
-            SystemPlayerJoin_PlayerInfo player_info{};
-            memcpy(
-                &player_info, game_packet->data.payload,
-                payload_size < sizeof(SystemPlayerJoin_PlayerInfo) ? payload_size : sizeof(SystemPlayerJoin_PlayerInfo)
-            );
-            if (player_info.address.is_zero()) {
-                player_info.address = game_packet->sender;
-                spdlog::trace("address was zero, copying from game info");
-            }
-            spdlog::trace(
-                "Player introduction received, address: {}, player id: {}, host: {}, name {}", player_info.address,
-                player_info.player_id, player_info.gameowner, player_info.name_description
-            );
-        }
-    }
-}
-
 bool set_snp_turns_per_second(TurnsPerSecond turns_per_second) {
     if (is_valid(turns_per_second)) {
-        g_network_info.caps.turns_per_second = turns_per_second;
+        g_network_info.caps.turns_per_second = std::to_underlying(turns_per_second);
         set_provider_turns_per_second(turns_per_second);
         return true;
     }
@@ -243,13 +273,15 @@ bool set_snp_turns_per_second(TurnsPerSecond turns_per_second) {
 }
 
 TurnsPerSecond get_snp_turns_per_second() {
-    return g_network_info.caps.turns_per_second;
+    return static_cast<TurnsPerSecond>(g_network_info.caps.turns_per_second);
 }
 
-static b32 __stdcall spi_free(GamePacket* loan, char* data, u32 size) {
+static b32 __stdcall spi_free(NetAddress* loan, char* data, u32 size) {
     // called after storm is done with the packet to free its memory
+    // loan is the &sender pointer handed out by spi_receive; sender is GamePacket's first member,
+    // so casting back recovers the allocation
     if (loan) {
-        delete loan;
+        delete reinterpret_cast<GamePacket*>(loan);
     }
     return true;
 }
@@ -266,8 +298,8 @@ static b32 __stdcall spi_compare_net_addresses(const NetAddress* address1, const
     return true;
 }
 
-static b32 __stdcall spi_lock_device_list(u32* out_device_list) {
-    *out_device_list = 0;
+static b32 __stdcall spi_lock_device_list(void** out_device_list) {
+    *out_device_list = nullptr;
     return true;
 }
 
@@ -279,11 +311,14 @@ static b32 __stdcall spi_free_external_message(NetAddress* address, char* data, 
     return false;
 }
 
-static b32 __stdcall spi_get_performance_data(u32 type, u32* out_result, u32, u32) {
+static b32 __stdcall spi_get_performance_data(u32 counter_id, u32* value, u64* measurement_time, u64* measurement_frequency) {
     return false;
 }
 
-static b32 __stdcall spi_initialize_device(int, void*, void*, u32*, void*) {
+static b32 __stdcall spi_initialize_device(
+    u32 device_id, ClientInfo* game_client_info, UserInfo* player_info, BattleInfo* bnet_callbacks,
+    ModuleInfo* module_info
+) {
     return false;
 }
 
@@ -300,16 +335,14 @@ static b32 __stdcall spi_receive_external_message(NetAddress** out_address, char
     return false;
 }
 
-static b32 __stdcall spi_select_game(
-    u32 flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, u32* player_id
-) {
+static b32 __stdcall spi_select_game(u32 flags, ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_info, u32* player_id) {
     // This is used for battle.net instead of the games list.
     // BW calls this function then waits for battle.net to start a multiplayer game using the appropriate storm ordinal
     return false;
 }
 
 static b32 __stdcall spi_send_external_message(
-    char* destination, u32 message_size, char* blank1, char* blank2, char* message
+    char* destination, char* sender_name, char* blank1, char* blank2, char* message
 ) {
     return false;
 }
@@ -318,8 +351,8 @@ static b32 __stdcall spi_league_get_name(char* data, u32 size) {
     return true;
 }
 
-snp::NetFunctions g_spi_functions = {
-    sizeof(snp::NetFunctions),
+NetFunctions g_spi_functions = {
+    sizeof(NetFunctions),
     &snp::spi_compare_net_addresses,
     &snp::spi_destroy,
     &snp::spi_free,

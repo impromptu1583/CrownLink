@@ -263,7 +263,7 @@ void JuiceAgent::on_gathering_done(juice_agent_t* agent, void* user_ptr) {
 
 void JuiceAgent::on_recv(juice_agent_t* agent, const char* data, size_t size, void* user_ptr) {
     auto& parent = *static_cast<JuiceAgent*>(user_ptr);
-    auto packet = GamePacket{parent.m_address, data, size};
+    auto packet = make_game_packet(parent.m_address, data, size);
     auto& header = packet.data.header;
     if (header.type == GamePacketType::CrownLink) {
         if (header.sub_type == GamePacketSubType::Ping) {

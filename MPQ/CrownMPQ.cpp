@@ -1,10 +1,5 @@
 #include "CrownMPQ.h"
 
-#define SNET_CAPS_PAGELOCKEDBUFFERS 0x00000001
-#define SNET_CAPS_BASICINTERFACE 0x00000002
-#define SNET_CAPS_DEBUGONLY 0x10000000
-#define SNET_CAPS_RETAILONLY 0x20000000
-
 static int save_mpq(const fs::path& filename, const std::string& dat) {
     HANDLE mpq{};
     HANDLE file{};
@@ -40,12 +35,11 @@ static int save_mpq(const fs::path& filename, const std::string& dat) {
 }
 
 static std::string build_description(const char* subtitle = "") {
-    // 9 total lines
+    // 9 total lines are available in the Starcraft description box
     std::stringstream ss;
-    ss << (char)0x4 << "P2P Lobbies for Cosmonarchy!\n" << (char)0x1; // line 1
-    ss << subtitle << std::endl; // line 2
-    ss << "\n\n\n\n\n\n"; // lines 3-8
-    ss << "Version: " << CL_VERSION_STRING; // line 9
+    ss << "Version: " << CL_VERSION_STRING << std::endl;
+    ss << (char)0x4 << "Peer to peer networking using ICE\n" << (char)0x1;
+    ss << subtitle << std::endl;
     return ss.str();
 }
 
@@ -58,21 +52,22 @@ int main(int argc, char* argv[]) {
     std::cout << "Target file:" << file_path << "\n";
 
     std::stringstream ss;
-    std::stringstream clnk_description;
-    std::stringstream cldb_description;
+
+    const auto caps_flags =
+        std::to_underlying(CapsFlags::PageLockedBuffers) | std::to_underlying(CapsFlags::BasicInterface);
 
     Dat clnk{
         "CNLK", "CrownLink",
-        //std::format("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: {}", CL_VERSION_STRING),
         build_description("Standard Mode"),
-        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 512, 16, 256, 100000, 50, 8, 2}
+        Caps{sizeof(Caps), caps_flags, MaxPacketSize, 16, 256, 100000, 50,
+            std::to_underlying(TurnsPerSecond::Standard), 2}
     };
     clnk.write(ss);
     Dat cldb{
-        "CLDB", std::format("CrownLink Double Brain Cells"),
-        build_description("Extreme Latency Mode"),
-
-        Caps{36, SNET_CAPS_PAGELOCKEDBUFFERS | SNET_CAPS_BASICINTERFACE, 512, 16, 256, 100000, 50, 4, 2}
+        "CLDB", "CrownLink High Latency",
+        build_description("Use this version when network conditions are poor, causing stuttering."),
+        Caps{sizeof(Caps), caps_flags, MaxPacketSize, 16, 256, 100000, 50,
+            std::to_underlying(TurnsPerSecond::UltraLow), 2}
     };
     cldb.write(ss);
     save_mpq(file_path, ss.str());
