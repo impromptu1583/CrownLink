@@ -16,6 +16,10 @@ endif()
 project ("CrownLink")
 set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
 
+# Version single source of truth: the git tag (vMAJOR.MINOR.PATCH), see cmake/Version.cmake
+include(cmake/Version.cmake)
+crownlink_setup_version()
+
 # storm_sdk: storm.dll ordinals + ABI types, pinned by tag
 # Set FETCHCONTENT_SOURCE_DIR_STORM_SDK to a local checkout to skip the GitLab fetch
 include(FetchContent)

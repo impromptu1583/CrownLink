@@ -31,12 +31,6 @@ enum class SocketState {
 using StatusCallback = void(*)(SocketState, void*);
 }
 
-namespace CrownLink {
-constexpr u32 VERSION_MAJOR = 1;
-constexpr u32 VERSION_MINOR = 2;
-constexpr u32 VERSION_BUILD = 0;
-}  // namespace CrownLink
-
 extern "C" {
 CROWNLINK_API BOOL WINAPI SnpQuery(
     u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps

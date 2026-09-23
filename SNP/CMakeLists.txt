@@ -18,6 +18,7 @@ set(MODULE_FILES
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
+	"version.rc"
 )
 
 add_library(SNP SHARED ${MODULE_FILES})
@@ -84,6 +85,7 @@ target_link_libraries(SNP
 	PRIVATE juice-static
 	PRIVATE spdlog::spdlog_header_only
 	PRIVATE storm::storm
+	PRIVATE crownlink_version
 )
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
@@ -95,7 +97,7 @@ target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 message(STATUS "Copying ${CMAKE_SOURCE_DIR}/SNP/caps.mpq at the end of SNP")
 #set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
 
-add_dependencies(SNP CrownMPQ)
+add_dependencies(SNP CrownMPQ crownlink_version_refresh)
 
 add_custom_command( TARGET SNP
 	POST_BUILD

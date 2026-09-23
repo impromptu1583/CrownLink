@@ -2,6 +2,8 @@
 #include <chrono>
 #include <storm/types.hpp>
 
+#include "crownlink/version.h"  // generated from the latest git tag
+
 #include "include/ConnectionState.h"
 using namespace std::literals;
 
@@ -9,12 +11,9 @@ using namespace std::literals;
     case X:               \
         return #X
 
-inline constexpr u8  MAJOR_VERSION = 1;
-inline constexpr u8  MINOR_VERSION = 2;
-inline constexpr u8  BUILD_VERSION = 1;
-inline const auto    CL_VERSION_STRING = std::format("{}.{}.{}", MAJOR_VERSION, MINOR_VERSION, BUILD_VERSION);
 inline constexpr u32 CL_VERSION_NUMBER =
-    (static_cast<u32>(MAJOR_VERSION) << 16) | (static_cast<u32>(MINOR_VERSION) << 8) | static_cast<u32>(BUILD_VERSION);
+    (static_cast<u32>(CL_VERSION_MAJOR) << 16) | (static_cast<u32>(CL_VERSION_MINOR) << 8) |
+    static_cast<u32>(CL_VERSION_PATCH);
 
 inline u32 get_tick_count() {
     using namespace std::literals;
