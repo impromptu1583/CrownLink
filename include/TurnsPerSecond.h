@@ -27,11 +27,21 @@ inline bool is_valid(TurnsPerSecond mode) {
 
 inline std::string to_string(TurnsPerSecond value) {
     switch (value) {
-        case TurnsPerSecond::UltraLow: return "UltraLow";
-        case TurnsPerSecond::Low: return "Low";
-        case TurnsPerSecond::Standard: return "Standard";
-        case TurnsPerSecond::Medium: return "Medium";
-        case TurnsPerSecond::High: return "High";
+        case TurnsPerSecond::UltraLow: {
+            return "UltraLow";
+        }
+        case TurnsPerSecond::Low: {
+            return "Low";
+        }
+        case TurnsPerSecond::Standard: {
+            return "Standard";
+        }
+        case TurnsPerSecond::Medium: {
+            return "Medium";
+        }
+        case TurnsPerSecond::High: {
+            return "High";
+        }
     }
     return std::to_string(std::to_underlying(value));
 }

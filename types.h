@@ -1,6 +1,8 @@
 #pragma once
 #include <chrono>
 #include <storm/types.hpp>
+
+#include "include/ConnectionState.h"
 using namespace std::literals;
 
 #define EnumStringCase(X) \
@@ -19,12 +21,4 @@ inline u32 get_tick_count() {
     return static_cast<u32>(std::chrono::system_clock::now().time_since_epoch() / 1s);
 }
 
-enum class ConnectionState : u32 {
-    Disconnected,
-    Connecting,
-    Failed,
-    Standard,
-    Relay,
-    Radmin,
-    BadVersion,
-};
+inline constexpr u32 MaxPacketSize = 512;

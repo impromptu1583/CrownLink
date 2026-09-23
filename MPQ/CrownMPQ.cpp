@@ -53,23 +53,22 @@ int main(int argc, char* argv[]) {
     std::cout << "Target file:" << file_path << "\n";
 
     std::stringstream ss;
-    std::stringstream clnk_description;
-    std::stringstream cldb_description;
 
-    const auto caps_flags = std::to_underlying(CapsFlags::PageLockedBuffers) | std::to_underlying(CapsFlags::BasicInterface);
+    const auto caps_flags =
+        std::to_underlying(CapsFlags::PageLockedBuffers) | std::to_underlying(CapsFlags::BasicInterface);
 
     Dat clnk{
         "CNLK", "CrownLink",
-        //std::format("A new connection method for Cosmonarchy!\n\n\n\n\n\n\nVersion: {}", CL_VERSION_STRING),
         build_description("Standard Mode"),
-        Caps{sizeof(Caps), caps_flags, 512, 16, 256, 100000, 50, std::to_underlying(TurnsPerSecond::Standard), 2}
+        Caps{sizeof(Caps), caps_flags, MaxPacketSize, 16, 256, 100000, 50,
+            std::to_underlying(TurnsPerSecond::Standard), 2}
     };
     clnk.write(ss);
     Dat cldb{
-        "CLDB", std::format("CrownLink Double Brain Cells"),
+        "CLDB", "CrownLink Double Brain Cells",
         build_description("Extreme Latency Mode"),
-
-        Caps{sizeof(Caps), caps_flags, 512, 16, 256, 100000, 50, std::to_underlying(TurnsPerSecond::UltraLow), 2}
+        Caps{sizeof(Caps), caps_flags, MaxPacketSize, 16, 256, 100000, 50,
+            std::to_underlying(TurnsPerSecond::UltraLow), 2}
     };
     cldb.write(ss);
     save_mpq(file_path, ss.str());

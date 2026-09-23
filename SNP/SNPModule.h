@@ -4,7 +4,9 @@
 
 namespace snp {
 
-void packet_parser(const GamePacket* game_packet);
+// Provider ids as declared in the caps.dat entries of caps.mpq; array order matches the SnpQuery indices
+inline constexpr u32 provider_ids[] = {'CNLK', 'CLDB'};
+
 bool set_snp_turns_per_second(TurnsPerSecond turns_per_second);
 
 TurnsPerSecond get_snp_turns_per_second();

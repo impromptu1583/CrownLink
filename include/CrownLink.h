@@ -18,10 +18,8 @@
 
 #include <storm/util/snet.hpp>
 
+#include "ConnectionState.h"
 #include "TurnsPerSecond.h"
-
-#include <functional>
-#include <string>
 
 namespace CrowServe {
 enum class SocketState {
@@ -61,7 +59,10 @@ CROWNLINK_API void WINAPI get_password(char* output, u32 output_size);
 
 CROWNLINK_API CrowServe::SocketState WINAPI get_status();
 
-CROWNLINK_API CrowServe::SocketState WINAPI set_status_lobby(bool enable);
+CROWNLINK_API void WINAPI set_status_lobby(bool enable);
 
-CROWNLINK_API CrowServe::SocketState WINAPI set_map_name_edit(bool enable);
+CROWNLINK_API void WINAPI set_map_name_edit(bool enable);
+
+CROWNLINK_API void WINAPI
+iterate_lobbies(void (*callback)(AdFile*, ConnectionState peer_state, void*), void* user_data);
 }

@@ -108,8 +108,8 @@ inline void to_json(Json& j, const AdFile& ad_file) {
 inline void from_json(const Json& j, AdFile& ad_file) {
     j.at("game_info").get_to(ad_file.game_info);
     j.at("crownlink_mode").get_to(ad_file.turns_per_second);
-    auto a = j["extra_bytes"].get_binary();
-    std::copy(a.begin(), a.end(), ad_file.extra_bytes);
+    auto extra_bytes = j["extra_bytes"].get_binary();
+    std::copy(extra_bytes.begin(), extra_bytes.end(), ad_file.extra_bytes);
 }
 
 inline std::string to_string(GamePacketType value) {
@@ -185,12 +185,14 @@ inline std::string to_string(GamePacketHeader& header) {
     );
 }
 
-// Builds a GamePacket from raw peer data; the copy into GamePacketData is clamped to MAX_PAYLOAD_SIZE
+static_assert(MaxPacketSize == sizeof(GamePacketData));
+
+// Builds a GamePacket from raw peer data; size is clamped to what GamePacketData can hold
 inline GamePacket make_game_packet(const NetAddress& sender, const char* data, size_t size) {
     GamePacket packet{};
     packet.sender = sender;
-    packet.size = static_cast<u32>(size);
+    packet.size = static_cast<u32>(std::min(size, sizeof(packet.data)));
     packet.timestamp = get_tick_count();
-    memcpy(&packet.data, data, size < MAX_PAYLOAD_SIZE ? size : MAX_PAYLOAD_SIZE);
+    memcpy(&packet.data, data, packet.size);
     return packet;
 }

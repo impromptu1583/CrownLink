@@ -7,37 +7,25 @@
 #include "Logger.h"
 #include "SNPModule.h"
 
-constexpr auto CNLK_ID = 0;
-constexpr auto CLDB_ID = 1;
-
 BOOL WINAPI SnpQuery(
     u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 ) {
-    if (out_network_code && out_network_name && out_network_description && out_caps) {
-        switch (index) {
-            case CNLK_ID:
-            case CLDB_ID: {
-                *out_network_code = g_network_info.id;
-                *out_network_name = g_network_info.name;
-                *out_network_description = g_network_info.description;
-                *out_caps = &g_network_info.caps;
-                return true;
-            }
-        }
+    if (index < std::size(snp::provider_ids) && out_network_code && out_network_name && out_network_description &&
+        out_caps) {
+        *out_network_code = g_network_info.id;
+        *out_network_name = g_network_info.name;
+        *out_network_description = g_network_info.description;
+        *out_caps = &g_network_info.caps;
+        return true;
     }
     return false;
 }
 
 BOOL WINAPI SnpBind(u32 index, NetFunctions** out_funcs) {
-    if (out_funcs) {
-        switch (index) {
-            case CNLK_ID:
-            case CLDB_ID: {
-                snp::record_bound_provider(index);
-                *out_funcs = &snp::g_spi_functions;
-                return true;
-            }
-        }
+    if (index < std::size(snp::provider_ids) && out_funcs) {
+        snp::record_bound_provider(index);
+        *out_funcs = &snp::g_spi_functions;
+        return true;
     }
     return false;
 }
