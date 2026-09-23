@@ -16,10 +16,12 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <storm/util/snet.hpp>
+
+#include "TurnsPerSecond.h"
+
 #include <functional>
 #include <string>
-
-using u32 = std::uint32_t;
 
 namespace CrowServe {
 enum class SocketState {
@@ -30,16 +32,6 @@ enum class SocketState {
 
 using StatusCallback = void(*)(SocketState, void*);
 }
-
-enum class TurnsPerSecond : u32 {
-    CNLK = 8,  // For Backwards Compatibility
-    CLDB = 4,  // For Backwards Compatibility
-    UltraLow = 4,
-    Low = 6,
-    Standard = 8,
-    Medium = 10,
-    High = 12
-};
 
 namespace CrownLink {
 constexpr u32 VERSION_MAJOR = 1;
@@ -52,7 +44,7 @@ CROWNLINK_API BOOL WINAPI SnpQuery(
     u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 );
 
-CROWNLINK_API BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs);
+CROWNLINK_API BOOL WINAPI SnpBind(u32 index, NetFunctions** out_funcs);
 
 CROWNLINK_API u32 WINAPI version();
 

@@ -6,9 +6,8 @@
 #include "Globals.h"
 #include "Logger.h"
 #include "SNPModule.h"
-#include "BWInteractions.h"
 
-constexpr auto CLNK_ID = 0;
+constexpr auto CNLK_ID = 0;
 constexpr auto CLDB_ID = 1;
 
 BOOL WINAPI SnpQuery(
@@ -16,16 +15,8 @@ BOOL WINAPI SnpQuery(
 ) {
     if (out_network_code && out_network_name && out_network_description && out_caps) {
         switch (index) {
-            case CLNK_ID: {
-                g_network_info.caps.turns_per_second = TurnsPerSecond::CNLK;
-                *out_network_code = g_network_info.id;
-                *out_network_name = g_network_info.name;
-                *out_network_description = g_network_info.description;
-                *out_caps = &g_network_info.caps;
-                return true;
-            }
+            case CNLK_ID:
             case CLDB_ID: {
-                g_network_info.caps.turns_per_second = TurnsPerSecond::CLDB;
                 *out_network_code = g_network_info.id;
                 *out_network_name = g_network_info.name;
                 *out_network_description = g_network_info.description;
@@ -37,16 +28,12 @@ BOOL WINAPI SnpQuery(
     return false;
 }
 
-BOOL WINAPI SnpBind(u32 index, snp::NetFunctions** out_funcs) {
+BOOL WINAPI SnpBind(u32 index, NetFunctions** out_funcs) {
     if (out_funcs) {
         switch (index) {
-            case CLNK_ID: {
-                snp::set_snp_turns_per_second(TurnsPerSecond::CNLK);
-                *out_funcs = &snp::g_spi_functions;
-                return true;
-            }
+            case CNLK_ID:
             case CLDB_ID: {
-                snp::set_snp_turns_per_second(TurnsPerSecond::CLDB);
+                snp::record_bound_provider(index);
                 *out_funcs = &snp::g_spi_functions;
                 return true;
             }

@@ -15,7 +15,6 @@ set(MODULE_FILES
 	"../NetShared/simdutf.cpp"
 	"Config.h"	
 	"CrowServeManager.cpp"
-	"BWInteractions.h"
 	"Logger.h"
 	"CrowServeManager.h"
 	"Globals.h"
@@ -84,6 +83,7 @@ target_link_libraries(SNP
 	PRIVATE ws2_32
 	PRIVATE juice-static
 	PRIVATE spdlog::spdlog_header_only
+	PRIVATE storm::storm
 )
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")

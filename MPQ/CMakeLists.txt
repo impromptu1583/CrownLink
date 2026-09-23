@@ -13,7 +13,7 @@ set_target_properties(StormLib PROPERTIES
 
 add_executable(CrownMPQ CrownMPQ.cpp)
 
-target_link_libraries(CrownMPQ PRIVATE StormLib)
+target_link_libraries(CrownMPQ PRIVATE StormLib storm::headers)
 
 add_custom_command( TARGET CrownMPQ
 	POST_BUILD

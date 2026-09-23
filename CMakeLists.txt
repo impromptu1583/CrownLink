@@ -2,7 +2,7 @@
 # and include sub-projects here.
 #
 
-cmake_minimum_required (VERSION 3.8)
+cmake_minimum_required (VERSION 3.25)
 
 set(_VCPKG_TARGET_TRIPLET_ARCH x86)  
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,6 +15,19 @@ endif()
 
 project ("CrownLink")
 set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
+
+# storm_sdk: storm.dll ordinals + ABI types, pinned by tag
+# Set FETCHCONTENT_SOURCE_DIR_STORM_SDK to a local checkout to skip the GitLab fetch
+include(FetchContent)
+FetchContent_Declare(
+    storm_sdk
+    GIT_REPOSITORY https://gitlab.com/Unveiling1561/storm_sdk.git
+    GIT_TAG v1.0.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(storm_sdk)
+
 # Include sub-projects.
 add_subdirectory("MPQ")
 add_subdirectory ("SNP")

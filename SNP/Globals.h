@@ -11,11 +11,11 @@
 constexpr auto MAX_PACKET_SIZE = 512;
 inline NetworkInfo g_network_info{
     (char*)"CrownLink",
-    'CLNK',
+    'CNLK',
     (char*)"",
 
     // CAPS: this is completely overridden by the appended .MPQ but storm tests to see if it's here anyway
-    {sizeof(Caps), 0x20000003, MAX_PACKET_SIZE, 16, 256, 1000, 50, TurnsPerSecond::Standard, 2}
+    {sizeof(Caps), 0x20000003, MAX_PACKET_SIZE, 16, 256, 1000, 50, std::to_underlying(TurnsPerSecond::Standard), 2}
 };
 
 class Context {
