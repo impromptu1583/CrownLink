@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Builds caps.dat and provider_data.h from providers.toml.
-
-caps.dat mirrors the legacy CrownMPQ.exe output byte for byte:
-    u32  size         bytes after this field: id + name\\0 + description\\0 + caps
-    u32  id           provider id stored little-endian (the text 'CNLK' reversed on disk)
-    char name         null-terminated provider name
-    char description  null-terminated description
-    Caps caps         9 x u32 storm ABI struct, see storm/util/snet.hpp
-"""
+"""Builds caps.dat and provider_data.h from providers.toml"""
 
 import argparse
 import hashlib
@@ -17,8 +9,6 @@ import re
 import struct
 from pathlib import Path
 
-# Frozen storm ABI values from storm_sdk's <storm/util/snet.hpp>.
-# static_assert(sizeof(Caps) == CAPS_SIZE_BYTES) in SNP/SNPModule.h guards the C++ side
 CAPS_SIZE_BYTES = 36
 CAPS_FLAGS = 0x3  # CapsFlags::PageLockedBuffers | CapsFlags::BasicInterface
 CAPS_MAX_QUEUE_SIZE = 16

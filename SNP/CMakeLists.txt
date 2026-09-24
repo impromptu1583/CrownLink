@@ -41,8 +41,6 @@ set(outname "CrownLink")
 
 set(SCEXE "C:\\Cosmonarchy\\Prerelease\\Cosmonarchy BW.exe")
 
-# Links into link/; cmake/Caps.cmake produces the loadable artifact with caps.mpq appended
-# at the classic SNP/CrownLink.snp path
 set_target_properties(SNP
 	PROPERTIES
 		OUTPUT_NAME ${outname}

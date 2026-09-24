@@ -62,9 +62,8 @@ function(crownlink_setup_caps)
         VERBATIM
     )
 
-    # mpqcli is built in an isolated CMake invocation instead of FetchContent: it bundles a
-    # StormLib whose 'storm' target collides with storm_sdk's, and its CMakeLists assumes it
-    # is the top-level project. Both hold true when it configures standalone
+    # Isolated project instead of FetchContent as it assumes it's the top-level project
+    # It also includes StormLib whose 'storm' target collides
     ExternalProject_Add(mpqcli
         GIT_REPOSITORY https://github.com/thegraydot/mpqcli.git
         GIT_TAG v0.11.0
