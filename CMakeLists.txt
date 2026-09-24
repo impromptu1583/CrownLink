@@ -15,6 +15,9 @@ endif()
 
 project ("CrownLink")
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
+
 # Version single source of truth: the git tag (vMAJOR.MINOR.PATCH), see cmake/Version.cmake
 include(cmake/Version.cmake)
 crownlink_setup_version()
@@ -34,6 +37,28 @@ FetchContent_MakeAvailable(storm_sdk)
 # nlohmann/json: shared by SNP and tests
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
+
+# simdutf: latin1/utf8 conversion for the storm-type serialization; replaces the vendored
+# v7.3.3 amalgamation. Tests and tools off; benchmarks default off
+set(SIMDUTF_TESTS OFF)
+set(SIMDUTF_TOOLS OFF)
+FetchContent_Declare(
+    simdutf
+    GIT_REPOSITORY https://github.com/simdutf/simdutf.git
+    GIT_TAG v7.3.3
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(simdutf)
+
+# concurrentqueue: moodycamel lock-free queue, replaces snp/vendor; upstream defines a
+# header-only INTERFACE target
+FetchContent_Declare(
+    concurrentqueue
+    GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
+    GIT_TAG v1.0.5
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(concurrentqueue)
 
 # C++ settings for first-party targets and everything fetched below this point;
 # kept after the storm_sdk fetch so the vendored SDK keeps its own defaults

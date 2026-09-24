@@ -1,8 +1,5 @@
 include(FetchContent)
 
-# Catch2 has defaulted to a shared build since v3.4.0; force static so the test exe has no
-# runtime DLL dependencies
-set(BUILD_SHARED_LIBS OFF)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2
@@ -10,7 +7,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(SerializationTests SerializationTests.cpp ../src/shared/simdutf.cpp)
+add_executable(SerializationTests SerializationTests.cpp)
 target_include_directories(SerializationTests
     PRIVATE ${CMAKE_SOURCE_DIR}/src
     PRIVATE ${CMAKE_SOURCE_DIR}/include
@@ -20,6 +17,7 @@ target_link_libraries(SerializationTests
     PRIVATE nlohmann_json::nlohmann_json
     PRIVATE storm::headers
     PRIVATE crownlink_version
+    PRIVATE simdutf
 )
 
 add_test(SerializationTests SerializationTests)

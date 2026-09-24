@@ -17,7 +17,6 @@
     "snp/version.rc"
     "shared/types.h"
     "shared/StormTypes.h"
-    "shared/simdutf.cpp"
     "shared/Cbor.h"
     "shared/common.h"
     "crow_serve/CrowServe.h"
@@ -48,11 +47,10 @@ set_target_properties(SNP
 )
 
 # src/ is the include root (shared/, crow_serve/, snp/); include/ holds the exported-API
-# headers reached as crownlink/*.h; snp/vendor holds concurrentqueue.h
+# headers reached as crownlink/*.h
 target_include_directories(SNP
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE ${CMAKE_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/snp/vendor
 )
 
 include(FetchContent)
@@ -62,7 +60,7 @@ set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
     Juice
     GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-    GIT_TAG v1.7.0
+    GIT_TAG v1.7.3
 )
 FetchContent_MakeAvailable(Juice)
 
@@ -87,6 +85,8 @@ target_link_libraries(SNP
     PRIVATE storm::storm
     PRIVATE nlohmann_json::nlohmann_json
     PRIVATE crownlink_version
+    PRIVATE simdutf
+    PRIVATE concurrentqueue
 )
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
