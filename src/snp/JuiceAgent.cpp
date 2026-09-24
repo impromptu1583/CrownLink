@@ -123,7 +123,7 @@ bool JuiceAgent::send_message(const char* data, size_t size) {
     switch (m_p2p_state) {
         case JUICE_STATE_CONNECTED:
         case JUICE_STATE_COMPLETED: {
-            return juice_send(m_agent, data, size) == 0;
+            return juice_send_diffserv(m_agent, data, size, GameTrafficDscp) == 0;
         }
         case JUICE_STATE_DISCONNECTED: {
             send_connection_request();
@@ -153,7 +153,7 @@ bool JuiceAgent::send_custom_message(GamePacketSubType sub_type, const char* dat
 
     std::unique_lock lock{m_mutex};
     mark_active(lock);
-    return juice_send(m_agent, (const char*)&packet_data, packet_data.header.size) == 0;
+    return juice_send_diffserv(m_agent, (const char*)&packet_data, packet_data.header.size, GameTrafficDscp) == 0;
 }
 
 static s64 now_ms() {

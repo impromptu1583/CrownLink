@@ -59,8 +59,10 @@ set (NO_TESTS ON CACHE INTERNAL "Turn off libjuice tests")
 set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
     Juice
-    GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-    GIT_TAG v1.7.3
+    # fork of paullouisageneau/libjuice adding Windows qWave Diffserv support, see
+    # juice_send_diffserv
+    GIT_REPOSITORY https://github.com/impromptu1583/libjuice.git
+    GIT_TAG v1.7.3-qwave.1
 )
 FetchContent_MakeAvailable(Juice)
 
