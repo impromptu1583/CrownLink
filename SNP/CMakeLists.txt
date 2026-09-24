@@ -1,54 +1,53 @@
 ﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(MODULE_FILES
-	"SNPModule.cpp"
-	"SNPModule.h"
-	"CrownLink.def"
-	"AdvertisementManager.cpp"
-	"AdvertisementManager.h"
-	"DLLMain.cpp"
-	"JuiceAgent.h"
-	"JuiceAgent.cpp"
-	"JuiceManager.h"
-	"JuiceManager.cpp"
+    "SNPModule.cpp"
+    "SNPModule.h"
+    "CrownLink.def"
+    "AdvertisementManager.cpp"
+    "AdvertisementManager.h"
+    "DLLMain.cpp"
+    "JuiceAgent.h"
+    "JuiceAgent.cpp"
+    "JuiceManager.h"
+    "JuiceManager.cpp"
     "../NetShared/StormTypes.h"
-	"../NetShared/simdutf.cpp"
-	"Config.h"	
-	"CrowServeManager.cpp"
-	"Logger.h"
-	"CrowServeManager.h"
-	"Globals.h"
-	"version.rc"
+    "../NetShared/simdutf.cpp"
+    "../CrowServe/CrowServe.h"
+    "../CrowServe/CrowServe.cpp"
+    "../CrowServe/CrownLinkProtocol.h"
+    "../CrowServe/CrownLinkProtocol.cpp"
+    "../CrowServe/P2PProtocol.h"
+    "../CrowServe/P2PProtocol.cpp"
+    "../CrowServe/Cbor.h"
+    "../CrowServe/common.h"
+    "Config.h"
+    "CrowServeManager.cpp"
+    "CrowServeManager.h"
+    "Logger.h"
+    "Globals.h"
+    "version.rc"
 )
 
+# SHARED rather than MODULE: VS's CMake integration only offers EXECUTABLE and
+# SHARED_LIBRARY targets as startup items, so a MODULE would drop the F5-the-game workflow.
+# The generated import library is unused; exports come from CrownLink.def
 add_library(SNP SHARED ${MODULE_FILES})
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
-
 set(VCPKG_TARGET_TRIPLET "x86-windows-static")
-
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET SNP PROPERTY CXX_STANDARD 23)
-endif()
 
 set(outname "CrownLink")
 
 set(SCEXE "C:\\Cosmonarchy\\Prerelease\\Cosmonarchy BW.exe")
 
 set_target_properties(SNP
-	PROPERTIES
-		OUTPUT_NAME ${outname}
-		SUFFIX ".snp"
-		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/link"
-		VS_DEBUGGER_COMMAND "${SCEXE}"
+    PROPERTIES
+        OUTPUT_NAME ${outname}
+        SUFFIX ".snp"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/link"
+        VS_DEBUGGER_COMMAND "${SCEXE}"
 )
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NetShared)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor)
 
 include(FetchContent)
@@ -56,15 +55,11 @@ include(FetchContent)
 set (NO_TESTS ON CACHE INTERNAL "Turn off libjuice tests")
 set (NO_SERVER ON CACHE INTERNAL "Turn off libjuice server")
 FetchContent_Declare(
-	Juice
-	GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
-	GIT_TAG v1.7.0
+    Juice
+    GIT_REPOSITORY https://github.com/paullouisageneau/libjuice.git
+    GIT_TAG v1.7.0
 )
 FetchContent_MakeAvailable(Juice)
-
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
-target_link_libraries(SNP PRIVATE nlohmann_json::nlohmann_json)
 
 set(SPDLOG_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(SPDLOG_BUILD_STATIC OFF CACHE BOOL "" FORCE)
@@ -81,12 +76,12 @@ FetchContent_MakeAvailable(spdlog)
 target_include_directories(SNP PRIVATE ${spdlog_SOURCE_DIR}/include/spdlog)
 target_include_directories(SNP PRIVATE ${libjuice_SOURCE_DIR}/include/juice)
 target_link_libraries(SNP
-	PRIVATE CrowServe
-	PRIVATE ws2_32
-	PRIVATE juice-static
-	PRIVATE spdlog::spdlog_header_only
-	PRIVATE storm::storm
-	PRIVATE crownlink_version
+    PRIVATE ws2_32
+    PRIVATE juice-static
+    PRIVATE spdlog::spdlog_header_only
+    PRIVATE storm::storm
+    PRIVATE nlohmann_json::nlohmann_json
+    PRIVATE crownlink_version
 )
 
 target_compile_options(SNP PRIVATE "$<$<CONFIG:Release>:/Zi>")
