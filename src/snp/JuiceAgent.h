@@ -9,9 +9,9 @@
 #include <shared_mutex>
 #include <string>
 
-#include "../types.h"
+#include "shared/types.h"
 #include "Logger.h"
-#include "../CrowServe/CrowServe.h"
+#include "crow_serve/CrowServe.h"
 #include "Ema.h"
 
 static constexpr auto LATENCY_SAMPLES = 10;

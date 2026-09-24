@@ -1,7 +1,7 @@
 #pragma once
 #include <thread>
 
-#include "../CrowServe/CrowServe.h"
+#include "crow_serve/CrowServe.h"
 
 class JuiceManager;
 

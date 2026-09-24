@@ -10,7 +10,7 @@
 #include <string>
 
 #include "Logger.h"
-#include "../types.h"
+#include "shared/types.h"
 
 using Json = nlohmann::json;
 namespace fs = std::filesystem;

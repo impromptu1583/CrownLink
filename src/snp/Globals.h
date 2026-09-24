@@ -5,8 +5,8 @@
 
 #include "CrowServeManager.h"
 #include "JuiceManager.h"
-#include "../types.h"
-#include "../NetShared/StormTypes.h"
+#include "shared/types.h"
+#include "shared/StormTypes.h"
 
 constexpr auto caps_flags =
     std::to_underlying(CapsFlags::PageLockedBuffers) | std::to_underlying(CapsFlags::BasicInterface) |

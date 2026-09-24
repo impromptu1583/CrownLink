@@ -4,10 +4,10 @@
 #include <mutex>
 
 #include "JuiceAgent.h"
-#include "../types.h"
-#include "../NetShared/StormTypes.h"
+#include "shared/types.h"
+#include "shared/StormTypes.h"
 #include "Logger.h"
-#include "EMA.h"
+#include "Ema.h"
 
 #include <concurrentqueue.h>
 

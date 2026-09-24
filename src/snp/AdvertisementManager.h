@@ -6,8 +6,8 @@
 #include <vector>
 #include <algorithm>
 
-#include "../types.h"
-#include "../NetShared/StormTypes.h"
+#include "shared/types.h"
+#include "shared/StormTypes.h"
 
 enum class LogLevel;
 struct SnpConfig;

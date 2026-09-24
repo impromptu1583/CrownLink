@@ -1,6 +1,6 @@
 #pragma once
-#include "../types.h"
-#include "../NetShared/StormTypes.h"
+#include "shared/types.h"
+#include "shared/StormTypes.h"
 
 #include "crownlink/provider_data.h"
 

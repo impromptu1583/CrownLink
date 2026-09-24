@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../NetShared/StormTypes.h"
-#include "common.h"
+#include "shared/StormTypes.h"
+#include "shared/common.h"
 
 namespace CrownLinkProtocol {
 

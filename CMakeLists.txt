@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.25)
 
-set(_VCPKG_TARGET_TRIPLET_ARCH x86)  
+set(_VCPKG_TARGET_TRIPLET_ARCH x86)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Enable Hot Reload for MSVC compilers if supported.
@@ -31,12 +31,28 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(storm_sdk)
 
-# Include sub-projects.
-add_subdirectory ("SNP")
-#add_subdirectory ("Server")
-add_subdirectory("CrowServe")
+# nlohmann/json: shared by SNP and tests
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json)
 
-# caps pipeline: providers.toml -> caps.dat -> SNP/CrownLink.snp, see cmake/Caps.cmake
+# C++ settings for first-party targets and everything fetched below this point;
+# kept after the storm_sdk fetch so the vendored SDK keeps its own defaults
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(MSVC)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+# Include sub-projects.
+add_subdirectory("src")
+
+# enable_testing must run at the top level or CTest ignores tests registered in subdirectories
+enable_testing()
+add_subdirectory("tests")
+
+# caps pipeline: providers.toml -> caps.dat -> dist/CrownLink.snp, see cmake/Caps.cmake
 # Runs after the subprojects so the dist step can reference the SNP target
 include(cmake/Caps.cmake)
 crownlink_setup_caps()
