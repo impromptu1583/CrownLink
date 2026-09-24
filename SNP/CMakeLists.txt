@@ -41,10 +41,13 @@ set(outname "CrownLink")
 
 set(SCEXE "C:\\Cosmonarchy\\Prerelease\\Cosmonarchy BW.exe")
 
+# Links into link/; cmake/Caps.cmake produces the loadable artifact with caps.mpq appended
+# at the classic SNP/CrownLink.snp path
 set_target_properties(SNP
 	PROPERTIES
 		OUTPUT_NAME ${outname}
 		SUFFIX ".snp"
+		RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/link"
 		VS_DEBUGGER_COMMAND "${SCEXE}"
 )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NetShared)
@@ -93,17 +96,4 @@ target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
 target_link_options(SNP PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 
-# copy CAPS MPQ into SNP
-message(STATUS "Copying ${CMAKE_SOURCE_DIR}/SNP/caps.mpq at the end of SNP")
-#set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
-
-add_dependencies(SNP CrownMPQ crownlink_version_refresh)
-
-add_custom_command( TARGET SNP
-	POST_BUILD
-	COMMAND cmd /C "copy /Y /B \"$<SHELL_PATH:$<TARGET_FILE:SNP>>\" + \"$<SHELL_PATH:${mpqfile}>\" \"$<SHELL_PATH:$<TARGET_FILE:SNP>>\""
-)
-
-install(TARGETS SNP
-	DESTINATION "C:/Cosmonarchy/Starcraft/"
-)
+add_dependencies(SNP crownlink_version_refresh)

@@ -3,6 +3,7 @@
 #include <storm/types.hpp>
 
 #include "crownlink/version.h"  // generated from the latest git tag
+#include "crownlink/provider_data.h"  // generated from scripts/providers.toml
 
 #include "include/ConnectionState.h"
 using namespace std::literals;
@@ -19,5 +20,3 @@ inline u32 get_tick_count() {
     using namespace std::literals;
     return static_cast<u32>(std::chrono::system_clock::now().time_since_epoch() / 1s);
 }
-
-inline constexpr u32 MaxPacketSize = 512;

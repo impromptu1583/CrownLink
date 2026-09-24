@@ -1,0 +1,20 @@
+# CrownLink providers packed into caps.dat inside caps.mpq; consumed by scripts/build_caps.py
+# The player-visible version is not stored here: it flows from the git tag through crownlink/version.h
+
+# Largest storm message the SNP layer accepts
+max_packet_size = 512
+
+[[provider]]
+# 4 chars; stored in caps.dat and matched against the ids storm hands back via SNetEnumProviders
+id = "CNLK"
+name = "CrownLink"
+# Trailing line of the in-game description box, shown after the version line
+subtitle = "Standard Mode"
+# 4=UltraLow 6=Low 8=Standard 10=Medium 12=High, mirrors include/TurnsPerSecond.h
+turns_per_second = 8
+
+[[provider]]
+id = "CLDB"
+name = "CrownLink High Latency"
+subtitle = "Use this version when network conditions are poor"
+turns_per_second = 4

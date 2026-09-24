@@ -14,7 +14,6 @@ if (POLICY CMP0141)
 endif()
 
 project ("CrownLink")
-set(mpqfile "${CMAKE_SOURCE_DIR}/SNP/caps.mpq")
 
 # Version single source of truth: the git tag (vMAJOR.MINOR.PATCH), see cmake/Version.cmake
 include(cmake/Version.cmake)
@@ -33,7 +32,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(storm_sdk)
 
 # Include sub-projects.
-add_subdirectory("MPQ")
 add_subdirectory ("SNP")
 #add_subdirectory ("Server")
 add_subdirectory("CrowServe")
+
+# caps pipeline: providers.toml -> caps.dat -> SNP/CrownLink.snp, see cmake/Caps.cmake
+# Runs after the subprojects so the dist step can reference the SNP target
+include(cmake/Caps.cmake)
+crownlink_setup_caps()
+
+# CROWNLINK_DIST_FILE is the SNP output with caps.mpq appended, not the bare linker output
+install(FILES "${CROWNLINK_DIST_FILE}"
+    DESTINATION "C:/Cosmonarchy/Starcraft/"
+)

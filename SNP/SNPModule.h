@@ -2,10 +2,13 @@
 #include "../types.h"
 #include "../NetShared/StormTypes.h"
 
+#include "crownlink/provider_data.h"
+
 namespace snp {
 
-// Provider ids as declared in the caps.dat entries of caps.mpq; array order matches the SnpQuery indices
-inline constexpr u32 provider_ids[] = {'CNLK', 'CLDB'};
+// provider_ids comes from the generated header; the ids must match the caps.dat entries that
+// storm enumerates from caps.mpq, and this size is mirrored by CAPS_SIZE_BYTES in build_caps.py
+static_assert(sizeof(Caps) == 36);
 
 bool set_snp_turns_per_second(TurnsPerSecond turns_per_second);
 
