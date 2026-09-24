@@ -16,6 +16,9 @@
 
 static constexpr auto LATENCY_SAMPLES = 10;
 
+// DSCP Expedited Forwarding (RFC 3246), the per-hop treatment game packets want
+static constexpr auto GameTrafficDscp = 0xB8;
+
 struct TurnServer {
     std::string host;
     std::string username;
