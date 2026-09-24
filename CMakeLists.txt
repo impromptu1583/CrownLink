@@ -46,13 +46,13 @@ if(MSVC)
 endif()
 
 # Include sub-projects.
-add_subdirectory ("SNP")
+add_subdirectory("src")
 
 # enable_testing must run at the top level or CTest ignores tests registered in subdirectories
 enable_testing()
-add_subdirectory("CrowServe/tests")
+add_subdirectory("tests")
 
-# caps pipeline: providers.toml -> caps.dat -> SNP/CrownLink.snp, see cmake/Caps.cmake
+# caps pipeline: providers.toml -> caps.dat -> dist/CrownLink.snp, see cmake/Caps.cmake
 # Runs after the subprojects so the dist step can reference the SNP target
 include(cmake/Caps.cmake)
 crownlink_setup_caps()

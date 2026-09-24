@@ -7,7 +7,7 @@
 
 #include "CrownLinkProtocol.h"
 #include "P2PProtocol.h"
-#include "common.h"
+#include "shared/common.h"
 
 #if defined(_WIN32)
 #define Windows

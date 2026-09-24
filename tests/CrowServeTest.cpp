@@ -1,7 +1,7 @@
 #include <catch2/catch_all.hpp>
 
-#include "../../NetShared/StormTypes.h"
-#include "Cbor.h"
+#include "shared/StormTypes.h"
+#include "shared/Cbor.h"
 
 template<typename T>
 bool test_serialization(T& test_subject) {

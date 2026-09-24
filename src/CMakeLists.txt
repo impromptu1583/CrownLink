@@ -1,32 +1,33 @@
 ﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 set(MODULE_FILES
-    "SNPModule.cpp"
-    "SNPModule.h"
-    "CrownLink.def"
-    "AdvertisementManager.cpp"
-    "AdvertisementManager.h"
-    "DLLMain.cpp"
-    "JuiceAgent.h"
-    "JuiceAgent.cpp"
-    "JuiceManager.h"
-    "JuiceManager.cpp"
-    "../NetShared/StormTypes.h"
-    "../NetShared/simdutf.cpp"
-    "../CrowServe/CrowServe.h"
-    "../CrowServe/CrowServe.cpp"
-    "../CrowServe/CrownLinkProtocol.h"
-    "../CrowServe/CrownLinkProtocol.cpp"
-    "../CrowServe/P2PProtocol.h"
-    "../CrowServe/P2PProtocol.cpp"
-    "../CrowServe/Cbor.h"
-    "../CrowServe/common.h"
-    "Config.h"
-    "CrowServeManager.cpp"
-    "CrowServeManager.h"
-    "Logger.h"
-    "Globals.h"
-    "version.rc"
+    "snp/SNPModule.cpp"
+    "snp/SNPModule.h"
+    "snp/CrownLink.def"
+    "snp/AdvertisementManager.cpp"
+    "snp/AdvertisementManager.h"
+    "snp/DLLMain.cpp"
+    "snp/JuiceAgent.h"
+    "snp/JuiceAgent.cpp"
+    "snp/JuiceManager.h"
+    "snp/JuiceManager.cpp"
+    "snp/Config.h"
+    "snp/CrowServeManager.cpp"
+    "snp/CrowServeManager.h"
+    "snp/Logger.h"
+    "snp/Globals.h"
+    "snp/version.rc"
+    "shared/types.h"
+    "shared/StormTypes.h"
+    "shared/simdutf.cpp"
+    "shared/Cbor.h"
+    "shared/common.h"
+    "crow_serve/CrowServe.h"
+    "crow_serve/CrowServe.cpp"
+    "crow_serve/CrownLinkProtocol.h"
+    "crow_serve/CrownLinkProtocol.cpp"
+    "crow_serve/P2PProtocol.h"
+    "crow_serve/P2PProtocol.cpp"
 )
 
 # SHARED rather than MODULE: VS's CMake integration only offers EXECUTABLE and
@@ -48,7 +49,13 @@ set_target_properties(SNP
         VS_DEBUGGER_COMMAND "${SCEXE}"
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor)
+# src/ is the include root (shared/, crow_serve/, snp/); include/ holds the exported-API
+# headers reached as crownlink/*.h; snp/vendor holds concurrentqueue.h
+target_include_directories(SNP
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/snp/vendor
+)
 
 include(FetchContent)
 

@@ -5,7 +5,7 @@
 #include "crownlink/version.h"  // generated from the latest git tag
 #include "crownlink/provider_data.h"  // generated from scripts/providers.toml
 
-#include "include/ConnectionState.h"
+#include "crownlink/ConnectionState.h"
 using namespace std::literals;
 
 #define EnumStringCase(X) \

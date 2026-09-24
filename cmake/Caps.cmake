@@ -1,4 +1,4 @@
-# caps pipeline: providers.toml plus the git-tag version string go in, SNP/CrownLink.snp
+# caps pipeline: providers.toml plus the git-tag version string go in, dist/CrownLink.snp
 # (the dll with caps.mpq appended) comes out; the raw linker output lives in link/
 #   configure time: build_caps.py writes caps.dat and generated/crownlink/provider_data.h
 #   build time:     caps.dat regenerates when providers.toml or the version changes; the
@@ -24,7 +24,7 @@ function(crownlink_setup_caps)
     set(providers_stamp "${caps_dir}/providers.toml.sha")
     set(mpqcli_exe "${caps_dir}/mpqcli.exe")
     set(append_script "${CMAKE_SOURCE_DIR}/scripts/append_file.py")
-    set(snp_output "${CMAKE_BINARY_DIR}/SNP/CrownLink.snp")
+    set(snp_output "${CMAKE_BINARY_DIR}/dist/CrownLink.snp")
 
     # Configure-time generation so provider_data.h exists before the first compile
     execute_process(

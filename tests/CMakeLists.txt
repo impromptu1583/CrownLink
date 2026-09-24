@@ -10,8 +10,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(CrowServeTest CrowServeTest.cpp ../../NetShared/simdutf.cpp)
-target_include_directories(CrowServeTest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
+add_executable(CrowServeTest CrowServeTest.cpp ../src/shared/simdutf.cpp)
+target_include_directories(CrowServeTest
+    PRIVATE ${CMAKE_SOURCE_DIR}/src
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+)
 target_link_libraries(CrowServeTest
     PRIVATE Catch2::Catch2WithMain
     PRIVATE nlohmann_json::nlohmann_json

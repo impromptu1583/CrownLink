@@ -7,8 +7,8 @@
 
 #include <storm/util/snet.hpp>
 
-#include "../types.h"
-#include "../include/TurnsPerSecond.h"
+#include "types.h"
+#include "crownlink/TurnsPerSecond.h"
 using Json = nlohmann::json;
 
 #include <algorithm>

@@ -4,7 +4,7 @@
 #include <nlohmann/json.hpp>
 using Json = nlohmann::json;
 
-#include "../types.h"
+#include "types.h"
 #include "Cbor.h"
 
 using namespace std::literals;
