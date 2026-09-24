@@ -1,6 +1,4 @@
-﻿#set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-
-set(MODULE_FILES
+﻿set(MODULE_FILES
     "snp/SNPModule.cpp"
     "snp/SNPModule.h"
     "snp/CrownLink.def"

@@ -10,16 +10,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(CrowServeTest CrowServeTest.cpp ../src/shared/simdutf.cpp)
-target_include_directories(CrowServeTest
+add_executable(SerializationTests SerializationTests.cpp ../src/shared/simdutf.cpp)
+target_include_directories(SerializationTests
     PRIVATE ${CMAKE_SOURCE_DIR}/src
     PRIVATE ${CMAKE_SOURCE_DIR}/include
 )
-target_link_libraries(CrowServeTest
+target_link_libraries(SerializationTests
     PRIVATE Catch2::Catch2WithMain
     PRIVATE nlohmann_json::nlohmann_json
     PRIVATE storm::headers
     PRIVATE crownlink_version
 )
 
-add_test(CrowServeTest CrowServeTest)
+add_test(SerializationTests SerializationTests)
