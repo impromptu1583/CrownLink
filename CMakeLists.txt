@@ -15,12 +15,13 @@ endif()
 
 project ("CrownLink")
 
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF)
+
 # Version single source of truth: the git tag (vMAJOR.MINOR.PATCH), see cmake/Version.cmake
 include(cmake/Version.cmake)
 crownlink_setup_version()
 
-# storm_sdk: storm.dll ordinals + ABI types, pinned by tag
-# Set FETCHCONTENT_SOURCE_DIR_STORM_SDK to a local checkout to skip the GitLab fetch
 include(FetchContent)
 FetchContent_Declare(
     storm_sdk
@@ -34,6 +35,24 @@ FetchContent_MakeAvailable(storm_sdk)
 # nlohmann/json: shared by SNP and tests
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
+
+set(SIMDUTF_TESTS OFF)
+set(SIMDUTF_TOOLS OFF)
+FetchContent_Declare(
+    simdutf
+    GIT_REPOSITORY https://github.com/simdutf/simdutf.git
+    GIT_TAG v7.3.3
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(simdutf)
+
+FetchContent_Declare(
+    concurrentqueue
+    GIT_REPOSITORY https://github.com/cameron314/concurrentqueue.git
+    GIT_TAG v1.0.5
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(concurrentqueue)
 
 # C++ settings for first-party targets and everything fetched below this point;
 # kept after the storm_sdk fetch so the vendored SDK keeps its own defaults
