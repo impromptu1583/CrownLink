@@ -70,42 +70,32 @@ bool AdvertisementManager::in_games_list() const {
            std::chrono::steady_clock::now() - m_last_solicitation < 2s;
 }
 
-void AdvertisementManager::update_lobbies(std::vector<AdFile>& out_list) {
+void AdvertisementManager::update_lobbies(const std::vector<AdFile>& incoming_ads) {
     std::lock_guard lock{m_gamelist_mutex};
 
-    for (auto& known_lobby : m_lobbies) {
-        auto it =
-            std::ranges::find_if(out_list, [&known_lobby](const AdFile& incoming_ad) {
-                return known_lobby.is_same_owner(incoming_ad);
-            });
-        if (it != out_list.end()) {
-            known_lobby = *it;
-            it->mark_for_removal = true;
-        } else {
-            known_lobby.mark_for_removal = true;
+    std::erase_if(m_lobbies, [&](const LobbyEntry& known_lobby) {
+        return std::ranges::none_of(incoming_ads, [&](const AdFile& incoming_ad) {
+            return known_lobby.ad.game_info.host == incoming_ad.game_info.host;
+        });
+    });
+
+    for (const auto& incoming_ad : incoming_ads) {
+        auto known_lobby = std::ranges::find_if(m_lobbies, [&](const LobbyEntry& lobby) {
+            return lobby.ad.game_info.host == incoming_ad.game_info.host;
+        });
+        if (known_lobby == m_lobbies.end()) {
+            known_lobby = m_lobbies.emplace(m_lobbies.end());
         }
+        known_lobby->ad = incoming_ad;
+        known_lobby->original_name = incoming_ad.game_info.game_name;
     }
 
-    m_lobbies.erase(
-        std::remove_if(
-            m_lobbies.begin(), m_lobbies.end(),
-            [](const AdFile& ad) {
-                return ad.mark_for_removal;
-            }
-        ),
-        m_lobbies.end()
-    );
-    
-    std::ranges::copy_if(out_list, std::back_inserter(m_lobbies), [](const AdFile& incoming_ad) {
-        return !incoming_ad.mark_for_removal;
-    });
-    
     const auto last_updated = get_tick_count();
     u32 index = 1;
-    for (AdFile& known_lobby : m_lobbies) {
-        known_lobby.game_info.host_last_time = last_updated;
-        known_lobby.game_info.game_index = ++index;
-        known_lobby.game_info.pExtra = known_lobby.extra_bytes;
+    for (auto& known_lobby : m_lobbies) {
+        known_lobby.ad.game_info.host_last_time = last_updated;
+        known_lobby.ad.game_info.game_index = ++index;
+        known_lobby.ad.game_info.pExtra = known_lobby.ad.extra_bytes;
     }
 }
 
@@ -162,8 +152,8 @@ ConnectionState AdvertisementManager::connection_type(AdFile& lobby) {
 void AdvertisementManager::prune_lobbies_older_than(u32 seconds) {
     std::lock_guard lock{m_gamelist_mutex};
 
-    std::erase_if(m_lobbies, [](const AdFile& lobby) {
-        return get_tick_count() - lobby.game_info.host_last_time > 2;
+    std::erase_if(m_lobbies, [seconds](const LobbyEntry& lobby) {
+        return get_tick_count() - lobby.ad.game_info.host_last_time > seconds;
     });
 }
 
@@ -186,7 +176,7 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
 
     prune_lobbies_older_than(2);
 
-    for (auto& ad : m_lobbies) {
+    for (auto& [ad, original_name] : m_lobbies) {
         bool joinable = true;
         bool has_text_prefix = false;
         std::stringstream ss;
@@ -267,10 +257,7 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
             }
         }
 
-        if (ad.original_name.empty()) {
-            ad.original_name = ad.game_info.game_name;
-        }
-        ss << (has_text_prefix ? " " : "") << ad.original_name;
+        ss << (has_text_prefix ? " " : "") << original_name;
 
         if (snp_config.add_map_to_lobby_name) {
             ss << (joinable ? ColorByte::Blue : ColorByte::Revert) << " " << extract_map_name(ad.game_info);
@@ -295,7 +282,7 @@ bool AdvertisementManager::lock_game_list(u32 category_bits, u32 category_mask, 
         *out_game_list = &m_status_ad;
         return true;
     } else if (m_lobbies.size()) {
-        *out_game_list = &m_lobbies[0];
+        *out_game_list = &m_lobbies[0].ad;
         return true;
     }
     *out_game_list = nullptr;
@@ -309,9 +296,9 @@ bool AdvertisementManager::unlock_game_list() const {
 
 std::optional<std::reference_wrapper<const AdFile>> AdvertisementManager::get_ad_by_index(u32 index) const {
     std::lock_guard lock{m_gamelist_mutex};
-    for (auto& ad : m_lobbies) {
-        if (ad.game_info.game_index == index) {
-            return std::ref(ad);
+    for (auto& lobby : m_lobbies) {
+        if (lobby.ad.game_info.game_index == index) {
+            return std::ref(lobby.ad);
         }
     }
     return {};
@@ -325,7 +312,7 @@ void AdvertisementManager::iterate_lobby_list(
     std::lock_guard lock{m_gamelist_mutex};
     prune_lobbies_older_than(1);
     for (auto& lobby : m_lobbies) {
-        callback(&lobby, connection_type(lobby), user_data);
+        callback(&lobby.ad, connection_type(lobby.ad), user_data);
     }
 }
 

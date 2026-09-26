@@ -12,6 +12,12 @@
 enum class LogLevel;
 struct SnpConfig;
 
+// CrownLink-only lobby bookkeeping; AdFile stays the vanilla ABI shape
+struct LobbyEntry {
+    AdFile ad{};
+    std::string original_name{};
+};
+
 class AdvertisementManager {
 public:
     static AdvertisementManager& instance() {
@@ -26,7 +32,7 @@ public:
     void send_advertisement();
     void stop_advertising();
     bool in_games_list() const;
-    void update_lobbies(std::vector<AdFile>& out_list);
+    void update_lobbies(const std::vector<AdFile>& incoming_ads);
     
     static void create_ad(
         AdFile& ad_file, const char* game_name, const char* game_stat_string, u32 game_state, void* user_data,
@@ -69,7 +75,7 @@ private:
 
     mutable std::recursive_mutex m_gamelist_mutex;
 
-    std::vector<AdFile> m_lobbies;
+    std::vector<LobbyEntry> m_lobbies;
     AdFile m_status_ad{};
 
     std::string m_lobby_password{};

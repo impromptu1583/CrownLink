@@ -26,7 +26,7 @@ include(FetchContent)
 FetchContent_Declare(
     storm_sdk
     GIT_REPOSITORY https://gitlab.com/Unveiling1561/storm_sdk.git
-    GIT_TAG v1.0.0
+    GIT_TAG v1.1.0
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
 )

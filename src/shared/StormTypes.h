@@ -48,6 +48,19 @@ struct std::hash<NetAddress> {
     }
 };
 
+inline std::string uuid_string(const NetAddress& address) {
+    return std::format(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        address.bytes[0], address.bytes[1], address.bytes[2], address.bytes[3], address.bytes[4], address.bytes[5],
+        address.bytes[6], address.bytes[7], address.bytes[8], address.bytes[9], address.bytes[10], address.bytes[11],
+        address.bytes[12], address.bytes[13], address.bytes[14], address.bytes[15]
+    );
+}
+
+inline std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
+    return out << uuid_string(address);
+}
+
 inline void to_json(Json& j, const GameInfo& g) {
     char game_name[256]{};
     simdutf::convert_latin1_to_utf8(std::string_view(g.game_name), std::span(game_name));
