@@ -33,9 +33,32 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(storm_sdk)
 
-# nlohmann/json: shared by SNP and tests
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
+# jsoncons: header-only CBOR backend used by reflect-cpp
+# (its test suite defaults to ON and would register a `unit_tests` ctest entry
+# pointing into the jsoncons source tree - turn it off)
+set(JSONCONS_BUILD_TESTS OFF)
+FetchContent_Declare(
+    jsoncons
+    GIT_REPOSITORY https://github.com/danielaparker/jsoncons.git
+    GIT_TAG v1.4.0
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(jsoncons)
+# reflect-cpp's CMakeLists expects this variable from an installed jsoncons config
+# package; set it manually since we consume jsoncons as a target
+set(jsoncons_INCLUDE_DIRS "${jsoncons_SOURCE_DIR}/include")
+
+# reflect-cpp: serialization for the wire protocol (CBOR) and config file (JSON)
+set(REFLECTCPP_CBOR ON)
+set(REFLECTCPP_USE_BUNDLED_DEPENDENCIES ON)
+FetchContent_Declare(
+    reflectcpp
+    GIT_REPOSITORY https://github.com/getml/reflect-cpp.git
+    GIT_TAG v0.25.0
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(reflectcpp)
 
 set(SIMDUTF_TESTS OFF)
 set(SIMDUTF_TOOLS OFF)

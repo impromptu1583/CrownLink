@@ -330,6 +330,7 @@ private:
     std::string m_port = "33377";
     std::string m_lobby_password = "";
     std::atomic<SocketState> m_state{SocketState::Disconnected};
+    std::atomic<bool> m_locally_closed = false;
     CrownLinkProtocol::Protocol m_crownlink_protocol;
     P2P::Protocol m_p2p_protocol;
     std::shared_mutex m_id_mutex;

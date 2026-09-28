@@ -85,7 +85,8 @@ target_link_libraries(SNP
     PRIVATE juice-static
     PRIVATE spdlog::spdlog_header_only
     PRIVATE storm::storm
-    PRIVATE nlohmann_json::nlohmann_json
+    PRIVATE reflectcpp
+    PRIVATE jsoncons
     PRIVATE crownlink_version
     PRIVATE simdutf
     PRIVATE concurrentqueue

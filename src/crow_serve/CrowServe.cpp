@@ -70,6 +70,7 @@ void Socket::try_init(std::stop_token& stop_token) {
 
         m_poll_fd[0].fd = m_socket;
         m_poll_fd[0].events = POLLIN;
+        m_locally_closed = false;
 
         try_log("Successfully connected to matchmaking server");
         std::cout << "successfully connected\n";
@@ -82,6 +83,7 @@ void Socket::try_init(std::stop_token& stop_token) {
 }
 
 void Socket::disconnect() {
+    m_locally_closed = true;
     shutdown(m_socket, SD_RECEIVE);
     closesocket(m_socket);
     m_state = SocketState::Disconnected;
@@ -90,8 +92,13 @@ void Socket::disconnect() {
 
 void Socket::log_socket_error(const char* message, s32 bytes_received, s32 error) {
     if (!bytes_received) {
-        try_log("Error: Server terminated connection");
-        std::cout << message << "Server terminated connection\n";
+        if (m_locally_closed) {
+            try_log("Connection closed locally");
+            std::cout << message << "Connection closed locally\n";
+        } else {
+            try_log("Error: Server terminated connection");
+            std::cout << message << "Server terminated connection\n";
+        }
         return;
     }
 

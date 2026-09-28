@@ -92,6 +92,7 @@ static b32 __stdcall spi_destroy() {
     // called by storm when exiting out of the multiplayer lobbies / game finished screen and back to the multiplayer
     // connnection types menu
     try {
+        spdlog::info("Leaving multiplayer, closing crowserve connection");
         g_context.reset();
     } catch (const std::exception& e) {
         spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);

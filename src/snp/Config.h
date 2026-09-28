@@ -1,10 +1,9 @@
 #pragma once
-#include <nlohmann/json.hpp>
-#include <nlohmann/json_fwd.hpp>
+
+#include <rfl/json.hpp>
 
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <ostream>
 #include <spdlog.h>
 #include <string>
@@ -12,7 +11,6 @@
 #include "Logger.h"
 #include "shared/types.h"
 
-using Json = nlohmann::json;
 namespace fs = std::filesystem;
 
 enum class LogLevel {
@@ -24,6 +22,19 @@ enum class LogLevel {
     Debug,
     Trace
 };
+
+namespace rfl {
+
+// log_level is stored as its integer value in CrownLink.json; reflect-cpp
+// would otherwise write the enumerator name as a string
+template <>
+struct Reflector<::LogLevel> {
+    using ReflType = u32;
+    static ::LogLevel to(const ReflType& value) noexcept { return static_cast<::LogLevel>(value); }
+    static ReflType from(const ::LogLevel& value) noexcept { return std::to_underlying(value); }
+};
+
+}  // namespace rfl
 
 struct SnpConfig {
     u32 config_version = 2;
@@ -42,33 +53,30 @@ public:
     SnpConfigLoader(const std::string& filename) : m_path{g_starcraft_dir / filename} {}
 
     SnpConfig load() {
-        std::ifstream file{m_path};
-        Json json;
-        if (file.good()) {
-            try {
-                json = Json::parse(file);
-                m_config_existed = true;
-            } catch (const Json::parse_error& e) {
-                spdlog::dump_backtrace();
-                spdlog::error(
-                    "Config file error: {}, exception id: {}, error at byte position: {}", e.what(), e.id, e.byte
-                );
-            }
-        }
-        if (m_config_existed) {
-            spdlog::info("Config file loaded, contents: {}", json.dump());
+        std::string contents;
+        if (std::ifstream file{m_path}; file.good()) {
+            contents = std::string{std::istreambuf_iterator<char>(file), {}};
+            m_config_existed = true;
+            spdlog::info("Config file loaded, contents: {}", contents);
         } else {
             spdlog::warn("Config file not found, defaults will be used");
         }
 
         SnpConfig config{};
-        if (config_version_matches(json, config.config_version)) {
-            load_field(json, "server", config.server);
-            load_field(json, "port", config.port);
-            load_field(json, "lobby_password", config.lobby_password);
-            load_field(json, "add_map_to_lobby_name", config.add_map_to_lobby_name);
-
-            load_field(json, "log_level", config.log_level);
+        if (m_config_existed) {
+            // Missing keys fall back to defaults; a wrong-typed value fails the
+            // whole read, which also falls back to defaults and rewrites the file
+            const auto loaded = rfl::json::read<SnpConfig, rfl::DefaultIfMissing>(contents);
+            if (!loaded) {
+                spdlog::warn("Config file error: {}", loaded.error().what());
+            } else if (loaded.value().config_version == config.config_version) {
+                config = loaded.value();
+            } else {
+                spdlog::warn(
+                    "Config version mismatch: file has {}, expected {}", loaded.value().config_version,
+                    config.config_version
+                );
+            }
         }
 
         save(config);
@@ -80,15 +88,6 @@ public:
             return;
         }
 
-        const auto json = Json{
-            {"config_version", config.config_version},
-            {"server", config.server},
-            {"port", config.port},
-            {"lobby_password", config.lobby_password},
-            {"add_map_to_lobby_name", config.add_map_to_lobby_name},
-            {"log_level", config.log_level},
-        };
-
         if (m_config_existed) {
             spdlog::info("Updating config at {}", m_path.string());
         } else {
@@ -96,35 +95,7 @@ public:
         }
 
         std::ofstream file{m_path};
-        file << std::setw(4) << json << std::endl;
-    }
-
-private:
-    Json* section(Json& json, const std::string& key) {
-        return json.is_object() && json.contains(key) ? &json[key] : nullptr;
-    }
-
-    template <typename T>
-    void load_field(Json& json, const std::string& key, T& out_value) {
-        try {
-            json.at(key).get_to(out_value);
-        } catch (const Json::out_of_range& ex) {
-            spdlog::warn("Value for \"{}\" not found (using default), exception: {}", key, ex.what());
-        } catch (const Json::type_error& ex) {
-            spdlog::warn("Value for \"{}\" is of wrong type (using default), exception: {}", key, ex.what());
-        }
-    }
-
-    bool config_version_matches(Json& json, u32 config_version) {
-        u32 file_version = 0;
-        try {
-            json.at("config_version").get_to(file_version);
-        } catch (const Json::out_of_range& ex) {
-            spdlog::warn("config_version missing, exception: {}", ex.what());
-        } catch (const Json::type_error& ex) {
-            spdlog::warn("config_version type was incorrect, exception: {}", ex.what());
-        }
-        return file_version == config_version;
+        file << rfl::json::write(config, rfl::json::pretty) << std::endl;
     }
 
 private:
