@@ -28,11 +28,10 @@ void CrowServeManager::init_listener() {
             spdlog::info("received client ID from server: {}", message.peer_id);
             g_context->juice_manager().set_ice_credentials(message.ice_credentials);
             m_socket.set_profile(message.peer_id, message.token);
-            for (u32 i = 0; i < message.ice_credentials.turn_servers_count; i++) {
-                auto& ts = message.ice_credentials.turn_servers[i];
+            for (const auto& turn_server : message.ice_credentials.turn_server_list()) {
                 spdlog::info(
-                    "Turn server received, host: {}, port: {}, user: {}, pass: {}", ts.host, ts.port, ts.username,
-                    ts.password
+                    "Turn server received, host: {}, port: {}, user: {}, pass: {}", turn_server.host, turn_server.port,
+                    turn_server.username, turn_server.password
                 );
             }
         },
@@ -47,7 +46,7 @@ void CrowServeManager::init_listener() {
             if (AdvertisementManager::instance().is_advertising()) {
                 AdvertisementManager::instance().send_advertisement();
             } else {
-                auto reply = CrownLinkProtocol::EchoResponse{{}, ""};
+                auto reply = CrownLinkProtocol::EchoResponse{""};
                 m_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, reply);
             }
         },
@@ -55,7 +54,7 @@ void CrowServeManager::init_listener() {
             AdvertisementManager::instance().update_lobbies(message.ad_files);
         },
         [&](const CrownLinkProtocol::EchoRequest& message) {
-            auto reply = CrownLinkProtocol::EchoResponse{{}, message.message};
+            auto reply = CrownLinkProtocol::EchoResponse{message.message};
             m_socket.send_messages(CrowServe::ProtocolType::ProtocolCrownLink, reply);
         },
         [&](const P2P::ConnectionRequest& message) {

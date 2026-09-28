@@ -1,18 +1,15 @@
 #pragma once
 
-#define JSON_DIAGNOSTICS 1
-
-#include <nlohmann/json.hpp>
 #include "simdutf.h"
 
 #include <storm/util/snet.hpp>
 
+#include <rfl.hpp>
+
 #include "types.h"
 #include "crownlink/TurnsPerSecond.h"
-using Json = nlohmann::json;
 
 #include <algorithm>
-#include <array>
 #include <cstring>
 #include <format>
 #include <iostream>
@@ -25,28 +22,6 @@ using Json = nlohmann::json;
 
 // storm ABI structs live in <storm/util/snet.hpp>; this header holds the CrownLink-side
 // serialization glue for them
-
-inline void to_json(Json& j, const NetAddress& address) {
-    j = Json::binary_t(std::vector<u8>(address.bytes.begin(), address.bytes.end()));
-}
-
-inline void from_json(const Json& j, NetAddress& address) {
-    const auto& binary_data = j.get_binary();
-    const auto copy_size = std::min(binary_data.size(), address.bytes.size());
-    std::copy_n(binary_data.begin(), copy_size, address.bytes.data());
-}
-
-template <>
-struct std::hash<NetAddress> {
-    size_t operator()(const NetAddress& address) const {
-        size_t hash = 0;
-        for (auto c : address.bytes) {
-            hash <<= 1;
-            hash ^= std::hash<u8>{}(c);
-        }
-        return hash;
-    }
-};
 
 inline std::string uuid_string(const NetAddress& address) {
     return std::format(
@@ -61,68 +36,23 @@ inline std::ostream& operator<<(std::ostream& out, const NetAddress& address) {
     return out << uuid_string(address);
 }
 
-inline void to_json(Json& j, const GameInfo& g) {
-    char game_name[256]{};
-    simdutf::convert_latin1_to_utf8(std::string_view(g.game_name), std::span(game_name));
-    char game_desc[256]{};
-    simdutf::convert_latin1_to_utf8(std::string_view(g.game_description), std::span(game_desc));
-    j = Json{
-        {"game_index", g.game_index},
-        {"game_state", g.game_state},
-        {"creation_time", g.creation_time},
-        {"host", g.host},
-        {"host_latency", g.host_latency},
-        {"host_last_time", g.host_last_time},
-        {"category_bits", g.category_bits},
-        {"game_name", game_name},
-        {"game_description", game_desc},
-        {"extra_bytes", g.extra_bytes},
-        {"program_id", g.program_id},
-        {"version_id", g.version_id}
-    };
-}
-
-inline void from_json(const Json& j, GameInfo& g) {
-    j.at("game_index").get_to(g.game_index);
-    j.at("game_state").get_to(g.game_state);
-    j.at("creation_time").get_to(g.creation_time);
-    j.at("host").get_to(g.host);
-    j.at("host_latency").get_to(g.host_latency);
-    j.at("host_last_time").get_to(g.host_last_time);
-    j.at("category_bits").get_to(g.category_bits);
-
-    auto name = j["game_name"].get<std::string>();
-    simdutf::convert_utf8_to_latin1(name, std::span(g.game_name));
-    auto description = j["game_description"].get<std::string>();
-    simdutf::convert_utf8_to_latin1(description, std::span(g.game_description));
-
-    j.at("extra_bytes").get_to(g.extra_bytes);
-    j.at("program_id").get_to(g.program_id);
-    j.at("version_id").get_to(g.version_id);
-    g.pNext = nullptr;
-    g.pExtra = nullptr;
-}
+template <>
+struct std::hash<NetAddress> {
+    size_t operator()(const NetAddress& address) const {
+        size_t hash = 0;
+        for (auto c : address.bytes) {
+            hash <<= 1;
+            hash ^= std::hash<u8>{}(c);
+        }
+        return hash;
+    }
+};
 
 inline bool operator==(const AdFile& a1, const AdFile& a2) {
     return (
         a1.game_info == a2.game_info && memcmp(a1.extra_bytes, a2.extra_bytes, sizeof(a1.extra_bytes)) == 0 &&
         a1.turns_per_second == a2.turns_per_second
     );
-}
-
-inline void to_json(Json& j, const AdFile& ad_file) {
-    j = Json{
-        {"game_info", ad_file.game_info},
-        {"extra_bytes", Json::binary({ad_file.extra_bytes, ad_file.extra_bytes + 32})},
-        {"crownlink_mode", ad_file.turns_per_second}
-    };
-}
-
-inline void from_json(const Json& j, AdFile& ad_file) {
-    j.at("game_info").get_to(ad_file.game_info);
-    j.at("crownlink_mode").get_to(ad_file.turns_per_second);
-    auto extra_bytes = j["extra_bytes"].get_binary();
-    std::copy(extra_bytes.begin(), extra_bytes.end(), ad_file.extra_bytes);
 }
 
 inline std::string to_string(GamePacketType value) {
@@ -209,3 +139,112 @@ inline GamePacket make_game_packet(const NetAddress& sender, const char* data, s
     memcpy(&packet.data, data, packet.size);
     return packet;
 }
+
+namespace rfl {
+
+// NetAddress travels as a 16-byte CBOR byte string; short strings are copied partially (lenient, matches the previous from_json)
+template <>
+struct Reflector<::NetAddress> {
+    using ReflType = Bytestring;
+    static ::NetAddress to(const ReflType& value) noexcept {
+        NetAddress address{};
+        const auto copy_size = std::min(value.size(), address.bytes.size());
+        std::memcpy(address.bytes.data(), value.data(), copy_size);
+        return address;
+    }
+    static ReflType from(const ::NetAddress& value) noexcept {
+        return Bytestring(
+            reinterpret_cast<const std::byte*>(value.bytes.data()),
+            reinterpret_cast<const std::byte*>(value.bytes.data()) + value.bytes.size()
+        );
+    }
+};
+
+}  // namespace rfl
+
+struct GameInfoWire {
+    u32 game_index{};
+    u32 game_state{};
+    u32 creation_time{};
+    NetAddress host{};
+    u32 host_latency{};
+    u32 host_last_time{};
+    u32 category_bits{};
+    std::string game_name{};
+    std::string game_description{};
+    u32 extra_bytes{};
+    u32 program_id{};
+    u32 version_id{};
+
+    static GameInfoWire from_class(const GameInfo& game) noexcept {
+        GameInfoWire wire{};
+        wire.game_index = game.game_index;
+        wire.game_state = game.game_state;
+        wire.creation_time = game.creation_time;
+        wire.host = game.host;
+        wire.host_latency = game.host_latency;
+        wire.host_last_time = game.host_last_time;
+        wire.category_bits = game.category_bits;
+        char name_buffer[256]{};
+        simdutf::convert_latin1_to_utf8(std::string_view(game.game_name), std::span(name_buffer));
+        wire.game_name = name_buffer;
+        char description_buffer[256]{};
+        simdutf::convert_latin1_to_utf8(std::string_view(game.game_description), std::span(description_buffer));
+        wire.game_description = description_buffer;
+        wire.extra_bytes = game.extra_bytes;
+        wire.program_id = game.program_id;
+        wire.version_id = game.version_id;
+        return wire;
+    }
+
+    GameInfo to_class() const noexcept {
+        GameInfo game{};
+        game.game_index = game_index;
+        game.game_state = game_state;
+        game.creation_time = creation_time;
+        game.host = host;
+        game.host_latency = host_latency;
+        game.host_last_time = host_last_time;
+        game.category_bits = category_bits;
+        simdutf::convert_utf8_to_latin1(game_name, std::span(game.game_name));
+        simdutf::convert_utf8_to_latin1(game_description, std::span(game.game_description));
+        game.extra_bytes = extra_bytes;
+        game.program_id = program_id;
+        game.version_id = version_id;
+        return game;
+    }
+};
+
+struct AdFileWire {
+    GameInfo game_info{};
+    rfl::Bytestring extra_bytes{};
+    u32 crownlink_mode{};
+
+    static AdFileWire from_class(const AdFile& ad_file) noexcept {
+        AdFileWire wire{};
+        wire.game_info = ad_file.game_info;
+        wire.extra_bytes = rfl::Bytestring(
+            reinterpret_cast<const std::byte*>(ad_file.extra_bytes),
+            reinterpret_cast<const std::byte*>(ad_file.extra_bytes) + sizeof(ad_file.extra_bytes)
+        );
+        wire.crownlink_mode = ad_file.turns_per_second;
+        return wire;
+    }
+
+    AdFile to_class() const noexcept {
+        AdFile ad_file{};
+        ad_file.game_info = game_info;
+        const auto copy_size = std::min(extra_bytes.size(), sizeof(ad_file.extra_bytes));
+        std::memcpy(ad_file.extra_bytes, extra_bytes.data(), copy_size);
+        ad_file.turns_per_second = crownlink_mode;
+        return ad_file;
+    }
+};
+
+namespace rfl::parsing {
+template <class R, class W, class P>
+struct Parser<R, W, ::GameInfo, P> : public CustomParser<R, W, P, ::GameInfo, GameInfoWire> {};
+
+template <class R, class W, class P>
+struct Parser<R, W, ::AdFile, P> : public CustomParser<R, W, P, ::AdFile, AdFileWire> {};
+}  // namespace rfl::parsing

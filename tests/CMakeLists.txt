@@ -14,7 +14,8 @@ target_include_directories(SerializationTests
 )
 target_link_libraries(SerializationTests
     PRIVATE Catch2::Catch2WithMain
-    PRIVATE nlohmann_json::nlohmann_json
+    PRIVATE reflectcpp
+    PRIVATE jsoncons
     PRIVATE storm::headers
     PRIVATE crownlink_version
     PRIVATE simdutf

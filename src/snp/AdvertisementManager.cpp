@@ -16,7 +16,7 @@ bool AdvertisementManager::is_advertising() const {
 void AdvertisementManager::request_advertisements() {
     spdlog::trace("Requesting lobbies");
     std::unique_lock lock{m_ad_mutex};
-    auto request = CrownLinkProtocol::AdvertisementsRequest{{}, m_lobby_password};
+    auto request = CrownLinkProtocol::AdvertisementsRequest{m_lobby_password};
     g_context->crowserve().socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, request);
 
     switch (g_context->crowserve().socket().state()) {
@@ -52,7 +52,7 @@ void AdvertisementManager::send_advertisement() {
         m_ad_data.game_info.host = g_context->crowserve().socket().id();
     }
 
-    auto message = CrownLinkProtocol::StartAdvertising{{}, m_ad_data, m_lobby_password};
+    auto message = CrownLinkProtocol::StartAdvertising{m_ad_data, m_lobby_password};
     g_context->crowserve().socket().send_messages(CrowServe::ProtocolType::ProtocolCrownLink, message);
 }
 

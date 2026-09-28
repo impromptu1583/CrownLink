@@ -3,11 +3,25 @@
 #include "shared/StormTypes.h"
 #include "shared/common.h"
 
+#include <rfl.hpp>
+
 enum class JuiceAgentType {
     RelayFallback,  // Legacy behavior
     P2P,
     Relay,
 };
+
+namespace rfl {
+
+// As unterlying integer (go fxamacker decodes to go enum)
+template <>
+struct Reflector<::JuiceAgentType> {
+    using ReflType = u32;
+    static ::JuiceAgentType to(const ReflType& value) noexcept { return static_cast<::JuiceAgentType>(value); }
+    static ReflType from(const ::JuiceAgentType& value) noexcept { return std::to_underlying(value); }
+};
+
+}  // namespace rfl
 
 namespace P2P {
 
@@ -25,41 +39,35 @@ struct Header {
     NetAddress peer_id;
     JuiceAgentType agent_type;
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Header, peer_id, agent_type)
 
 struct ConnectionRequest {
     Header header;
     u32 counter = 0;
     inline MessageType type() const { return MessageType::ConnectionRequest; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ConnectionRequest, header, counter)
 
 struct Pong {
     Header header;
     std::string timestamp;
     inline MessageType type() const { return MessageType::Pong; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Pong, header, timestamp)
 
 struct JuiceLocalDescription {
     Header header;
     std::string sdp;
     inline MessageType type() const { return MessageType::JuiceLocalDescription; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceLocalDescription, header, sdp)
 
 struct JuiceCandidate {
     Header header;
     std::string candidate;
     inline MessageType type() const { return MessageType::JuiceCandidate; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceCandidate, header, candidate)
 
 struct JuiceDone {
     Header header;
     inline MessageType type() const { return MessageType::JuiceDone; }
 };
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(JuiceDone, header)
 
 class Protocol {
 public:
@@ -68,28 +76,33 @@ public:
         switch (MessageType(message_type)) {
             case MessageType::ConnectionRequest: {
                 ConnectionRequest deserialized{};
-                deserialize_cbor_into(deserialized, message);
-                handler(deserialized);
+                if (deserialize_cbor_into(deserialized, message)) {
+                    handler(deserialized);
+                }
             } break;
             case MessageType::Pong: {
                 Pong deserialized{};
-                deserialize_cbor_into(deserialized, message);
-                handler(deserialized);
+                if (deserialize_cbor_into(deserialized, message)) {
+                    handler(deserialized);
+                }
             } break;
             case MessageType::JuiceLocalDescription: {
                 JuiceLocalDescription deserialized{};
-                deserialize_cbor_into(deserialized, message);
-                handler(deserialized);
+                if (deserialize_cbor_into(deserialized, message)) {
+                    handler(deserialized);
+                }
             } break;
             case MessageType::JuiceCandidate: {
                 JuiceCandidate deserialized{};
-                deserialize_cbor_into(deserialized, message);
-                handler(deserialized);
+                if (deserialize_cbor_into(deserialized, message)) {
+                    handler(deserialized);
+                }
             } break;
             case MessageType::JuiceDone: {
                 JuiceDone deserialized{};
-                deserialize_cbor_into(deserialized, message);
-                handler(deserialized);
+                if (deserialize_cbor_into(deserialized, message)) {
+                    handler(deserialized);
+                }
             } break;
         }
     }

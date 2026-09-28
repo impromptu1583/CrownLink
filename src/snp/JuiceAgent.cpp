@@ -24,23 +24,21 @@ JuiceAgent::JuiceAgent(AgentPair& parent, const NetAddress& address, CrownLinkPr
     m_config.cb_recv = on_recv;
     m_config.user_ptr = this;
 
-    if (ice_credentials.turn_servers_count) {
-        for (u32 i = 0; i < ice_credentials.turn_servers_count; i++) {
-            m_servers[i].host = ice_credentials.turn_servers[i].host.c_str();
-            m_servers[i].username = ice_credentials.turn_servers[i].username.c_str();
-            m_servers[i].password = ice_credentials.turn_servers[i].password.c_str();
-            const auto result = std::from_chars(
-                ice_credentials.turn_servers[i].port.data(),
-                ice_credentials.turn_servers[i].port.data() + ice_credentials.turn_servers[i].port.size(),
-                m_servers[i].port
-            );
-            if (result.ec == std::errc::invalid_argument or result.ec == std::errc::result_out_of_range) {
-                spdlog::error("Invalid turn port received: {}", ice_credentials.turn_servers[i].port);
-            }
+    const auto& turn_servers = ice_credentials.turn_server_list();
+    const auto server_count = std::min<std::size_t>(turn_servers.size(), std::size(m_servers));
+    for (std::size_t i = 0; i < server_count; i++) {
+        m_servers[i].host = turn_servers[i].host.c_str();
+        m_servers[i].username = turn_servers[i].username.c_str();
+        m_servers[i].password = turn_servers[i].password.c_str();
+        const auto result = std::from_chars(
+            turn_servers[i].port.data(), turn_servers[i].port.data() + turn_servers[i].port.size(), m_servers[i].port
+        );
+        if (result.ec == std::errc::invalid_argument or result.ec == std::errc::result_out_of_range) {
+            spdlog::error("Invalid turn port received: {}", turn_servers[i].port);
         }
-        m_config.turn_servers = m_servers;
-        m_config.turn_servers_count = ice_credentials.turn_servers_count;
     }
+    m_config.turn_servers = m_servers;
+    m_config.turn_servers_count = static_cast<u32>(server_count);
 
     m_agent = juice_create(&m_config);
 
