@@ -33,7 +33,6 @@
 # The generated import library is unused; exports come from CrownLink.def
 add_library(SNP SHARED ${MODULE_FILES})
 
-set(VCPKG_TARGET_TRIPLET "x86-windows-static")
 
 set(outname "CrownLink")
 

@@ -1,0 +1,88 @@
+name: Release
+
+# Pushing a vMAJOR.MINOR.PATCH[-PRERELEASE] tag builds CrownLink.snp and opens a draft
+# GitHub release for it. Tags with a prerelease part (v1.2.4-rc.1) are marked as
+# prereleases, so they never become "latest". Running manually only builds.
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      BUILD_DIR: out/build/x86-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # git describe needs the full history and tags to derive the version
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Configure
+        run: cmake --preset x86-release
+
+      - name: Build
+        run: cmake --build ${{ env.BUILD_DIR }}
+
+      - name: Test
+        run: ctest --test-dir ${{ env.BUILD_DIR }} --output-on-failure
+
+      - name: Check version matches tag
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $header = Get-Content "$env:BUILD_DIR/generated/crownlink/version.h" -Raw
+          if ($header -notmatch '#define CL_VERSION_STRING "(.*)"') { throw "CL_VERSION_STRING not found" }
+          $built = $Matches[1]
+          $expected = $env:TAG.Substring(1)
+          if ($built -ne $expected) { throw "Built version '$built' does not match tag '$env:TAG'" }
+          "Built version $built"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CrownLink
+          path: |
+            ${{ env.BUILD_DIR }}/dist/CrownLink.snp
+            ${{ env.BUILD_DIR }}/link/CrownLink.pdb
+          if-no-files-found: error
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: CrownLink
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease_flags=()
+          if [[ "$TAG" == *-* ]]; then
+            prerelease_flags=(--prerelease --latest=false)
+          fi
+          gh release create "$TAG" CrownLink.snp \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --draft \
+            --title "$TAG" \
+            --generate-notes \
+            "${prerelease_flags[@]}"

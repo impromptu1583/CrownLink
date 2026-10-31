@@ -1,4 +1,4 @@
-# Version single source of truth: the git tag (vMAJOR.MINOR.PATCH).
+# Version single source of truth: the git tag (vMAJOR.MINOR.PATCH[-PRERELEASE]).
 # crownlink/version.h is generated at configure time and refreshed on every build;
 # VersionStamp.cmake rewrites it only when its content changes, so incremental
 # builds stay incremental. When the numeric version changes (a new tag), the

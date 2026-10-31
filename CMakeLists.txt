@@ -4,7 +4,7 @@
 
 cmake_minimum_required (VERSION 3.25)
 
-set(_VCPKG_TARGET_TRIPLET_ARCH x86)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -19,7 +19,7 @@ project ("CrownLink")
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF)
 
-# Version single source of truth: the git tag (vMAJOR.MINOR.PATCH), see cmake/Version.cmake
+# Version single source of truth: the git tag (vMAJOR.MINOR.PATCH[-PRERELEASE]), see cmake/Version.cmake
 include(cmake/Version.cmake)
 crownlink_setup_version()
 

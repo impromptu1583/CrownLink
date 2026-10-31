@@ -21,8 +21,10 @@ set(version_minor 0)
 set(version_patch 0)
 set(version_string "0.0.0-dev")
 
+# --long always appends -<distance>-g<hash>, so a hyphenated prerelease such as
+# v1.2.4-rc.1 can be split from the describe suffix unambiguously
 execute_process(
-    COMMAND git describe --tags --match "v[0-9]*" --dirty
+    COMMAND git describe --tags --long --match "v[0-9]*" --dirty
     WORKING_DIRECTORY "${REPO_DIR}"
     RESULT_VARIABLE describe_result
     OUTPUT_VARIABLE describe_output
@@ -32,27 +34,47 @@ execute_process(
 )
 
 if(describe_result EQUAL 0)
-    if(describe_output MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)(-[0-9]+-g[0-9a-f]+)?(-dirty)?$")
-        set(version_major "${CMAKE_MATCH_1}")
-        set(version_minor "${CMAKE_MATCH_2}")
-        set(version_patch "${CMAKE_MATCH_3}")
-        set(version_string "${CMAKE_MATCH_1}.${CMAKE_MATCH_2}.${CMAKE_MATCH_3}")
-        if(CMAKE_MATCH_4)
-            string(APPEND version_string "${CMAKE_MATCH_4}")
-        endif()
-        if(CMAKE_MATCH_5)
-            string(APPEND version_string "-dirty")
-        endif()
-    else()
+    set(describe_rest "${describe_output}")
+    set(dirty FALSE)
+    if(describe_rest MATCHES "^(.*)-dirty$")
+        set(dirty TRUE)
+        set(describe_rest "${CMAKE_MATCH_1}")
+    endif()
+    if(NOT describe_rest MATCHES "^(.*)-([0-9]+)-g([0-9a-f]+)$")
+        message(FATAL_ERROR "Unexpected git describe output '${describe_output}'")
+    endif()
+    set(tag "${CMAKE_MATCH_1}")
+    set(commits_since_tag "${CMAKE_MATCH_2}")
+    set(commit_hash "${CMAKE_MATCH_3}")
+
+    if(NOT tag MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$")
         message(FATAL_ERROR
-            "Nearest version tag '${describe_output}' does not follow the vMAJOR.MINOR.PATCH "
-            "policy (e.g. v1.2.1). Delete or rename the tag, then reconfigure."
+            "Nearest version tag '${tag}' does not follow the vMAJOR.MINOR.PATCH[-PRERELEASE] "
+            "policy (e.g. v1.2.1 or v1.2.4-rc.1). Delete or rename the tag, then reconfigure."
         )
+    endif()
+    set(version_major "${CMAKE_MATCH_1}")
+    set(version_minor "${CMAKE_MATCH_2}")
+    set(version_patch "${CMAKE_MATCH_3}")
+    string(SUBSTRING "${tag}" 1 -1 version_string)
+
+    # Semver build metadata: untagged or modified builds sort equal to their tag and
+    # never look like a release, e.g. 1.2.4-rc.1+3.g1a2b3c4.dirty
+    set(build_metadata "")
+    if(NOT commits_since_tag EQUAL 0)
+        list(APPEND build_metadata "${commits_since_tag}" "g${commit_hash}")
+    endif()
+    if(dirty)
+        list(APPEND build_metadata "dirty")
+    endif()
+    if(build_metadata)
+        list(JOIN build_metadata "." build_metadata)
+        string(APPEND version_string "+${build_metadata}")
     endif()
 else()
     message(WARNING
         "git describe failed (${describe_error}); falling back to 0.0.0-dev. "
-        "Create a vMAJOR.MINOR.PATCH tag to get a real version."
+        "Create a vMAJOR.MINOR.PATCH[-PRERELEASE] tag to get a real version."
     )
 endif()
 
