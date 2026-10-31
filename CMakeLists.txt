@@ -6,6 +6,7 @@ cmake_minimum_required (VERSION 3.25)
 
 set(_VCPKG_TARGET_TRIPLET_ARCH x86)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # Enable Hot Reload for MSVC compilers if supported.
 if (POLICY CMP0141)

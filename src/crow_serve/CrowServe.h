@@ -86,7 +86,8 @@ struct MessageHeader {
 
 #pragma pack(pop)
 
-bool init_sockets();
+// Returns 0 on success, otherwise the WSAStartup error code
+s32 init_sockets();
 void deinit_sockets();
 
 using StatusCallback = void(*)(SocketState, void*);
@@ -95,7 +96,7 @@ class Socket {
 public:
     using Logger = std::function<void(const std::string&)>;
 
-    Socket() { init_sockets(); };
+    Socket() : m_init_error{init_sockets()} {}
 
     Socket(const Socket&) = delete;
     Socket(Socket&&) = delete;
@@ -104,7 +105,9 @@ public:
 
     ~Socket() {
         disconnect();
-        deinit_sockets();
+        if (!m_init_error) {
+            deinit_sockets();
+        }
     };
 
     void try_init(std::stop_token& stop_token);
@@ -136,6 +139,9 @@ public:
         m_lobby_password = lobby_password;
         return std::jthread{[this,
             handler = Overloaded{std::forward<Handlers>(handlers)...}](std::stop_token stop_token) {
+            if (m_init_error) {
+                try_log("Error: WSAStartup failed with error {}", m_init_error);
+            }
             while (!stop_token.stop_requested()) {
                 if (m_state != SocketState::Ready) {
                     try_init(stop_token);
@@ -307,6 +313,7 @@ private:
 
 private:
     Logger m_external_logger;
+    s32 m_init_error = 0;
 
     SOCKET m_socket = 0;
     WSAPOLLFD m_poll_fd[1] = {0};

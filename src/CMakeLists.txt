@@ -13,6 +13,7 @@
     "snp/CrowServeManager.cpp"
     "snp/CrowServeManager.h"
     "snp/Logger.h"
+    "snp/Logger.cpp"
     "snp/Globals.h"
     "snp/version.rc"
     "shared/types.h"

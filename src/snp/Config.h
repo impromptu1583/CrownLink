@@ -69,29 +69,6 @@ public:
             load_field(json, "add_map_to_lobby_name", config.add_map_to_lobby_name);
 
             load_field(json, "log_level", config.log_level);
-            switch (config.log_level) {
-                case LogLevel::Trace: {
-                    spdlog::set_level(spdlog::level::trace);
-                } break;
-                case LogLevel::Debug: {
-                    spdlog::set_level(spdlog::level::debug);
-                } break;
-                case LogLevel::Info: {
-                    spdlog::set_level(spdlog::level::info);
-                } break;
-                case LogLevel::Warn: {
-                    spdlog::set_level(spdlog::level::warn);
-                } break;
-                case LogLevel::Error: {
-                    spdlog::set_level(spdlog::level::err);
-                } break;
-                case LogLevel::Fatal: {
-                    spdlog::set_level(spdlog::level::critical);
-                } break;
-                case LogLevel::None: {
-                    spdlog::set_level(spdlog::level::off);
-                } break;
-            }
         }
 
         save(config);
@@ -113,9 +90,9 @@ public:
         };
 
         if (m_config_existed) {
-            spdlog::info("Creating new config at {}", m_path.string());
-        } else {
             spdlog::info("Updating config at {}", m_path.string());
+        } else {
+            spdlog::info("Creating new config at {}", m_path.string());
         }
 
         std::ofstream file{m_path};

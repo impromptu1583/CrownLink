@@ -10,55 +10,6 @@
 
 namespace snp {
 
-static void init_logging() {
-    const auto& snp_config = SnpConfig::instance();
-    spdlog::init_thread_pool(8192, 1);
-
-    const auto log_filename = (g_starcraft_dir / "crownlink_logs" / "CrownLink.txt").generic_string();
-    auto standard_sink = std::make_shared<spdlog::sinks::daily_file_sink_mt>(log_filename, 2, 30);
-    standard_sink->set_level(spdlog::level::debug);
-
-    const auto trace_filename = (g_starcraft_dir / "crownlink_logs" / "CLTrace.txt").generic_string();
-    auto trace_sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(trace_filename, 1024 * 1024 * 10, 3);
-    trace_sink->set_level(spdlog::level::trace);
-
-    auto logger = std::make_shared<spdlog::async_logger>(
-        "CL", std::initializer_list<spdlog::sink_ptr>{std::move(standard_sink), std::move(trace_sink)},
-        spdlog::thread_pool(), spdlog::async_overflow_policy::block
-    );
-    spdlog::register_logger(logger);
-    logger->flush_on(spdlog::level::debug);
-    spdlog::set_default_logger(logger);
-
-    switch (snp_config.log_level) {
-        case LogLevel::Trace: {
-            spdlog::set_level(spdlog::level::trace);
-        } break;
-        case LogLevel::Debug: {
-            spdlog::set_level(spdlog::level::debug);
-        } break;
-        case LogLevel::Info: {
-            spdlog::set_level(spdlog::level::info);
-            spdlog::enable_backtrace(32);
-        } break;
-        case LogLevel::Warn: {
-            spdlog::set_level(spdlog::level::warn);
-            spdlog::enable_backtrace(32);
-        } break;
-        case LogLevel::Error: {
-            spdlog::set_level(spdlog::level::err);
-            spdlog::enable_backtrace(32);
-        } break;
-        case LogLevel::Fatal: {
-            spdlog::set_level(spdlog::level::critical);
-            spdlog::enable_backtrace(32);
-        } break;
-        case LogLevel::None: {
-            spdlog::set_level(spdlog::level::off);
-            spdlog::enable_backtrace(32);
-        } break;
-    }
-}
 
 //===========================================================================
 //
@@ -112,8 +63,8 @@ static bool set_provider_turns_per_second(TurnsPerSecond turns_per_second) {
 
 static b32 __stdcall spi_initialize(ClientInfo* client_info, UserInfo* user_info, BattleInfo* callbacks, ModuleInfo* module_data, handle event) {
     // called by storm when the CrownLink connection mode is selected from the multiplayer menu
+    ensure_logging();
     const auto& snp_config = SnpConfig::instance();
-    init_logging();
     capture_provider_caps();
 
     try {
@@ -146,7 +97,7 @@ static b32 __stdcall spi_destroy() {
         spdlog::error("Unhandled error {} in {}", e.what(), __FUNCSIG__);
         return false;
     }
-    spdlog::shutdown();
+    spdlog::default_logger_raw()->flush();
 
     return true;
 }

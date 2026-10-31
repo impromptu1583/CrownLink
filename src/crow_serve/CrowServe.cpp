@@ -3,12 +3,12 @@
 
 namespace CrowServe {
 
-bool init_sockets() {
+s32 init_sockets() {
 #ifdef Windows
     WSADATA WsaData;
-    return WSAStartup(MAKEWORD(2, 2), &WsaData) == NO_ERROR;
+    return WSAStartup(MAKEWORD(2, 2), &WsaData);
 #else
-    return true;
+    return 0;
 #endif
 }
 

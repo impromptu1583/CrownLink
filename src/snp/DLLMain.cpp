@@ -10,24 +10,40 @@
 BOOL WINAPI SnpQuery(
     u32 index, u32* out_network_code, char** out_network_name, char** out_network_description, Caps** out_caps
 ) {
-    if (index < std::size(snp::provider_ids) && out_network_code && out_network_name && out_network_description &&
-        out_caps) {
-        *out_network_code = g_network_info.id;
-        *out_network_name = g_network_info.name;
-        *out_network_description = g_network_info.description;
-        *out_caps = &g_network_info.caps;
-        return true;
+    ensure_logging();
+    constexpr auto provider_count = std::size(snp::provider_ids);
+    // storm queries increasing indices until this returns false, so this is the normal end of enumeration
+    if (index == provider_count) {
+        return false;
     }
-    return false;
+    if (index > provider_count || !out_network_code || !out_network_name || !out_network_description || !out_caps) {
+        spdlog::critical(
+            "SnpQuery failed, index: {} (provider count: {}), out_network_code: {}, out_network_name: {}, "
+            "out_network_description: {}, out_caps: {}",
+            index, provider_count, fmt::ptr(out_network_code), fmt::ptr(out_network_name),
+            fmt::ptr(out_network_description), fmt::ptr(out_caps)
+        );
+        return false;
+    }
+    *out_network_code = g_network_info.id;
+    *out_network_name = g_network_info.name;
+    *out_network_description = g_network_info.description;
+    *out_caps = &g_network_info.caps;
+    return true;
 }
 
 BOOL WINAPI SnpBind(u32 index, NetFunctions** out_funcs) {
-    if (index < std::size(snp::provider_ids) && out_funcs) {
-        snp::record_bound_provider(index);
-        *out_funcs = &snp::g_spi_functions;
-        return true;
+    ensure_logging();
+    if (index >= std::size(snp::provider_ids) || !out_funcs) {
+        spdlog::critical(
+            "SnpBind failed, index: {} (provider count: {}), out_funcs: {}", index, std::size(snp::provider_ids),
+            fmt::ptr(out_funcs)
+        );
+        return false;
     }
-    return false;
+    snp::record_bound_provider(index);
+    *out_funcs = &snp::g_spi_functions;
+    return true;
 }
 
 u32 WINAPI version() {
@@ -101,26 +117,23 @@ static void juice_logger(juice_log_level_t log_level, const char* message) {
     }
 }
 
-static void dll_start() {
-    WSADATA wsaData{};
-    WORD wVersionRequested = MAKEWORD(2, 2);
-    if (auto error_code = WSAStartup(wVersionRequested, &wsaData); error_code != S_OK) {
-        spdlog::critical("WSAStartup failed with error {}", error_code);
-    }
-
-    juice_set_log_handler(juice_logger);
-    juice_set_log_level(JUICE_LOG_LEVEL_INFO);
-}
-
-static void dll_exit() {
-    WSACleanup();
-}
-
 BOOL WINAPI DllMain(HINSTANCE instance, u32 reason, LPVOID reserved) {
     switch (reason) {
         case DLL_PROCESS_ATTACH: {
-            dll_start();
-            std::atexit(dll_exit);
+            juice_set_log_handler(juice_logger);
+            juice_set_log_level(JUICE_LOG_LEVEL_INFO);
+        } break;
+        case DLL_PROCESS_DETACH: {
+            // Never destroy the context here: on process exit its threads are already dead, and on FreeLibrary
+            // joining them under the loader lock deadlocks. Releasing it now keeps the CRT's static teardown away
+            // from it. reserved is null for FreeLibrary, where storm always calls spi_destroy first
+            if (!reserved) {
+                if (g_context) {
+                    spdlog::warn("Unloaded with a live context, leaking it");
+                }
+                release_logging();
+            }
+            (void)g_context.release();
         } break;
     }
     return true;

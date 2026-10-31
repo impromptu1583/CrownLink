@@ -26,6 +26,12 @@ enum class MessageType;
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/spdlog.h"
 
+// Creates the file logger and applies the configured level; safe to call repeatedly from any SNP entry point
+void ensure_logging();
+
+// Flushes and lets the logger close its files during module teardown; only safe while no other thread can log
+void release_logging();
+
 template <>
 struct fmt::formatter<NetAddress> : ostream_formatter {};
 
