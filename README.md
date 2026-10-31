@@ -19,7 +19,7 @@ You may see games in the multiplayer menu tagged with `[Relayed]` in the game na
 ## Releasing
 The version comes from the nearest git tag, which must look like `vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-PRERELEASE` (prefer dotted prerelease numbers like `v1.2.4-rc.1` so they sort correctly). Builds made after a tag or from a modified tree get semver build metadata, e.g. `1.2.4-rc.1+3.g1a2b3c4.dirty`.
 
-Pushing a tag runs `.github/workflows/release.yml`. It builds and tests `CrownLink.snp`, then opens a draft release with the binary attached. Tags with a prerelease part are marked as prereleases and never become "latest". Edit the notes and publish the draft.
+Pushing a tag runs `.github/workflows/release.yml`. It builds and tests `CrownLink.snp`, then opens a draft release with `CrownLink.snp` and `CrownLink.pdb` attached. Tags with a prerelease part are marked as prereleases and never become "latest". Edit the notes and publish the draft.
 
 # License
 This version of the code has some files from [BWAPI](https://github.com/bwapi/bwapi) and is therefore licensed GPLv3. (TODO: update licenses file)

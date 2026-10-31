@@ -1,7 +1,7 @@
 name: Release
 
 # Pushing a vMAJOR.MINOR.PATCH[-PRERELEASE] tag builds CrownLink.snp and opens a draft
-# GitHub release for it. Tags with a prerelease part (v1.2.4-rc.1) are marked as
+# GitHub release with it and its pdb. Tags with a prerelease part (v1.2.4-rc.1) are marked as
 # prereleases, so they never become "latest". Running manually only builds.
 
 on:
@@ -79,7 +79,7 @@ jobs:
           if [[ "$TAG" == *-* ]]; then
             prerelease_flags=(--prerelease --latest=false)
           fi
-          gh release create "$TAG" CrownLink.snp \
+          gh release create "$TAG" dist/CrownLink.snp link/CrownLink.pdb \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             --draft \
